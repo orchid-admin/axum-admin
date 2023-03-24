@@ -1,0 +1,29 @@
+[package]
+name = "admin"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+axum = { workspace = true, default-features = false, features = ["headers"] }
+# async require (tokio debug add feature: tracing)
+tokio = { workspace = true, default-features = false, features = ["macros", "rt-multi-thread"] }
+# log require (tokio debug add feature(registry) to tracing-subscriber)
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, default-features = false, features = ["env-filter", "time", "local-time"]}
+# console-subscriber = {version = "0.1.8", default-features = false, features = ["env-filter"]}
+time = { workspace = true, default-features = false, features=["macros"]}
+# swagger require
+utoipa = { workspace = true, default-features = false, features = ["axum_extras"] }
+utoipa-swagger-ui = { workspace = true, default-features = false, features = ["axum"] }
+# json require
+serde = { workspace = true, default-features = false, features = ["derive"] }
+serde_json = { workspace = true }
+# captcha require
+captcha-rs = { workspace = true }
+# jwt require
+jsonwebtoken = { workspace = true }
+# static file require
+# tower = { version = "0.4", default-features = false, features = ["util"] }
+# tower-http = { version = "0.3", default-features = false, features = ["fs", "trace"] }
