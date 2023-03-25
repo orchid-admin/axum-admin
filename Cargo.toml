@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "prisma",
+    "cli",
     "service",
     "app/api",
     "app/admin",
@@ -9,39 +9,40 @@ members = [
 resolver = "2"
 
 [workspace.package]
-name = "orchid"
 version = "0.1.0"
 edition = "2021"
 
 [workspace.dependencies]
-axum = "0.6"
+# web server require
+axum = { version = "0.6", default-features = false, features = ["headers"] }
+axum-auth = { version = "0.4", features = ["auth-bearer"] }
 # async require
-tokio = "1.17"
+tokio = { version = "1.17", default-features = false, features = ["macros", "rt-multi-thread"] }
 # log require
-tracing = "0.1"
-tracing-subscriber = "0.3"
-console-subscriber = "0.1"
-time = "0.3"
+tracing = { version = "0.1" }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "time", "local-time"] }
+console-subscriber = { version = "0.1.8", default-features = false, features = ["env-filter"] }
+time = { version = "0.3", default-features = false, features=["macros"] }
 # swagger require
-utoipa = "3.1"
-utoipa-swagger-ui = "3.1"
+utoipa = { version = "3.1", default-features = false, features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "3.1", default-features = false, features = ["axum"] }
 # json require
-serde = "1.0"
-serde_json = "1.0"
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+serde_json = { version = "1.0" }
 # captcha require
-captcha-rs = "0.2"
+captcha-rs = { version = "0.2" }
 # jwt require
-jsonwebtoken = "8.3"
+jsonwebtoken = { version = "8.3" }
 # static file require
-tower = "0.4"
-tower-http = "0.4"
+tower = { version = "0.4", default-features = false, features = ["util"] }
+tower-http = { version = "0.4", default-features = false, features = ["fs", "trace"] }
 # orm require
-prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.6" }
-prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.6" }
+prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.6", default-features = false, features = ["sqlite"] }
+prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.6", default-features = false, features = ["sqlite"] }
 
 [profile.release]
-codegen-units = 1 
-debug = false 
-lto = true 
+codegen-units = 1
+debug = false
+lto = true
 opt-level = "z"
 panic = 'abort'
