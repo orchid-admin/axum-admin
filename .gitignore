@@ -1,3 +1,5 @@
 /target
 /.idea
 /.vscode
+/prisma/dev.*
+/service/src/prisma.rs
