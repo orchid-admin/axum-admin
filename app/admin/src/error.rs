@@ -3,9 +3,13 @@ use serde::Serialize;
 
 pub type Result<T> = std::result::Result<T, ErrorCode>;
 
+#[derive(Debug)]
 pub enum ErrorCode {
     GenerateToken,
     TokenParse,
+    GeneratePassword,
+    ServerSteup,
+    GenerateCaptcha,
 }
 
 impl IntoResponse for ErrorCode {

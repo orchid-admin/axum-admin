@@ -28,3 +28,5 @@ jsonwebtoken = { workspace = true }
 # static file require
 # tower = { workspace = true }
 # tower-http = { workspace = true }
+argon2 = { version = "0.5" }
+password-hash = { version = "0.5.0", default-features = false, features = ["alloc", "rand_core"] }

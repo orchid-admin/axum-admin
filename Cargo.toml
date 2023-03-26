@@ -20,7 +20,7 @@ axum-auth = { version = "0.4", features = ["auth-bearer"] }
 tokio = { version = "1.17", default-features = false, features = ["macros", "rt-multi-thread"] }
 # log require
 tracing = { version = "0.1" }
-tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "time", "local-time"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "time", "local-time", "fmt"] }
 console-subscriber = { version = "0.1.8", default-features = false, features = ["env-filter"] }
 time = { version = "0.3", default-features = false, features=["macros"] }
 # swagger require

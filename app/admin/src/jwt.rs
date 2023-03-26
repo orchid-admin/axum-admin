@@ -10,6 +10,7 @@ pub struct Claims {
     exp: f64,
 }
 
+#[allow(dead_code)]
 impl Claims {
     const SECRET: &str = "secret";
     pub fn decode(token: String) -> Result<Self> {
