@@ -14,7 +14,7 @@ edition = "2021"
 
 [workspace.dependencies]
 # web server require
-axum = { version = "0.6", default-features = false, features = ["headers"] }
+axum = { version = "0.6", default-features = false, features = ["headers", "matched-path"] }
 axum-auth = { version = "0.4", features = ["auth-bearer"] }
 # async require
 tokio = { version = "1.17", default-features = false, features = ["macros", "rt-multi-thread"] }
@@ -39,6 +39,8 @@ tower-http = { version = "0.4", default-features = false, features = ["fs", "tra
 # orm require
 prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.6", default-features = false, features = ["sqlite"] }
 prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.6", default-features = false, features = ["sqlite"] }
+
+custom_attrs = "1.4"
 
 [profile.release]
 codegen-units = 1

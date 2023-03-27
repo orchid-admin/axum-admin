@@ -38,7 +38,7 @@ impl State {
     fn new() -> Self {
         Self {
             captcha: Mutex::new(Captcha::new(2, 10 * 60)),
-            jwt: Mutex::new(Jwt::new("secret", 2, 7)),
+            jwt: Mutex::new(Jwt::new("secret", 2, 7 * 24 * 60)),
         }
     }
 }
