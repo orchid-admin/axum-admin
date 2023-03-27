@@ -71,13 +71,13 @@ impl Jwt {
         self.data
             .clone()
             .into_iter()
-            .find(|x| x.token.eq(&token) && x.use_type.eq(use_type))
+            .find(|x| x.token.eq(token) && x.use_type.eq(use_type))
     }
 
     /// decode token
-    pub fn decode<T: DeserializeOwned>(&self, token: String) -> Result<T> {
+    pub fn decode<T: DeserializeOwned>(&self, token: &str) -> Result<T> {
         match decode::<T>(
-            &token,
+            token,
             &DecodingKey::from_secret(&self.secret.as_ref()),
             &Validation::default(),
         ) {

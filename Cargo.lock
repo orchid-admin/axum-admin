@@ -31,6 +31,7 @@ dependencies = [
  "axum",
  "axum-auth",
  "captcha-rs",
+ "custom_attrs",
  "jsonwebtoken",
  "password-hash",
  "serde",
@@ -633,6 +634,19 @@ dependencies = [
  "proptest",
  "rand 0.8.5",
  "sha3",
+]
+
+[[package]]
+name = "custom_attrs"
+version = "1.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f795813a4aeb565e0d79934b35199b3111fc4de8324c45fb20930f2bf44f32d"
+dependencies = [
+ "cfg-if",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]

@@ -1,7 +1,13 @@
-use axum::{middleware, Router};
+use axum::{
+    body::Body,
+    extract::{rejection::MatchedPathRejection, MatchedPath},
+    http::Request,
+    middleware::{self, map_request},
+    RequestExt, Router,
+};
 
 use crate::{
-    ctls::Auth,
+    ctls::{Auth, CtlRouter, User},
     state::{AppState, State},
 };
 pub fn init() -> Router {
@@ -12,8 +18,10 @@ pub fn init() -> Router {
 }
 
 fn auth_routers(state: AppState) -> Router {
-    use crate::middleware::auth;
+    use crate::middleware::{access_matched_path, auth};
     Router::new()
+        .merge(User::routers(state.clone()))
+        .layer(map_request(access_matched_path))
         .layer(middleware::from_fn_with_state(state.clone(), auth))
         .with_state(state)
 }
