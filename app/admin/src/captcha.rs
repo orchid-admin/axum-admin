@@ -1,14 +1,38 @@
+use crate::error::{ErrorCode, Result};
 use time::{Duration, OffsetDateTime};
 
-use crate::error::{ErrorCode, Result};
-
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct Captcha {
     data: Vec<CaptchaItem>,
+    interval: u64,
+    valid_seconds: i64,
 }
 
+impl Default for Captcha {
+    fn default() -> Self {
+        Self {
+            data: vec![],
+            interval: 1,
+            valid_seconds: 10 * 60,
+        }
+    }
+}
 #[allow(dead_code)]
 impl Captcha {
+    /// new with interval
+    pub fn new(interval: u64, valid_seconds: i64) -> Self {
+        Self {
+            data: vec![],
+            interval,
+            valid_seconds,
+        }
+    }
+
+    /// get interval
+    pub fn get_interval(&self) -> u64 {
+        self.interval
+    }
+    /// genrate captcha
     pub fn generate(
         &mut self,
         use_type: &str,
@@ -34,25 +58,24 @@ impl Captcha {
         }
     }
 
+    /// get items by use_type
     pub fn get_items(&self, use_type: &str) -> Vec<CaptchaItem> {
-        let mut array = vec![];
-        for item in self.data.clone().into_iter() {
-            if item.use_type.eq(use_type) {
-                array.push(item);
-            }
-        }
-        array
+        self.data
+            .clone()
+            .into_iter()
+            .filter(|x| x.use_type.eq(use_type))
+            .collect::<Vec<CaptchaItem>>()
     }
 
+    /// get item by key
     pub fn get_item(&self, use_type: &str, key: &str) -> Option<CaptchaItem> {
-        for item in self.data.clone().into_iter() {
-            if item.key.eq(&key) && item.use_type.eq(use_type) {
-                return Some(item);
-            }
-        }
-        None
+        self.data
+            .clone()
+            .into_iter()
+            .find(|x| x.key.eq(&key) && x.use_type.eq(use_type))
     }
 
+    /// remvoe captcha by key
     pub fn remove_item_by_key(&mut self, use_type: &str, key: &str) {
         self.data = self
             .data
@@ -62,11 +85,24 @@ impl Captcha {
             .collect::<Vec<CaptchaItem>>();
     }
 
+    /// remove valid captcha cache
+    pub fn remove_valid_items(&mut self) {
+        self.data = self
+            .data
+            .clone()
+            .into_iter()
+            .filter(|x| x.clone().check())
+            .collect::<Vec<CaptchaItem>>();
+    }
+
+    /// add captcha cache
     fn add(&mut self, use_type: &str, key: &str, text: &str) -> Result<bool> {
         Ok(match self.get_item(use_type, &key) {
             Some(_) => false,
             None => {
-                let exp = match OffsetDateTime::now_utc().checked_add(Duration::seconds(5)) {
+                let exp = match OffsetDateTime::now_utc()
+                    .checked_add(Duration::seconds(self.valid_seconds))
+                {
                     Some(times) => Ok(times.unix_timestamp_nanos()),
                     None => Err(ErrorCode::GenerateCaptcha),
                 }?;
@@ -80,15 +116,6 @@ impl Captcha {
             }
         })
     }
-
-    pub fn remove_valid_items(&mut self) {
-        self.data = self
-            .data
-            .clone()
-            .into_iter()
-            .filter(|x| x.clone().check())
-            .collect::<Vec<CaptchaItem>>();
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -101,10 +128,12 @@ pub struct CaptchaItem {
 
 #[allow(dead_code)]
 impl CaptchaItem {
+    /// get text
     pub fn get_text(self) -> String {
         self.text
     }
 
+    /// check captcha is can use
     pub fn check(self) -> bool {
         self.exp > OffsetDateTime::now_utc().unix_timestamp_nanos()
     }

@@ -7,6 +7,8 @@ pub type Result<T> = std::result::Result<T, ErrorCode>;
 pub enum ErrorCode {
     GenerateToken,
     TokenParse,
+    TokenNotExist,
+    TokenValid,
     GeneratePassword,
     ServerSteup,
     GenerateCaptcha,

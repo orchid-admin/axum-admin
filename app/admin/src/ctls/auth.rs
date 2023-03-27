@@ -1,12 +1,11 @@
+use super::Claims;
+use crate::{error::Result, state::AppState};
 use axum::{
     extract::{self, State},
     routing::{get, post},
     Json, Router,
 };
-
 use serde::{Deserialize, Serialize};
-
-use crate::{error::Result, jwt, state::AppState};
 
 pub struct Auth;
 
@@ -22,23 +21,38 @@ impl Auth {
     }
 
     async fn login_by_account(
+        State(state): State<AppState>,
         extract::Json(_params): extract::Json<LoginByAccountRequest>,
     ) -> Result<Json<impl Serialize>> {
-        let token = jwt::Claims::to_token(1)?;
+        let token = state
+            .jwt
+            .lock()
+            .await
+            .generate("admin", Claims { user_id: 1 })?;
         Ok(Json(LoginReponse { token }))
     }
 
     async fn login_by_mobile(
+        State(state): State<AppState>,
         extract::Json(_params): extract::Json<LoginByMobileRequest>,
     ) -> Result<Json<impl Serialize>> {
-        let token = jwt::Claims::to_token(1)?;
+        let token = state
+            .jwt
+            .lock()
+            .await
+            .generate("admin", Claims { user_id: 1 })?;
         Ok(Json(LoginReponse { token }))
     }
 
     async fn login_by_qrcode(
+        State(state): State<AppState>,
         extract::Json(_params): extract::Json<LoginByAccountRequest>,
     ) -> Result<Json<impl Serialize>> {
-        let token = jwt::Claims::to_token(1)?;
+        let token = state
+            .jwt
+            .lock()
+            .await
+            .generate("admin", Claims { user_id: 1 })?;
         Ok(Json(LoginReponse { token }))
     }
 
