@@ -15,7 +15,7 @@ async fn main() -> Result<()> {
 
     let app = router::init();
     axum::Server::bind(&"0.0.0.0:3001".parse().unwrap())
-        .serve(app)
+        .serve(app.into_make_service())
         .await
         .map_err(|_| ErrorCode::ServerSteup)?;
     Ok(())

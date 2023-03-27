@@ -1,45 +1,61 @@
-use axum::{extract, Json};
+use axum::{
+    extract::{self, State},
+    routing::{get, post},
+    Json, Router,
+};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{error::Result, jwt};
+use crate::{error::Result, jwt, state::AppState};
 
 pub struct Auth;
 
 #[allow(dead_code)]
 impl Auth {
-    pub async fn login_by_account(
+    pub fn routers<S>(state: AppState) -> Router<S> {
+        Router::new()
+            .route("/login_by_account", post(Auth::login_by_account))
+            .route("/login_by_mobile", post(Auth::login_by_mobile))
+            .route("/login_by_code", post(Auth::login_by_qrcode))
+            .route("/get_captcha", get(Auth::get_captcha))
+            .with_state(state)
+    }
+
+    async fn login_by_account(
         extract::Json(_params): extract::Json<LoginByAccountRequest>,
     ) -> Result<Json<impl Serialize>> {
         let token = jwt::Claims::to_token(1)?;
         Ok(Json(LoginReponse { token }))
     }
 
-    pub async fn login_by_mobile(
+    async fn login_by_mobile(
         extract::Json(_params): extract::Json<LoginByMobileRequest>,
     ) -> Result<Json<impl Serialize>> {
         let token = jwt::Claims::to_token(1)?;
         Ok(Json(LoginReponse { token }))
     }
 
-    pub async fn login_by_qrcode(
+    async fn login_by_qrcode(
         extract::Json(_params): extract::Json<LoginByAccountRequest>,
     ) -> Result<Json<impl Serialize>> {
         let token = jwt::Claims::to_token(1)?;
         Ok(Json(LoginReponse { token }))
     }
 
-    pub async fn get_captcha() -> Result<Json<impl Serialize>> {
-        Ok(Json(GetCaptchaReponse {
-            key: String::new(),
-            image: String::new(),
-        }))
+    async fn get_captcha(State(state): State<AppState>) -> Result<Json<impl Serialize>> {
+        let (key, image) = state
+            .captcha
+            .lock()
+            .await
+            .generate("login", 5, 130, 40, false, 1)?;
+
+        Ok(Json(GetCaptchaReponse { key, image }))
     }
 }
 
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
-pub struct LoginByAccountRequest {
+struct LoginByAccountRequest {
     username: String,
     password: String,
     key: String,
@@ -47,7 +63,7 @@ pub struct LoginByAccountRequest {
 }
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
-pub struct LoginByMobileRequest {
+struct LoginByMobileRequest {
     mobile: String,
     code: String,
 }
