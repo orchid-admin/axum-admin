@@ -14,6 +14,6 @@ pub fn init() -> Router {
 fn auth_routers(state: AppState) -> Router {
     use crate::middleware::auth;
     Router::new()
-        .layer(middleware::from_fn(auth))
+        .layer(middleware::from_fn_with_state(state.clone(), auth))
         .with_state(state)
 }
