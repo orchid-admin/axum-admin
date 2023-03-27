@@ -24,6 +24,7 @@ impl IntoResponse for ErrorCode {
 
 #[derive(Debug, Serialize)]
 struct ErrorResponse<'a> {
+    #[serde(rename = "errcode")]
     code: i64,
     msg: Option<&'a str>,
 }

@@ -1,4 +1,4 @@
-use time::{Duration, Instant};
+use time::{Duration, OffsetDateTime};
 
 use crate::error::{ErrorCode, Result};
 
@@ -9,18 +9,6 @@ pub struct Captcha {
 
 #[allow(dead_code)]
 impl Captcha {
-    pub async fn run_check(&mut self) {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1));
-        loop {
-            if let Some(items) = self.get_valid_items() {
-                for (_, index) in items.into_iter().enumerate() {
-                    self.data.remove(index);
-                }
-            }
-            interval.tick().await;
-        }
-    }
-
     pub fn generate(
         &mut self,
         use_type: &str,
@@ -39,15 +27,25 @@ impl Captcha {
             .compression(40)
             .build();
 
-        let key = Instant::now().elapsed().whole_nanoseconds().to_string();
+        let key = OffsetDateTime::now_utc().unix_timestamp_nanos().to_string();
         match self.add(use_type, &key, &captcha.text)? {
             true => Ok((key, captcha.to_base64())),
             false => Err(ErrorCode::GenerateCaptcha),
         }
     }
 
+    pub fn get_items(&self, use_type: &str) -> Vec<CaptchaItem> {
+        let mut array = vec![];
+        for item in self.data.clone().into_iter() {
+            if item.use_type.eq(use_type) {
+                array.push(item);
+            }
+        }
+        array
+    }
+
     pub fn get_item(&self, use_type: &str, key: &str) -> Option<CaptchaItem> {
-        for (_index, item) in self.data.clone().into_iter().enumerate() {
+        for item in self.data.clone().into_iter() {
             if item.key.eq(&key) && item.use_type.eq(use_type) {
                 return Some(item);
             }
@@ -55,22 +53,21 @@ impl Captcha {
         None
     }
 
-    pub fn remove_item_by_key(&mut self, use_type: &str, key: &str) -> bool {
-        for (index, item) in self.data.clone().into_iter().enumerate() {
-            if item.key.eq(&key) && item.use_type.eq(use_type) {
-                self.data.remove(index);
-                return true;
-            }
-        }
-        false
+    pub fn remove_item_by_key(&mut self, use_type: &str, key: &str) {
+        self.data = self
+            .data
+            .clone()
+            .into_iter()
+            .filter(|x| !x.key.eq(&key) && !x.use_type.eq(use_type))
+            .collect::<Vec<CaptchaItem>>();
     }
 
     fn add(&mut self, use_type: &str, key: &str, text: &str) -> Result<bool> {
         Ok(match self.get_item(use_type, &key) {
             Some(_) => false,
             None => {
-                let exp = match Instant::now().checked_add(Duration::minutes(10)) {
-                    Some(times) => Ok(times.elapsed().as_seconds_f64()),
+                let exp = match OffsetDateTime::now_utc().checked_add(Duration::seconds(5)) {
+                    Some(times) => Ok(times.unix_timestamp_nanos()),
                     None => Err(ErrorCode::GenerateCaptcha),
                 }?;
                 self.data.push(CaptchaItem {
@@ -84,27 +81,22 @@ impl Captcha {
         })
     }
 
-    fn get_valid_items(&self) -> Option<Vec<usize>> {
-        let mut array = vec![];
-        for (index, item) in self.data.clone().into_iter().enumerate() {
-            if !item.check() {
-                array.push(index);
-            }
-        }
-
-        if !array.is_empty() {
-            return Some(array);
-        }
-        None
+    pub fn remove_valid_items(&mut self) {
+        self.data = self
+            .data
+            .clone()
+            .into_iter()
+            .filter(|x| x.clone().check())
+            .collect::<Vec<CaptchaItem>>();
     }
 }
 
 #[derive(Debug, Clone)]
-struct CaptchaItem {
+pub struct CaptchaItem {
     use_type: String,
     key: String,
     text: String,
-    exp: f64,
+    exp: i128,
 }
 
 #[allow(dead_code)]
@@ -114,6 +106,6 @@ impl CaptchaItem {
     }
 
     pub fn check(self) -> bool {
-        self.exp > Instant::now().elapsed().as_seconds_f64()
+        self.exp > OffsetDateTime::now_utc().unix_timestamp_nanos()
     }
 }
