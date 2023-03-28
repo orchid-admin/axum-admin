@@ -9,7 +9,7 @@ use axum::{
 };
 use axum_auth::AuthBearer;
 
-pub async fn auth<B>(
+pub async fn token_check<B>(
     AuthBearer(token): AuthBearer,
     State(state): State<AppState>,
     mut req: Request<B>,

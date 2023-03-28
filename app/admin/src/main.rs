@@ -5,6 +5,7 @@ mod ctls;
 mod error;
 mod jwt;
 mod middleware;
+mod openapi;
 mod password;
 mod router;
 mod state;

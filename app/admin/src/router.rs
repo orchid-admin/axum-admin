@@ -1,27 +1,42 @@
-use axum::{
-    body::Body,
-    extract::{rejection::MatchedPathRejection, MatchedPath},
-    http::Request,
-    middleware::{self, map_request},
-    RequestExt, Router,
-};
-
 use crate::{
-    ctls::{Auth, CtlRouter, User},
+    ctls::{auth, menu, role, user},
+    openapi::openapi,
     state::{AppState, State},
 };
+use axum::{
+    middleware::{self, map_request},
+    Router,
+};
+
 pub fn init() -> Router {
     let state = State::build();
     Router::new()
-        .merge(Auth::routers(state.clone()))
+        .merge(document_router())
+        .merge(auth::routers(state.clone()))
         .merge(auth_routers(state))
 }
 
+fn document_router() -> Router {
+    utoipa_swagger_ui::SwaggerUi::new("/swagger-ui")
+        .url(
+            "/api-doc/openapi.json",
+            openapi(vec![
+                auth::api_docment(),
+                user::api_docment(),
+                role::api_docment(),
+                menu::api_docment(),
+            ]),
+        )
+        .into()
+}
+
 fn auth_routers(state: AppState) -> Router {
-    use crate::middleware::{access_matched_path, auth};
+    use crate::middleware::{access_matched_path, token_check};
     Router::new()
-        .merge(User::routers(state.clone()))
+        .merge(user::routers(state.clone()))
+        .merge(role::routers(state.clone()))
+        .merge(menu::routers(state.clone()))
         .layer(map_request(access_matched_path))
-        .layer(middleware::from_fn_with_state(state.clone(), auth))
+        .layer(middleware::from_fn_with_state(state.clone(), token_check))
         .with_state(state)
 }
