@@ -1,33 +1,61 @@
-use axum::{
-    extract::Path,
-    routing::{get, post},
-    Json, Router,
-};
+use axum::{extract, routing::get, Json, Router};
 use serde::Serialize;
+use utoipa::{Path, ToSchema};
 
 use crate::error::Result;
 
-use super::CtlRouter;
-
-pub struct User;
-
-impl CtlRouter for User {
-    fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
-        Router::new()
-            .route("/user/index", get(Self::index))
-            .route("/user/info/:id", get(Self::info))
-            .with_state(state)
-    }
-}
-impl User {
-    async fn index() -> Result<Json<impl Serialize>> {
-        Ok(Json(IndexResponse {}))
-    }
-
-    async fn info(Path(id): Path<i64>) -> Result<Json<impl Serialize>> {
-        Ok(Json(IndexResponse {}))
-    }
+pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
+    Router::new()
+        .route("/user/index", get(index))
+        .route("/user/info/:id", get(info))
+        .with_state(state)
 }
 
-#[derive(Debug, Serialize)]
+pub fn api_docment() -> (
+    Vec<(&'static str, utoipa::openapi::PathItem)>,
+    Vec<(
+        &'static str,
+        utoipa::openapi::RefOr<utoipa::openapi::Schema>,
+    )>,
+) {
+    let paths = crate::api_doc_path! {
+        __path_index,
+        __path_info
+    };
+    let schemas = crate::api_doc_schema! {
+        IndexResponse
+    };
+    (paths, schemas)
+}
+/// 列表
+///
+///
+#[utoipa::path(
+    get,
+    path = "/user/index",
+    tag = "user",
+    responses(
+        (status = 200, body = [IndexResponse])
+    )
+)]
+async fn index() -> Result<Json<impl Serialize>> {
+    Ok(Json(IndexResponse {}))
+}
+
+/// 详情
+///
+///
+#[utoipa::path(
+    get,
+    path = "/user/info/:id",
+    tag = "user",
+    responses(
+        (status = 200, body = [IndexResponse])
+    )
+)]
+async fn info(extract::Path(_id): extract::Path<i64>) -> Result<Json<impl Serialize>> {
+    Ok(Json(IndexResponse {}))
+}
+
+#[derive(Debug, Serialize, ToSchema)]
 struct IndexResponse {}

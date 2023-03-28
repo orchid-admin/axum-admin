@@ -1,12 +1,7 @@
-mod auth;
-mod menu;
-mod role;
-mod user;
-
-pub use {auth::Auth, user::User};
-
-use crate::state::AppState;
-use axum::Router;
+pub mod auth;
+pub mod menu;
+pub mod role;
+pub mod user;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Claims {
@@ -21,8 +16,4 @@ impl Claims {
             exp: time::OffsetDateTime::now_utc().unix_timestamp_nanos(),
         }
     }
-}
-
-pub trait CtlRouter {
-    fn routers<S>(state: AppState) -> Router<S>;
 }
