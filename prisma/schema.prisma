@@ -13,21 +13,23 @@ datasource db {
 
 /// 用户表
 model SystemUser {
-  id          Int       @id @default(autoincrement())
+  id          Int         @id @default(autoincrement())
   /// 账户名称
-  username    String    @unique
+  username    String      @unique
   /// 用户昵称
   nickname    String?
   /// 角色ID
   role_id     Int?
+  role        SystemRole? @relation(fields: [role_id], references: [id])
   /// 部门ID
   dept_id     Int?
+  dept        SystemDept? @relation(fields: [dept_id], references: [id])
   /// 手机号
   phone       String?
   /// 邮箱
   email       String?
   /// 性别
-  sex         Int       @default(1)
+  sex         Int         @default(1)
   /// 账户密码
   password    String
   /// 账户密码salt
@@ -35,7 +37,7 @@ model SystemUser {
   /// 账户过期
   expire_time DateTime?
   /// 用户状态
-  status      Boolean   @default(true)
+  status      Boolean     @default(true)
   /// 用户描述
   describe    String?
   created_at  DateTime
@@ -45,20 +47,21 @@ model SystemUser {
 
 /// 角色表
 model SystemRole {
-  id         Int       @id @default(autoincrement())
+  id         Int          @id @default(autoincrement())
   /// 角色名称
   name       String
   /// 角色标识
   sign       String
   /// 排序
-  sort       Int       @default(0)
+  sort       Int          @default(0)
   /// 角色描述
   describe   String?
   /// 角色状态
-  status     Boolean   @default(true)
+  status     Boolean      @default(true)
   created_at DateTime
   updated_at DateTime
   deleted_at DateTime?
+  SystemUser SystemUser[]
 }
 
 /// 菜单表
@@ -107,9 +110,9 @@ model SystemMenu {
 
 /// 部门表
 model SystemDept {
-  id           Int       @id @default(autoincrement())
+  id           Int          @id @default(autoincrement())
   /// 父级ID
-  parent_id    Int       @default(0)
+  parent_id    Int          @default(0)
   /// 部门名称
   name         String
   /// 负责人姓名
@@ -121,12 +124,13 @@ model SystemDept {
   /// 部门描述
   describe     String?
   /// 角色状态
-  status       Boolean   @default(true)
+  status       Boolean      @default(true)
   /// 菜单排序
-  sort         Int       @default(0)
+  sort         Int          @default(0)
   created_at   DateTime
   updated_at   DateTime
   deleted_at   DateTime?
+  SystemUser   SystemUser[]
 }
 
 model SystemDict {

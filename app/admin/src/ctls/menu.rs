@@ -57,5 +57,40 @@ async fn info(extract::Path(_id): extract::Path<i64>) -> Result<Json<impl Serial
     Ok(Json(IndexResponse {}))
 }
 
+/// 新增
+///
+///
+#[utoipa::path(
+    get,
+    path = "/menu/create",
+    tag = "menu",
+    responses(
+        (status = 200, body = [IndexResponse])
+    )
+)]
+async fn create(params: CreateRequest) -> Result<Json<impl Serialize>> {
+    Ok(Json(IndexResponse {}))
+}
+
 #[derive(Debug, Serialize, ToSchema)]
 struct IndexResponse {}
+
+struct CreateRequest {
+    parent_id: Option<i64>,
+    r#type: String,
+    router_name: String,
+    component_alias: String,
+    is_link: bool,
+    path: String,
+    redirect: String,
+    meta_title: String,
+    meta_icon: String,
+    meta_is_hide: bool,
+    meta_is_keep_alive: bool,
+    meta_is_affix: bool,
+    meta_link: String,
+    meta_is_iframe: bool,
+    meta_roles: String,
+    btn_power: String,
+    sort: i64,
+}
