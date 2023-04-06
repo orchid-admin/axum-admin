@@ -97,7 +97,7 @@ impl Captcha {
 
     /// add captcha cache
     fn add(&mut self, use_type: &str, key: &str, text: &str) -> Result<bool> {
-        Ok(match self.get_item(use_type, &key) {
+        Ok(match self.get_item(use_type, key) {
             Some(_) => false,
             None => {
                 let exp = match OffsetDateTime::now_utc()

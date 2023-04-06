@@ -46,7 +46,7 @@ impl Jwt {
         let token = match encode(
             &Header::default(),
             &claims,
-            &EncodingKey::from_secret(&self.secret.as_ref()),
+            &EncodingKey::from_secret(self.secret.as_ref()),
         ) {
             Ok(token) => Ok(token),
             Err(_) => Err(ErrorCode::GenerateToken),
@@ -78,7 +78,7 @@ impl Jwt {
     pub fn decode<T: DeserializeOwned>(&self, token: &str) -> Result<T> {
         match decode::<T>(
             token,
-            &DecodingKey::from_secret(&self.secret.as_ref()),
+            &DecodingKey::from_secret(self.secret.as_ref()),
             &Validation::default(),
         ) {
             Ok(claims) => Ok(claims.claims),
