@@ -10,7 +10,7 @@ macro_rules! api_doc_tag {
 macro_rules! api_doc_path {
     ($($name:ident), *) => {
         {
-            let mut temp_vec = Vec::new();
+            let mut temp_vec = vec![];
             $({
                 temp_vec.push(($name::path(), $name::path_item(None)));
             })*
@@ -22,19 +22,19 @@ macro_rules! api_doc_path {
 macro_rules! api_doc_schema {
     ($($name:ident), *) => {
         {
-            let mut temp_vec = Vec::new();
-            $(temp_vec.push($name::schema());)*
-            temp_vec
+            vec![$($name::schema(),)*]
         }
     };
 }
 
-pub fn openapi(
-    path_schemas: Vec<(
-        Vec<(&str, utoipa::openapi::PathItem)>,
-        Vec<(&str, utoipa::openapi::RefOr<utoipa::openapi::Schema>)>,
+pub type DocmentPathSchema = (
+    Vec<(&'static str, utoipa::openapi::PathItem)>,
+    Vec<(
+        &'static str,
+        utoipa::openapi::RefOr<utoipa::openapi::Schema>,
     )>,
-) -> utoipa::openapi::OpenApi {
+);
+pub fn openapi(path_schemas: Vec<DocmentPathSchema>) -> utoipa::openapi::OpenApi {
     let mut paths = utoipa::openapi::Paths::new();
     let mut components = utoipa::openapi::Components::new();
     for (path_items, schemas) in path_schemas {

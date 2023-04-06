@@ -2,7 +2,7 @@ use axum::{extract, routing::get, Json, Router};
 use serde::Serialize;
 use utoipa::{Path, ToSchema};
 
-use crate::error::Result;
+use crate::{error::Result, openapi::DocmentPathSchema};
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
     Router::new()
@@ -11,13 +11,7 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .with_state(state)
 }
 
-pub fn api_docment() -> (
-    Vec<(&'static str, utoipa::openapi::PathItem)>,
-    Vec<(
-        &'static str,
-        utoipa::openapi::RefOr<utoipa::openapi::Schema>,
-    )>,
-) {
+pub fn api_docment() -> DocmentPathSchema {
     let paths = crate::api_doc_path! {
         __path_index,
         __path_info

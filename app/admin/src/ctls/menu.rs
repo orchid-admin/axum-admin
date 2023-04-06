@@ -1,26 +1,26 @@
-use axum::{extract, routing::get, Json, Router};
-use serde::Serialize;
+use axum::{
+    extract,
+    routing::{get, post},
+    Json, Router,
+};
+use serde::{Deserialize, Serialize};
 use utoipa::{Path, ToSchema};
 
-use crate::error::Result;
+use crate::{error::Result, openapi::DocmentPathSchema};
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
     Router::new()
         .route("/menu/index", get(index))
         .route("/menu/info/:id", get(info))
+        .route("/menu/create", post(create))
         .with_state(state)
 }
 
-pub fn api_docment() -> (
-    Vec<(&'static str, utoipa::openapi::PathItem)>,
-    Vec<(
-        &'static str,
-        utoipa::openapi::RefOr<utoipa::openapi::Schema>,
-    )>,
-) {
+pub fn api_docment() -> DocmentPathSchema {
     let paths = crate::api_doc_path! {
         __path_index,
-        __path_info
+        __path_info,
+        __path_create
     };
     let schemas = crate::api_doc_schema! {
         IndexResponse
@@ -68,13 +68,15 @@ async fn info(extract::Path(_id): extract::Path<i64>) -> Result<Json<impl Serial
         (status = 200, body = [IndexResponse])
     )
 )]
-async fn create(params: CreateRequest) -> Result<Json<impl Serialize>> {
+async fn create(Json(_params): Json<CreateRequest>) -> Result<Json<impl Serialize>> {
     Ok(Json(IndexResponse {}))
 }
 
 #[derive(Debug, Serialize, ToSchema)]
 struct IndexResponse {}
 
+#[allow(dead_code)]
+#[derive(Debug, Deserialize, ToSchema)]
 struct CreateRequest {
     parent_id: Option<i64>,
     r#type: String,

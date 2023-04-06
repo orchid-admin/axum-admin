@@ -1,5 +1,5 @@
 use super::Claims;
-use crate::{error::Result, state::AppState};
+use crate::{error::Result, openapi::DocmentPathSchema, state::AppState};
 use axum::{
     extract::{self, State},
     routing::{get, post},
@@ -17,13 +17,7 @@ pub fn routers<S>(state: AppState) -> Router<S> {
         .with_state(state)
 }
 
-pub fn api_docment() -> (
-    Vec<(&'static str, utoipa::openapi::PathItem)>,
-    Vec<(
-        &'static str,
-        utoipa::openapi::RefOr<utoipa::openapi::Schema>,
-    )>,
-) {
+pub fn api_docment() -> DocmentPathSchema {
     let paths = crate::api_doc_path! {
         __path_login_by_account,
         __path_login_by_mobile,

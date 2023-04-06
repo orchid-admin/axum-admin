@@ -803,6 +803,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dotenv"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
+
+[[package]]
 name = "either"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2371,20 +2377,21 @@ checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
 
 [[package]]
 name = "prisma-client-rust"
-version = "0.6.6"
-source = "git+https://github.com/Brendonovich/prisma-client-rust?tag=0.6.6#76693baa675bcb38213901984b306d92c4e8a168"
+version = "0.6.7"
+source = "git+https://github.com/Brendonovich/prisma-client-rust?tag=0.6.7#f71ad9122537c4ed29bf496a4a643947a5fe9aef"
 dependencies = [
  "base64 0.13.1",
  "bigdecimal",
  "chrono",
- "convert_case 0.6.0",
  "diagnostics",
  "dml",
  "dmmf",
+ "dotenv",
  "futures",
  "indexmap",
  "migration-core",
  "paste",
+ "prisma-client-rust-macros",
  "prisma-models",
  "psl",
  "query-connector",
@@ -2400,8 +2407,8 @@ dependencies = [
 
 [[package]]
 name = "prisma-client-rust-cli"
-version = "0.6.6"
-source = "git+https://github.com/Brendonovich/prisma-client-rust?tag=0.6.6#76693baa675bcb38213901984b306d92c4e8a168"
+version = "0.6.7"
+source = "git+https://github.com/Brendonovich/prisma-client-rust?tag=0.6.7#f71ad9122537c4ed29bf496a4a643947a5fe9aef"
 dependencies = [
  "directories",
  "flate2",
@@ -2419,9 +2426,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "prisma-client-rust-macros"
+version = "0.6.7"
+source = "git+https://github.com/Brendonovich/prisma-client-rust?tag=0.6.7#f71ad9122537c4ed29bf496a4a643947a5fe9aef"
+dependencies = [
+ "convert_case 0.6.0",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "prisma-client-rust-sdk"
-version = "0.6.6"
-source = "git+https://github.com/Brendonovich/prisma-client-rust?tag=0.6.6#76693baa675bcb38213901984b306d92c4e8a168"
+version = "0.6.7"
+source = "git+https://github.com/Brendonovich/prisma-client-rust?tag=0.6.7#f71ad9122537c4ed29bf496a4a643947a5fe9aef"
 dependencies = [
  "convert_case 0.5.0",
  "dml",
