@@ -32,3 +32,5 @@ argon2 = { version = "0.5" }
 password-hash = { version = "0.5.0", default-features = false, features = ["alloc", "rand_core"] }
 
 custom_attrs = { workspace = true }
+
+service = { path = "../../service" }

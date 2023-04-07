@@ -1,11 +1,18 @@
 use super::Claims;
-use crate::{error::Result, openapi::DocmentPathSchema, state::AppState};
+use crate::{
+    error::{ErrorCode, Result},
+    jwt::UserType,
+    openapi::DocmentPathSchema,
+    password::Password,
+    state::AppState,
+};
 use axum::{
     extract::{self, State},
     routing::{get, post},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
+use service::sys_user;
 use utoipa::{Path, ToSchema};
 
 pub fn routers<S>(state: AppState) -> Router<S> {
@@ -46,10 +53,26 @@ pub fn api_docment() -> DocmentPathSchema {
 )]
 async fn login_by_account(
     State(state): State<AppState>,
-    extract::Json(_params): extract::Json<LoginByAccountRequest>,
+    extract::Json(params): extract::Json<LoginByAccountRequest>,
 ) -> Result<Json<impl Serialize>> {
-    let token = state.jwt.lock().await.generate("admin", Claims::build(1))?;
-    Ok(Json(LoginReponse { token }))
+    match sys_user::find_user_by_username(state.db.clone(), &params.username).await? {
+        Some(user) => {
+            let verify_result =
+                Password::verify_password(user.password, user.salt, params.password.as_bytes())?;
+
+            if !verify_result {
+                return Err(ErrorCode::InputPassword);
+            }
+
+            let token = state
+                .jwt
+                .lock()
+                .await
+                .generate(UserType::Admin, Claims::build(user.id))?;
+            Ok(Json(LoginReponse { token }))
+        }
+        None => Err(ErrorCode::UserNotFound),
+    }
 }
 
 /// 手机号登录
@@ -66,10 +89,19 @@ async fn login_by_account(
 )]
 async fn login_by_mobile(
     State(state): State<AppState>,
-    extract::Json(_params): extract::Json<LoginByMobileRequest>,
+    extract::Json(params): extract::Json<LoginByMobileRequest>,
 ) -> Result<Json<impl Serialize>> {
-    let token = state.jwt.lock().await.generate("admin", Claims::build(1))?;
-    Ok(Json(LoginReponse { token }))
+    match sys_user::find_user_by_phone(state.db.clone(), &params.mobile).await? {
+        Some(user) => {
+            let token = state
+                .jwt
+                .lock()
+                .await
+                .generate(UserType::Admin, Claims::build(user.id))?;
+            Ok(Json(LoginReponse { token }))
+        }
+        None => Err(ErrorCode::UserNotFound),
+    }
 }
 
 /// 扫码登录
@@ -88,7 +120,11 @@ async fn login_by_qrcode(
     State(state): State<AppState>,
     extract::Json(_params): extract::Json<LoginByAccountRequest>,
 ) -> Result<Json<impl Serialize>> {
-    let token = state.jwt.lock().await.generate("admin", Claims::build(1))?;
+    let token = state
+        .jwt
+        .lock()
+        .await
+        .generate(UserType::Admin, Claims::build(1))?;
     Ok(Json(LoginReponse { token }))
 }
 

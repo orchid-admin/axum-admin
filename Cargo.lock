@@ -36,6 +36,7 @@ dependencies = [
  "password-hash",
  "serde",
  "serde_json",
+ "service",
  "time 0.3.20",
  "tokio",
  "tracing",
@@ -3260,7 +3261,9 @@ dependencies = [
 name = "service"
 version = "0.1.0"
 dependencies = [
+ "custom_attrs",
  "prisma-client-rust",
+ "serde",
 ]
 
 [[package]]

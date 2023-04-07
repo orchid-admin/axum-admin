@@ -1,4 +1,4 @@
-use crate::{ctls::Claims, error::ErrorCode, state::AppState};
+use crate::{ctls::Claims, error::ErrorCode, jwt::UserType, state::AppState};
 use axum::{
     body::Body,
     extract::{rejection::MatchedPathRejection, MatchedPath, State},
@@ -16,7 +16,7 @@ pub async fn token_check<B>(
     next: Next<B>,
 ) -> Result<Response, StatusCode> {
     let jwt = state.jwt.lock().await;
-    match jwt.get_item("admin", &token) {
+    match jwt.get_item(UserType::Admin, &token) {
         Some(jwt_item) => {
             if !jwt_item.check() {
                 return Ok(ErrorCode::TokenValid.into_response());
