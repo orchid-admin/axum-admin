@@ -1,15 +1,14 @@
 use crate::{
     ctls::{auth, menu, role, user},
     openapi::openapi,
-    state::{AppState, State},
+    state::AppState,
 };
 use axum::{
     middleware::{self, map_request},
     Router,
 };
 
-pub fn init() -> Router {
-    let state = State::build();
+pub async fn init(state: AppState) -> Router {
     Router::new()
         .merge(document_router())
         .merge(auth::routers(state.clone()))

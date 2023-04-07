@@ -6,4 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+serde = { workspace = true }
 prisma-client-rust = { workspace = true, default-features = false, features = ["sqlite"]}
+
+custom_attrs = { workspace = true }

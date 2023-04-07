@@ -8,6 +8,8 @@ pub type Result<T> = std::result::Result<T, ErrorCode>;
 #[attr(pub code: i64)]
 #[attr(pub name: &str)]
 pub enum ErrorCode {
+    #[attr(code = 10000, name = "Database")]
+    Database,
     #[attr(code = 10000, name = "GenerateToken")]
     GenerateToken,
     #[attr(code = 10000, name = "TokenParse")]
@@ -22,6 +24,16 @@ pub enum ErrorCode {
     ServerSteup,
     #[attr(code = 10000, name = "GenerateCaptcha")]
     GenerateCaptcha,
+    #[attr(code = 10000, name = "UserNotFound")]
+    UserNotFound,
+    #[attr(code = 10000, name = "InputPassword")]
+    InputPassword,
+}
+
+impl From<service::ServiceError> for ErrorCode {
+    fn from(_value: service::ServiceError) -> Self {
+        Self::Database
+    }
 }
 
 impl IntoResponse for ErrorCode {

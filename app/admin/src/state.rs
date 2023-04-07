@@ -1,18 +1,24 @@
-use crate::{captcha::Captcha, jwt::Jwt};
+use service::Database;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
 pub type AppState = Arc<State>;
 
 pub struct State {
-    pub captcha: Mutex<Captcha>,
-    pub jwt: Mutex<Jwt>,
+    pub captcha: Mutex<crate::captcha::Captcha>,
+    pub jwt: Mutex<crate::jwt::Jwt>,
+    pub db: Database,
 }
 
 impl State {
-    pub fn build() -> AppState {
+    pub fn build(captcha: crate::captcha::Captcha, jwt: crate::jwt::Jwt, db: Database) -> AppState {
         use tokio::time::{interval, Duration};
-        let state = Arc::new(Self::new());
+        let state = Arc::new(Self {
+            captcha: Mutex::new(captcha),
+            jwt: Mutex::new(jwt),
+            db,
+        });
+
         let captcha_state = state.clone();
         let jwt_state = state.clone();
         tokio::spawn(async move {
@@ -34,11 +40,5 @@ impl State {
             }
         });
         state
-    }
-    fn new() -> Self {
-        Self {
-            captcha: Mutex::new(Captcha::new(2, 10 * 60)),
-            jwt: Mutex::new(Jwt::new("secret", 2, 7 * 24 * 60)),
-        }
     }
 }
