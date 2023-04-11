@@ -1,19 +1,22 @@
 use super::Claims;
 use crate::{
+    captcha::UseType as CaptchaUseType,
     error::{ErrorCode, Result},
-    jwt::UserType,
+    extracts::ValidatorJson,
+    jwt::UseType as JwtUseType,
     openapi::DocmentPathSchema,
     password::Password,
     state::AppState,
 };
 use axum::{
-    extract::{self, State},
+    extract::State,
     routing::{get, post},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use service::sys_user;
 use utoipa::{Path, ToSchema};
+use validator::Validate;
 
 pub fn routers<S>(state: AppState) -> Router<S> {
     Router::new()
@@ -53,8 +56,10 @@ pub fn api_docment() -> DocmentPathSchema {
 )]
 async fn login_by_account(
     State(state): State<AppState>,
-    extract::Json(params): extract::Json<LoginByAccountRequest>,
+    ValidatorJson(params): ValidatorJson<LoginByAccountRequest>,
 ) -> Result<Json<impl Serialize>> {
+    let captcha = state.captcha.lock().await;
+    captcha.get_item(&CaptchaUseType::AdminLogin, &params.key);
     match sys_user::find_user_by_username(state.db.clone(), &params.username).await? {
         Some(user) => {
             let verify_result =
@@ -68,7 +73,7 @@ async fn login_by_account(
                 .jwt
                 .lock()
                 .await
-                .generate(UserType::Admin, Claims::build(user.id))?;
+                .generate(JwtUseType::Admin, Claims::build(user.id))?;
             Ok(Json(LoginReponse { token }))
         }
         None => Err(ErrorCode::UserNotFound),
@@ -89,7 +94,7 @@ async fn login_by_account(
 )]
 async fn login_by_mobile(
     State(state): State<AppState>,
-    extract::Json(params): extract::Json<LoginByMobileRequest>,
+    ValidatorJson(params): ValidatorJson<LoginByMobileRequest>,
 ) -> Result<Json<impl Serialize>> {
     match sys_user::find_user_by_phone(state.db.clone(), &params.mobile).await? {
         Some(user) => {
@@ -97,7 +102,7 @@ async fn login_by_mobile(
                 .jwt
                 .lock()
                 .await
-                .generate(UserType::Admin, Claims::build(user.id))?;
+                .generate(JwtUseType::Admin, Claims::build(user.id))?;
             Ok(Json(LoginReponse { token }))
         }
         None => Err(ErrorCode::UserNotFound),
@@ -118,13 +123,13 @@ async fn login_by_mobile(
 )]
 async fn login_by_qrcode(
     State(state): State<AppState>,
-    extract::Json(_params): extract::Json<LoginByAccountRequest>,
+    ValidatorJson(_params): ValidatorJson<LoginByAccountRequest>,
 ) -> Result<Json<impl Serialize>> {
     let token = state
         .jwt
         .lock()
         .await
-        .generate(UserType::Admin, Claims::build(1))?;
+        .generate(JwtUseType::Admin, Claims::build(1))?;
     Ok(Json(LoginReponse { token }))
 }
 
@@ -140,29 +145,34 @@ async fn login_by_qrcode(
     )
 )]
 async fn get_captcha(State(state): State<AppState>) -> Result<Json<impl Serialize>> {
-    let (key, image) = state
-        .captcha
-        .lock()
-        .await
-        .generate("login", 5, 130, 40, false, 1)?;
+    let (key, image) =
+        state
+            .captcha
+            .lock()
+            .await
+            .generate(CaptchaUseType::AdminLogin, 5, 130, 40, false, 1)?;
 
     Ok(Json(GetCaptchaReponse { key, image }))
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Validate, ToSchema)]
 struct LoginByAccountRequest {
     /// 用户名
+    #[validate(length(min = 5))]
     username: String,
     /// 密码
+    #[validate(length(min = 6))]
     password: String,
     /// 图片验证码KEY值
+    #[validate(length(min = 5))]
     key: String,
     /// 图片验证码值
+    #[validate(length(min = 5))]
     code: String,
 }
 #[allow(dead_code)]
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Validate, ToSchema)]
 struct LoginByMobileRequest {
     /// 手机号码
     mobile: String,
