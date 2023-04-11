@@ -39,7 +39,7 @@ impl Jwt {
     }
 
     /// generate token
-    pub fn generate<T>(&mut self, use_type: UserType, claims: T) -> Result<String>
+    pub fn generate<T>(&mut self, use_type: UseType, claims: T) -> Result<String>
     where
         T: Serialize,
     {
@@ -58,7 +58,7 @@ impl Jwt {
     }
 
     /// get items
-    pub fn get_items(&self, use_type: UserType) -> Vec<JwtItem> {
+    pub fn get_items(&self, use_type: UseType) -> Vec<JwtItem> {
         self.data
             .clone()
             .into_iter()
@@ -67,7 +67,7 @@ impl Jwt {
     }
 
     /// get item by key
-    pub fn get_item(&self, use_type: UserType, token: &str) -> Option<JwtItem> {
+    pub fn get_item(&self, use_type: &UseType, token: &str) -> Option<JwtItem> {
         self.data
             .clone()
             .into_iter()
@@ -92,13 +92,13 @@ impl Jwt {
             .data
             .clone()
             .into_iter()
-            .filter(|x| x.clone().check())
+            .filter(|x| x.check())
             .collect::<Vec<JwtItem>>();
     }
 
     /// add item
-    fn add(&mut self, use_type: UserType, token: &str) -> Result<bool> {
-        Ok(match self.get_item(use_type.clone(), token) {
+    fn add(&mut self, use_type: UseType, token: &str) -> Result<bool> {
+        Ok(match self.get_item(&use_type, token) {
             Some(_) => false,
             None => {
                 let exp = match OffsetDateTime::now_utc()
@@ -120,7 +120,7 @@ impl Jwt {
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
-pub enum UserType {
+pub enum UseType {
     Admin,
     User,
     Merchant,
@@ -128,7 +128,7 @@ pub enum UserType {
 
 #[derive(Debug, Clone)]
 pub struct JwtItem {
-    use_type: UserType,
+    use_type: UseType,
     token: String,
     exp: i128,
 }

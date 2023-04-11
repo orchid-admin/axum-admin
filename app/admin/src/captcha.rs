@@ -35,7 +35,7 @@ impl Captcha {
     /// genrate captcha
     pub fn generate(
         &mut self,
-        use_type: &str,
+        use_type: UseType,
         length: usize,
         width: u32,
         height: u32,
@@ -59,29 +59,29 @@ impl Captcha {
     }
 
     /// get items by use_type
-    pub fn get_items(&self, use_type: &str) -> Vec<CaptchaItem> {
+    pub fn get_items(&self, use_type: UseType) -> Vec<CaptchaItem> {
         self.data
             .clone()
             .into_iter()
-            .filter(|x| x.use_type.eq(use_type))
+            .filter(|x| x.use_type.eq(&use_type))
             .collect::<Vec<CaptchaItem>>()
     }
 
     /// get item by key
-    pub fn get_item(&self, use_type: &str, key: &str) -> Option<CaptchaItem> {
+    pub fn get_item(&self, use_type: &UseType, key: &str) -> Option<CaptchaItem> {
         self.data
             .clone()
             .into_iter()
-            .find(|x| x.key.eq(&key) && x.use_type.eq(use_type))
+            .find(|x| x.key.eq(&key) && x.use_type.eq(&use_type))
     }
 
     /// remvoe captcha by key
-    pub fn remove_item_by_key(&mut self, use_type: &str, key: &str) {
+    pub fn remove_item_by_key(&mut self, use_type: UseType, key: &str) {
         self.data = self
             .data
             .clone()
             .into_iter()
-            .filter(|x| !x.key.eq(&key) && !x.use_type.eq(use_type))
+            .filter(|x| !x.key.eq(&key) && !x.use_type.eq(&use_type))
             .collect::<Vec<CaptchaItem>>();
     }
 
@@ -96,8 +96,8 @@ impl Captcha {
     }
 
     /// add captcha cache
-    fn add(&mut self, use_type: &str, key: &str, text: &str) -> Result<bool> {
-        Ok(match self.get_item(use_type, key) {
+    fn add(&mut self, use_type: UseType, key: &str, text: &str) -> Result<bool> {
+        Ok(match self.get_item(&use_type, key) {
             Some(_) => false,
             None => {
                 let exp = match OffsetDateTime::now_utc()
@@ -107,7 +107,7 @@ impl Captcha {
                     None => Err(ErrorCode::GenerateCaptcha),
                 }?;
                 self.data.push(CaptchaItem {
-                    use_type: use_type.to_owned(),
+                    use_type: use_type,
                     key: key.to_owned(),
                     text: text.to_owned(),
                     exp,
@@ -118,9 +118,15 @@ impl Captcha {
     }
 }
 
+#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq)]
+pub enum UseType {
+    AdminLogin,
+}
+
 #[derive(Debug, Clone)]
 pub struct CaptchaItem {
-    use_type: String,
+    use_type: UseType,
     key: String,
     text: String,
     exp: i128,

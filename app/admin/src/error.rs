@@ -28,6 +28,10 @@ pub enum ErrorCode {
     UserNotFound,
     #[attr(code = 10000, name = "InputPassword")]
     InputPassword,
+    #[attr(code = 10000, name = "RequestParams")]
+    RequestParams(String),
+    #[attr(code = 10000, name = "RequestParamsValidator")]
+    RequestParamsValidator(String),
 }
 
 impl From<service::ServiceError> for ErrorCode {
@@ -40,7 +44,12 @@ impl IntoResponse for ErrorCode {
     fn into_response(self) -> Response {
         Json(ErrorResponse {
             code: self.get_code(),
-            msg: Some(self.get_name()),
+            err_code: Some(self.get_name()),
+            msg: match self {
+                Self::RequestParams(ref err_str) => Some(err_str),
+                Self::RequestParamsValidator(ref err_str) => Some(err_str),
+                _ => None,
+            },
         })
         .into_response()
     }
@@ -48,7 +57,7 @@ impl IntoResponse for ErrorCode {
 
 #[derive(Debug, Serialize)]
 struct ErrorResponse<'a> {
-    #[serde(rename = "errcode")]
     code: i64,
+    err_code: Option<&'a str>,
     msg: Option<&'a str>,
 }

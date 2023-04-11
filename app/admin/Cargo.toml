@@ -13,7 +13,7 @@ tokio = { workspace = true }
 # log require (tokio debug add feature(registry) to tracing-subscriber)
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
-# console-subscriber = {version = "0.1.8", default-features = false, features = ["env-filter"]}
+# time require
 time = { workspace = true }
 # swagger require
 utoipa = { workspace = true }
@@ -28,9 +28,10 @@ jsonwebtoken = { workspace = true }
 # static file require
 # tower = { workspace = true }
 # tower-http = { workspace = true }
-argon2 = { version = "0.5" }
-password-hash = { version = "0.5.0", default-features = false, features = ["alloc", "rand_core"] }
-
+argon2 = { workspace = true }
+password-hash = { workspace = true }
 custom_attrs = { workspace = true }
+thiserror = { workspace = true }
+validator = { workspace = true }
 
 service = { path = "../../service" }
