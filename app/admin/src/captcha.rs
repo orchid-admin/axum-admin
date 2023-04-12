@@ -54,7 +54,7 @@ impl Captcha {
         let key = OffsetDateTime::now_utc().unix_timestamp_nanos().to_string();
         match self.add(use_type, &key, &captcha.text)? {
             true => Ok((key, captcha.to_base64())),
-            false => Err(ErrorCode::GenerateCaptcha),
+            false => Err(ErrorCode::InternalServer("生成验证码失败")),
         }
     }
 
@@ -72,7 +72,7 @@ impl Captcha {
         self.data
             .clone()
             .into_iter()
-            .find(|x| x.key.eq(&key) && x.use_type.eq(&use_type))
+            .find(|x| x.key.eq(&key) && x.use_type.eq(use_type))
     }
 
     /// remvoe captcha by key
@@ -104,10 +104,10 @@ impl Captcha {
                     .checked_add(Duration::seconds(self.valid_seconds))
                 {
                     Some(times) => Ok(times.unix_timestamp_nanos()),
-                    None => Err(ErrorCode::GenerateCaptcha),
+                    None => Err(ErrorCode::InternalServer("生成验证码失败")),
                 }?;
                 self.data.push(CaptchaItem {
-                    use_type: use_type,
+                    use_type,
                     key: key.to_owned(),
                     text: text.to_owned(),
                     exp,

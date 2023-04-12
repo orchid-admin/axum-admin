@@ -19,7 +19,7 @@ pub async fn token_check<B>(
     match jwt.get_item(&UseType::Admin, &token) {
         Some(jwt_item) => {
             if !jwt_item.check() {
-                return Ok(ErrorCode::TokenValid.into_response());
+                return Ok(ErrorCode::Unauthorized.into_response());
             }
 
             match jwt.decode::<Claims>(&token) {
@@ -30,7 +30,7 @@ pub async fn token_check<B>(
                 Err(err) => Ok(err.into_response()),
             }
         }
-        None => Ok(ErrorCode::TokenNotExist.into_response()),
+        None => Ok(ErrorCode::Unauthorized.into_response()),
     }
 }
 

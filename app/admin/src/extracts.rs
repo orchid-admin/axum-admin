@@ -68,19 +68,26 @@ impl IntoResponse for ValidatorError {
     fn into_response(self) -> Response {
         match self {
             ValidatorError::ValidationError(error) => {
-                // let error_array = error
-                //     .field_errors()
-                //     .into_iter()
-                //     .map(|x| {
-                //         (x.1.to_vec()
-                //             .into_iter()
-                //             .map(|x| x.message.unwrap_or_default().to_string())
-                //             .collect::<Vec<String>>()
-                //             .first()
-                //             .unwrap())
-                //     })
-                //     .collect::<Vec<&String>>();
-                ErrorCode::RequestParamsValidator(format!("[{}]", error).replace('\n', ", "))
+                let error_array = error
+                    .field_errors()
+                    .into_values()
+                    .map(|errors| {
+                        let error_array = errors
+                            .iter()
+                            .cloned()
+                            .map(|x| match x.message {
+                                Some(message) => message.to_string(),
+                                None => x.code.to_string(),
+                            })
+                            .collect::<Vec<String>>();
+                        error_array.first().cloned()
+                    })
+                    .filter(|x| x.is_some())
+                    .collect::<Vec<Option<String>>>();
+
+                let error = error_array.first().unwrap();
+                //format!("[{}]", error).replace('\n', ", ")
+                ErrorCode::ParamsValidator(error.clone().unwrap())
             }
             ValidatorError::AxumFormRejection(e) => ErrorCode::RequestParams(e.to_string()),
             ValidatorError::AxumJsonRejection(e) => ErrorCode::RequestParams(e.to_string()),
