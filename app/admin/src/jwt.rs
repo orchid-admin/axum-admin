@@ -49,11 +49,11 @@ impl Jwt {
             &EncodingKey::from_secret(self.secret.as_ref()),
         ) {
             Ok(token) => Ok(token),
-            Err(_) => Err(ErrorCode::GenerateToken),
+            Err(_) => Err(ErrorCode::InternalServer("生成TOKEN失败")),
         }?;
         match self.add(use_type, &token)? {
             true => Ok(token),
-            false => Err(ErrorCode::GenerateToken),
+            false => Err(ErrorCode::InternalServer("生成TOKEN失败")),
         }
     }
 
@@ -71,7 +71,7 @@ impl Jwt {
         self.data
             .clone()
             .into_iter()
-            .find(|x| x.token.eq(token) && x.use_type.eq(&use_type))
+            .find(|x| x.token.eq(token) && x.use_type.eq(use_type))
     }
 
     /// decode token
@@ -82,7 +82,7 @@ impl Jwt {
             &Validation::default(),
         ) {
             Ok(claims) => Ok(claims.claims),
-            Err(_) => Err(ErrorCode::TokenParse),
+            Err(_) => Err(ErrorCode::Unauthorized),
         }
     }
 
@@ -105,7 +105,7 @@ impl Jwt {
                     .checked_add(Duration::seconds(self.valid_seconds))
                 {
                     Some(times) => Ok(times.unix_timestamp_nanos()),
-                    None => Err(ErrorCode::GenerateCaptcha),
+                    None => Err(ErrorCode::InternalServer("生成TOKEN失败")),
                 }?;
                 self.data.push(JwtItem {
                     use_type,

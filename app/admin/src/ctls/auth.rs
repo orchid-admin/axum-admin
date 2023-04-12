@@ -1,7 +1,7 @@
 use super::Claims;
 use crate::{
     captcha::UseType as CaptchaUseType,
-    error::{ErrorCode, Result},
+    error::{ErrorCode, Response, Result},
     extracts::ValidatorJson,
     jwt::UseType as JwtUseType,
     openapi::DocmentPathSchema,
@@ -10,6 +10,7 @@ use crate::{
 };
 use axum::{
     extract::State,
+    response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
@@ -51,13 +52,13 @@ pub fn api_docment() -> DocmentPathSchema {
     tag = "auth",
     request_body = LoginByAccountRequest,
     responses(
-        (status = 200, body = [LoginReponse])
+        (status = 200, body = [Response<LoginReponse>])
     )
 )]
 async fn login_by_account(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<LoginByAccountRequest>,
-) -> Result<Json<impl Serialize>> {
+) -> Result<impl IntoResponse> {
     let captcha = state.captcha.lock().await;
     captcha.get_item(&CaptchaUseType::AdminLogin, &params.key);
     match sys_user::find_user_by_username(state.db.clone(), &params.username).await? {
@@ -66,7 +67,7 @@ async fn login_by_account(
                 Password::verify_password(user.password, user.salt, params.password.as_bytes())?;
 
             if !verify_result {
-                return Err(ErrorCode::InputPassword);
+                return Err(ErrorCode::Other("用户名或密码错误"));
             }
 
             let token = state
@@ -74,9 +75,9 @@ async fn login_by_account(
                 .lock()
                 .await
                 .generate(JwtUseType::Admin, Claims::build(user.id))?;
-            Ok(Json(LoginReponse { token }))
+            Ok(Response::result(LoginReponse { token }))
         }
-        None => Err(ErrorCode::UserNotFound),
+        None => Err(ErrorCode::Other("用户名或密码错误")),
     }
 }
 
@@ -95,7 +96,7 @@ async fn login_by_account(
 async fn login_by_mobile(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<LoginByMobileRequest>,
-) -> Result<Json<impl Serialize>> {
+) -> Result<impl IntoResponse> {
     match sys_user::find_user_by_phone(state.db.clone(), &params.mobile).await? {
         Some(user) => {
             let token = state
@@ -105,7 +106,7 @@ async fn login_by_mobile(
                 .generate(JwtUseType::Admin, Claims::build(user.id))?;
             Ok(Json(LoginReponse { token }))
         }
-        None => Err(ErrorCode::UserNotFound),
+        None => Err(ErrorCode::Other("用户名或密码错误")),
     }
 }
 
@@ -124,7 +125,7 @@ async fn login_by_mobile(
 async fn login_by_qrcode(
     State(state): State<AppState>,
     ValidatorJson(_params): ValidatorJson<LoginByAccountRequest>,
-) -> Result<Json<impl Serialize>> {
+) -> Result<impl IntoResponse> {
     let token = state
         .jwt
         .lock()
@@ -141,10 +142,10 @@ async fn login_by_qrcode(
     path = "/get_captcha",
     tag = "auth",
     responses(
-        (status = 200, body = [GetCaptchaReponse])
+        (status = 200, body = Response<GetCaptchaReponse>)
     )
 )]
-async fn get_captcha(State(state): State<AppState>) -> Result<Json<impl Serialize>> {
+async fn get_captcha(State(state): State<AppState>) -> Result<impl IntoResponse> {
     let (key, image) =
         state
             .captcha
@@ -152,23 +153,23 @@ async fn get_captcha(State(state): State<AppState>) -> Result<Json<impl Serializ
             .await
             .generate(CaptchaUseType::AdminLogin, 5, 130, 40, false, 1)?;
 
-    Ok(Json(GetCaptchaReponse { key, image }))
+    Ok(Response::result(GetCaptchaReponse { key, image }))
 }
 
 #[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize, Validate, ToSchema)]
 struct LoginByAccountRequest {
     /// 用户名
-    #[validate(length(min = 5))]
+    #[validate(length(min = 5, message = "用户名长度错误"))]
     username: String,
     /// 密码
-    #[validate(length(min = 6))]
+    #[validate(length(min = 6, message = "密码长度错误"))]
     password: String,
     /// 图片验证码KEY值
-    #[validate(length(min = 5))]
+    #[validate(length(min = 5, message = "请刷新图片验证码后重试"))]
     key: String,
     /// 图片验证码值
-    #[validate(length(min = 5))]
+    #[validate(length(equal = 5, message = "输入的验证码长度错误"))]
     code: String,
 }
 #[allow(dead_code)]
