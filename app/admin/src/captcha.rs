@@ -91,7 +91,7 @@ impl Captcha {
             .data
             .clone()
             .into_iter()
-            .filter(|x| x.clone().check())
+            .filter(|x| x.check())
             .collect::<Vec<CaptchaItem>>();
     }
 
@@ -116,6 +116,15 @@ impl Captcha {
             }
         })
     }
+
+    pub fn remove_item(&mut self, item: &CaptchaItem) {
+        self.data = self
+            .data
+            .clone()
+            .into_iter()
+            .filter(|x| !x.eq(item))
+            .collect::<Vec<CaptchaItem>>();
+    }
 }
 
 #[allow(dead_code)]
@@ -124,7 +133,7 @@ pub enum UseType {
     AdminLogin,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CaptchaItem {
     use_type: UseType,
     key: String,
@@ -134,13 +143,13 @@ pub struct CaptchaItem {
 
 #[allow(dead_code)]
 impl CaptchaItem {
-    /// get text
-    pub fn get_text(self) -> String {
-        self.text
+    /// check captcha is can use
+    pub fn check(&self) -> bool {
+        self.exp > OffsetDateTime::now_utc().unix_timestamp_nanos()
     }
 
-    /// check captcha is can use
-    pub fn check(self) -> bool {
-        self.exp > OffsetDateTime::now_utc().unix_timestamp_nanos()
+    /// verify text
+    pub fn verify(&self, text: &str) -> bool {
+        self.check() && self.text.eq(text)
     }
 }
