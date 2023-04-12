@@ -43,7 +43,7 @@ impl IntoResponse for ErrorCode {
     fn into_response(self) -> axum::response::Response {
         (
             self.get_status_code(),
-            Json(Response::<String> {
+            Json(ErrorResponse {
                 code: 1,
                 msg: match self {
                     Self::InternalServer(err) => {
@@ -51,43 +51,32 @@ impl IntoResponse for ErrorCode {
                         self.get_message()
                     }
                     Self::ParamsValidator(ref err_str) => Some(err_str),
+                    Self::Other(err_str) => Some(err_str),
                     _ => self.get_message(),
                 },
-                data: None,
             }),
         )
             .into_response()
     }
 }
 
-#[derive(Debug, Serialize, ToSchema)]
-pub struct Response<'a, S>
-where
-    S: Serialize,
-{
+impl ErrorCode {
+    pub fn to_json_string(&self) -> String {
+        let resoinse = ErrorResponse {
+            code: 1,
+            msg: match self {
+                Self::ParamsValidator(ref err_str) => Some(err_str),
+                _ => self.get_message(),
+            },
+        };
+        serde_json::to_string(&resoinse).unwrap()
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct ErrorResponse<'a> {
     #[serde(rename = "errcode")]
     code: i64,
     #[serde(rename = "errmsg")]
     msg: Option<&'a str>,
-    #[serde(flatten)]
-    data: Option<S>,
-}
-
-impl<'a, S: Serialize> Response<'a, S> {
-    pub fn result(data: S) -> Self
-    where
-        S: Serialize,
-    {
-        Self {
-            code: 0,
-            msg: None,
-            data: Some(data),
-        }
-    }
-}
-
-impl<'a, S: Serialize> IntoResponse for Response<'a, S> {
-    fn into_response(self) -> axum::response::Response {
-        Json(self).into_response()
-    }
 }
