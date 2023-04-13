@@ -57,12 +57,12 @@ impl Password {
             algorithm: Algorithm::default().ident(),
             version: Some(Version::V0x13.into()),
             params: ParamsString::try_from(&Self::build_params()?)
-                .map_err(|_| ErrorCode::InternalServer("生成密码失败"))?,
+                .map_err(|_| ErrorCode::InternalServer("验证密码失败"))?,
             salt: Some(
-                Salt::from_b64(&salt).map_err(|_| ErrorCode::InternalServer("生成密码失败"))?,
+                Salt::from_b64(&salt).map_err(|_| ErrorCode::InternalServer("验证密码失败"))?,
             ),
             hash: Some(
-                Output::b64_decode(&hash).map_err(|_| ErrorCode::InternalServer("生成密码失败"))?,
+                Output::b64_decode(&hash).map_err(|_| ErrorCode::InternalServer("验证密码失败"))?,
             ),
         };
         Ok(argon2

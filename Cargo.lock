@@ -3318,6 +3318,7 @@ dependencies = [
 name = "service"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "custom_attrs",
  "prisma-client-rust",
  "serde",
