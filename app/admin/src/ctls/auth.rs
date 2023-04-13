@@ -15,7 +15,7 @@ use axum::{
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use service::sys_user::{self, SystemUserBaseInfo};
+use service::sys_user;
 use utoipa::{Path, ToSchema};
 use validator::Validate;
 

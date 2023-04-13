@@ -22,6 +22,7 @@ tokio = { version = "1.17", default-features = false, features = ["macros", "rt-
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "time", "local-time", "fmt", "registry"] }
 console-subscriber = { version = "0.1.8", default-features = false, features = ["env-filter"] }
+chrono = { version = "0.4" }
 time = { version = "0.3", default-features = false, features=["macros"] }
 # swagger require
 utoipa = { version = "3.1", default-features = false, features = ["axum_extras"] }

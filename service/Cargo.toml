@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 serde = { workspace = true }
+chrono = { workspace = true }
 prisma-client-rust = { workspace = true, default-features = false, features = ["sqlite"]}
 
 custom_attrs = { workspace = true }
