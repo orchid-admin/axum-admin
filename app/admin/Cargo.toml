@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 axum = { workspace = true }
+axum-macros = { workspace = true }
 axum-auth = { workspace = true }
 # async require (tokio debug add feature: tracing)
 tokio = { workspace = true }
@@ -33,5 +34,9 @@ password-hash = { workspace = true }
 custom_attrs = { workspace = true }
 thiserror = { workspace = true }
 validator = { workspace = true }
+ts-rs = { workspace = true }
 
 service = { path = "../../service" }
+
+[build-dependencies]
+fs_extra = "1.3"

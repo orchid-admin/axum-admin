@@ -9,6 +9,7 @@ use axum::{
 };
 use axum_auth::AuthBearer;
 
+/// token检查
 pub async fn token_check<B>(
     AuthBearer(token): AuthBearer,
     State(state): State<AppState>,
@@ -16,21 +17,22 @@ pub async fn token_check<B>(
     next: Next<B>,
 ) -> Result<Response, StatusCode> {
     let jwt = state.jwt.lock().await;
-    match jwt.get_item(&UseType::Admin, &token) {
-        Some(jwt_item) => {
-            if !jwt_item.check() {
-                return Ok(ErrorCode::Unauthorized.into_response());
-            }
-
-            match jwt.decode::<Claims>(&token) {
-                Ok(claims) => {
-                    req.extensions_mut().insert(claims);
-                    Ok(next.run(req).await)
-                }
-                Err(err) => Ok(err.into_response()),
-            }
+    match jwt.decode::<Claims>(&token) {
+        Ok(claims) => {
+            // match jwt.get_item(&UseType::Admin, &token) {
+            //     Some(jwt_item) => {
+            //         if !jwt_item.check() {
+            //             return Ok(ErrorCode::Unauthorized.into_response());
+            //         }
+            //         req.extensions_mut().insert(claims);
+            //         Ok(next.run(req).await)
+            //     }
+            //     None => Ok(ErrorCode::Unauthorized.into_response()),
+            // }
+            req.extensions_mut().insert(claims);
+            Ok(next.run(req).await)
         }
-        None => Ok(ErrorCode::Unauthorized.into_response()),
+        Err(err) => Ok(err.into_response()),
     }
 }
 

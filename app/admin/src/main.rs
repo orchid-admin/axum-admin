@@ -16,6 +16,7 @@ mod state;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    //
     let local_time = OffsetTime::new(
         UtcOffset::from_hms(8, 0, 0).unwrap(),
         format_description!("[year]-[month]-[day] [hour]:[minute]:[second].[subsecond digits:3]"),
@@ -35,6 +36,9 @@ async fn main() -> Result<()> {
     let app = router::init(state).await;
     let server_address = SocketAddr::from(([0, 0, 0, 0], 3000));
     tracing::info!("Service is running on {}", server_address);
+
+    // let (password, salt) = password::Password::generate_hash_salt("123456".as_bytes())?;
+    // println!("{}, {}", password, salt);
 
     axum::Server::bind(&server_address)
         .serve(app.into_make_service())
