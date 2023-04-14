@@ -39,7 +39,7 @@ impl Jwt {
     }
 
     /// generate token
-    pub fn generate<T>(&mut self, use_type: UserType, claims: T) -> Result<String>
+    pub fn generate<T>(&mut self, use_type: UseType, claims: T) -> Result<String>
     where
         T: Serialize,
     {
@@ -49,16 +49,16 @@ impl Jwt {
             &EncodingKey::from_secret(self.secret.as_ref()),
         ) {
             Ok(token) => Ok(token),
-            Err(_) => Err(ErrorCode::GenerateToken),
+            Err(_) => Err(ErrorCode::InternalServer("生成TOKEN失败")),
         }?;
         match self.add(use_type, &token)? {
             true => Ok(token),
-            false => Err(ErrorCode::GenerateToken),
+            false => Err(ErrorCode::InternalServer("生成TOKEN失败")),
         }
     }
 
     /// get items
-    pub fn get_items(&self, use_type: UserType) -> Vec<JwtItem> {
+    pub fn get_items(&self, use_type: UseType) -> Vec<JwtItem> {
         self.data
             .clone()
             .into_iter()
@@ -67,11 +67,11 @@ impl Jwt {
     }
 
     /// get item by key
-    pub fn get_item(&self, use_type: UserType, token: &str) -> Option<JwtItem> {
+    pub fn get_item(&self, use_type: &UseType, token: &str) -> Option<JwtItem> {
         self.data
             .clone()
             .into_iter()
-            .find(|x| x.token.eq(token) && x.use_type.eq(&use_type))
+            .find(|x| x.token.eq(token) && x.use_type.eq(use_type))
     }
 
     /// decode token
@@ -82,7 +82,7 @@ impl Jwt {
             &Validation::default(),
         ) {
             Ok(claims) => Ok(claims.claims),
-            Err(_) => Err(ErrorCode::TokenParse),
+            Err(_) => Err(ErrorCode::Unauthorized),
         }
     }
 
@@ -92,20 +92,20 @@ impl Jwt {
             .data
             .clone()
             .into_iter()
-            .filter(|x| x.clone().check())
+            .filter(|x| x.check())
             .collect::<Vec<JwtItem>>();
     }
 
     /// add item
-    fn add(&mut self, use_type: UserType, token: &str) -> Result<bool> {
-        Ok(match self.get_item(use_type.clone(), token) {
+    fn add(&mut self, use_type: UseType, token: &str) -> Result<bool> {
+        Ok(match self.get_item(&use_type, token) {
             Some(_) => false,
             None => {
                 let exp = match OffsetDateTime::now_utc()
                     .checked_add(Duration::seconds(self.valid_seconds))
                 {
                     Some(times) => Ok(times.unix_timestamp_nanos()),
-                    None => Err(ErrorCode::GenerateCaptcha),
+                    None => Err(ErrorCode::InternalServer("生成TOKEN失败")),
                 }?;
                 self.data.push(JwtItem {
                     use_type,
@@ -120,7 +120,7 @@ impl Jwt {
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
-pub enum UserType {
+pub enum UseType {
     Admin,
     User,
     Merchant,
@@ -128,7 +128,7 @@ pub enum UserType {
 
 #[derive(Debug, Clone)]
 pub struct JwtItem {
-    use_type: UserType,
+    use_type: UseType,
     token: String,
     exp: i128,
 }

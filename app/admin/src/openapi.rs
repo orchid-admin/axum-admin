@@ -1,3 +1,8 @@
+use utoipa::ToSchema;
+
+use crate::error::ErrorCode;
+
+#[allow(unused_macros)]
 macro_rules! api_doc_tag {
     ($name:literal, $description:literal) => {
         utoipa::openapi::tag::TagBuilder::new()
@@ -37,6 +42,12 @@ pub type DocmentPathSchema = (
 pub fn openapi(path_schemas: Vec<DocmentPathSchema>) -> utoipa::openapi::OpenApi {
     let mut paths = utoipa::openapi::Paths::new();
     let mut components = utoipa::openapi::Components::new();
+
+    let error_schema = ErrorCode::schema();
+    components
+        .schemas
+        .insert(error_schema.0.to_owned(), error_schema.1);
+
     for (path_items, schemas) in path_schemas {
         for (key, item) in path_items {
             paths.paths.insert(key.to_owned(), item);
@@ -49,11 +60,5 @@ pub fn openapi(path_schemas: Vec<DocmentPathSchema>) -> utoipa::openapi::OpenApi
     utoipa::openapi::OpenApiBuilder::new()
         .paths(paths)
         .components(Some(components))
-        .tags(Some(vec![
-            api_doc_tag!("auth", "授权"),
-            api_doc_tag!("user", "用户"),
-            api_doc_tag!("role", "角色"),
-            api_doc_tag!("menu", "菜单"),
-        ]))
         .build()
 }

@@ -14,16 +14,16 @@ datasource db {
 
 /// 用户表
 model SystemUser {
-  id          BigInt      @id @default(autoincrement())
+  id          Int         @id @default(autoincrement())
   /// 账户名称
   username    String      @unique
   /// 用户昵称
   nickname    String?
   /// 角色ID
-  role_id     BigInt?
+  role_id     Int?
   role        SystemRole? @relation(fields: [role_id], references: [id])
   /// 部门ID
-  dept_id     BigInt?
+  dept_id     Int?
   dept        SystemDept? @relation(fields: [dept_id], references: [id])
   /// 手机号
   phone       String?
@@ -48,7 +48,7 @@ model SystemUser {
 
 /// 角色表
 model SystemRole {
-  id         BigInt       @id @default(autoincrement())
+  id         Int          @id @default(autoincrement())
   /// 角色名称
   name       String
   /// 角色标识
@@ -67,9 +67,9 @@ model SystemRole {
 
 /// 菜单表
 model SystemMenu {
-  id                 BigInt    @id @default(autoincrement())
+  id                 Int       @id @default(autoincrement())
   /// 父级ID
-  parent_id          BigInt    @default(0)
+  parent_id          Int       @default(0)
   /// 菜单类型：menu.菜单，btn.按钮
   type               String    @default("menu")
   /// 路由名称
@@ -111,9 +111,9 @@ model SystemMenu {
 
 /// 部门表
 model SystemDept {
-  id           BigInt       @id @default(autoincrement())
+  id           Int          @id @default(autoincrement())
   /// 父级ID
-  parent_id    BigInt       @default(0)
+  parent_id    Int          @default(0)
   /// 部门名称
   name         String
   /// 负责人姓名
@@ -135,7 +135,7 @@ model SystemDept {
 }
 
 model SystemDict {
-  id         BigInt    @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   /// 名称
   name       String
   /// 标识

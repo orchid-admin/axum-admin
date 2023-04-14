@@ -35,7 +35,7 @@ impl Captcha {
     /// genrate captcha
     pub fn generate(
         &mut self,
-        use_type: &str,
+        use_type: UseType,
         length: usize,
         width: u32,
         height: u32,
@@ -54,21 +54,21 @@ impl Captcha {
         let key = OffsetDateTime::now_utc().unix_timestamp_nanos().to_string();
         match self.add(use_type, &key, &captcha.text)? {
             true => Ok((key, captcha.to_base64())),
-            false => Err(ErrorCode::GenerateCaptcha),
+            false => Err(ErrorCode::InternalServer("生成验证码失败")),
         }
     }
 
     /// get items by use_type
-    pub fn get_items(&self, use_type: &str) -> Vec<CaptchaItem> {
+    pub fn get_items(&self, use_type: UseType) -> Vec<CaptchaItem> {
         self.data
             .clone()
             .into_iter()
-            .filter(|x| x.use_type.eq(use_type))
+            .filter(|x| x.use_type.eq(&use_type))
             .collect::<Vec<CaptchaItem>>()
     }
 
     /// get item by key
-    pub fn get_item(&self, use_type: &str, key: &str) -> Option<CaptchaItem> {
+    pub fn get_item(&self, use_type: &UseType, key: &str) -> Option<CaptchaItem> {
         self.data
             .clone()
             .into_iter()
@@ -76,12 +76,12 @@ impl Captcha {
     }
 
     /// remvoe captcha by key
-    pub fn remove_item_by_key(&mut self, use_type: &str, key: &str) {
+    pub fn remove_item_by_key(&mut self, use_type: UseType, key: &str) {
         self.data = self
             .data
             .clone()
             .into_iter()
-            .filter(|x| !x.key.eq(&key) && !x.use_type.eq(use_type))
+            .filter(|x| !x.key.eq(&key) && !x.use_type.eq(&use_type))
             .collect::<Vec<CaptchaItem>>();
     }
 
@@ -91,23 +91,23 @@ impl Captcha {
             .data
             .clone()
             .into_iter()
-            .filter(|x| x.clone().check())
+            .filter(|x| x.check())
             .collect::<Vec<CaptchaItem>>();
     }
 
     /// add captcha cache
-    fn add(&mut self, use_type: &str, key: &str, text: &str) -> Result<bool> {
-        Ok(match self.get_item(use_type, key) {
+    fn add(&mut self, use_type: UseType, key: &str, text: &str) -> Result<bool> {
+        Ok(match self.get_item(&use_type, key) {
             Some(_) => false,
             None => {
                 let exp = match OffsetDateTime::now_utc()
                     .checked_add(Duration::seconds(self.valid_seconds))
                 {
                     Some(times) => Ok(times.unix_timestamp_nanos()),
-                    None => Err(ErrorCode::GenerateCaptcha),
+                    None => Err(ErrorCode::InternalServer("生成验证码失败")),
                 }?;
                 self.data.push(CaptchaItem {
-                    use_type: use_type.to_owned(),
+                    use_type,
                     key: key.to_owned(),
                     text: text.to_owned(),
                     exp,
@@ -116,11 +116,26 @@ impl Captcha {
             }
         })
     }
+
+    pub fn remove_item(&mut self, item: &CaptchaItem) {
+        self.data = self
+            .data
+            .clone()
+            .into_iter()
+            .filter(|x| !x.eq(item))
+            .collect::<Vec<CaptchaItem>>();
+    }
 }
 
-#[derive(Debug, Clone)]
+#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq)]
+pub enum UseType {
+    AdminLogin,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct CaptchaItem {
-    use_type: String,
+    use_type: UseType,
     key: String,
     text: String,
     exp: i128,
@@ -128,13 +143,13 @@ pub struct CaptchaItem {
 
 #[allow(dead_code)]
 impl CaptchaItem {
-    /// get text
-    pub fn get_text(self) -> String {
-        self.text
+    /// check captcha is can use
+    pub fn check(&self) -> bool {
+        self.exp > OffsetDateTime::now_utc().unix_timestamp_nanos()
     }
 
-    /// check captcha is can use
-    pub fn check(self) -> bool {
-        self.exp > OffsetDateTime::now_utc().unix_timestamp_nanos()
+    /// verify text
+    pub fn verify(&self, text: &str) -> bool {
+        self.check() && self.text.eq(text)
     }
 }
