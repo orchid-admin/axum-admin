@@ -14,7 +14,8 @@ edition = "2021"
 
 [workspace.dependencies]
 # web server require
-axum = { version = "0.6",  features = ["headers", "matched-path", "form"] }
+axum = { version = "0.6",  features = ["headers", "matched-path", "form", "ws"] }
+axum-macros = { version = "0.3" }
 axum-auth = { version = "0.4", features = ["auth-bearer"] }
 # async require
 tokio = { version = "1.17", default-features = false, features = ["macros", "rt-multi-thread"] }
@@ -48,6 +49,8 @@ validator = {version = "0.16", features = ["derive"]}
 # password encode require
 argon2 = { version = "0.5" }
 password-hash = { version = "0.5", default-features = false, features = ["alloc", "rand_core"] }
+# sturct to ts type require
+ts-rs = { version = "6.2", features = ["serde-compat"] }
 
 [profile.release]
 codegen-units = 1

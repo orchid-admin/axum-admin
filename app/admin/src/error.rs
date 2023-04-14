@@ -51,6 +51,7 @@ impl IntoResponse for ErrorCode {
                         self.get_message()
                     }
                     Self::ParamsValidator(ref err_str) => Some(err_str),
+                    Self::RequestParams(ref err_str) => Some(err_str), // todo
                     Self::Other(err_str) => Some(err_str),
                     _ => self.get_message(),
                 },

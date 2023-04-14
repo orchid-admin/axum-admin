@@ -16,6 +16,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use service::sys_user;
+use ts_rs::TS;
 use utoipa::{Path, ToSchema};
 use validator::Validate;
 
@@ -84,7 +85,7 @@ async fn login_by_account(
                         .generate(JwtUseType::Admin, Claims::build(user.id))?;
                     Ok(Json(LoginReponse {
                         token,
-                        user_nickname: user.nickname,
+                        username: Some(user.username),
                     }))
                 }
                 None => Err(ErrorCode::Other("用户名或密码错误")),
@@ -118,7 +119,7 @@ async fn login_by_mobile(
                 .generate(JwtUseType::Admin, Claims::build(user.id))?;
             Ok(Json(LoginReponse {
                 token,
-                user_nickname: user.nickname,
+                username: Some(user.username),
             }))
         }
         None => Err(ErrorCode::Other("用户名或密码错误")),
@@ -148,7 +149,7 @@ async fn login_by_qrcode(
         .generate(JwtUseType::Admin, Claims::build(1))?;
     Ok(Json(LoginReponse {
         token,
-        user_nickname: None,
+        username: None,
     }))
 }
 
@@ -174,7 +175,8 @@ async fn get_captcha(State(state): State<AppState>) -> Result<impl IntoResponse>
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Serialize, Deserialize, Validate, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Validate, ToSchema, TS)]
+#[ts(export)]
 struct LoginByAccountRequest {
     /// 用户名
     #[validate(length(min = 5, message = "用户名长度错误"))]
@@ -190,7 +192,8 @@ struct LoginByAccountRequest {
     code: String,
 }
 #[allow(dead_code)]
-#[derive(Debug, Serialize, Deserialize, Validate, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Validate, ToSchema, TS)]
+#[ts(export)]
 struct LoginByMobileRequest {
     /// 手机号码
     mobile: String,
@@ -198,14 +201,17 @@ struct LoginByMobileRequest {
     code: String,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize, ToSchema, TS)]
+#[ts(export)]
 struct LoginReponse {
     /// 登录账户的TOKEN
     token: String,
-    user_nickname: Option<String>,
+    #[serde(rename = "userName")]
+    username: Option<String>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize, ToSchema, TS)]
+#[ts(export)]
 struct GetCaptchaReponse {
     /// 图片key（用于提交时识别）
     key: String,
