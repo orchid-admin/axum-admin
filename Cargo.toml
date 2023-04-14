@@ -14,14 +14,16 @@ edition = "2021"
 
 [workspace.dependencies]
 # web server require
-axum = { version = "0.6", default-features = false, features = ["headers", "matched-path"] }
+axum = { version = "0.6",  features = ["headers", "matched-path", "form", "ws", "tracing"] }
+axum-macros = { version = "0.3" }
 axum-auth = { version = "0.4", features = ["auth-bearer"] }
 # async require
 tokio = { version = "1.17", default-features = false, features = ["macros", "rt-multi-thread"] }
 # log require
 tracing = { version = "0.1" }
-tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "time", "local-time", "fmt"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "time", "local-time", "fmt", "registry"] }
 console-subscriber = { version = "0.1.8", default-features = false, features = ["env-filter"] }
+chrono = { version = "0.4" }
 time = { version = "0.3", default-features = false, features=["macros"] }
 # swagger require
 utoipa = { version = "3.1", default-features = false, features = ["axum_extras"] }
@@ -39,8 +41,16 @@ tower-http = { version = "0.4", default-features = false, features = ["fs", "tra
 # orm require
 prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.7", default-features = false, features = ["sqlite"] }
 prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.7", default-features = false, features = ["sqlite"] }
-
+# error code require
 custom_attrs = "1.4"
+thiserror = "1.0"
+# request params validator require
+validator = {version = "0.16", features = ["derive"]}
+# password encode require
+argon2 = { version = "0.5" }
+password-hash = { version = "0.5", default-features = false, features = ["alloc", "rand_core"] }
+# sturct to ts type require
+ts-rs = { version = "6.2", features = ["serde-compat"] }
 
 [profile.release]
 codegen-units = 1

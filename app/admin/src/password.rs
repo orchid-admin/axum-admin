@@ -17,7 +17,7 @@ impl Password {
             Params::MIN_P_COST,
             None,
         )
-        .map_err(|_| ErrorCode::GeneratePassword)
+        .map_err(|_| ErrorCode::InternalServer("生成密码失败"))
     }
 
     /// new Argon2
@@ -36,15 +36,15 @@ impl Password {
         let salt = SaltString::generate(&mut OsRng);
         let password_hash = argon2
             .hash_password(password, &salt)
-            .map_err(|_| ErrorCode::GeneratePassword)?;
+            .map_err(|_| ErrorCode::InternalServer("生成密码失败"))?;
 
         let hash = match password_hash.hash {
             Some(hash) => Ok(hash.to_string()),
-            None => Err(ErrorCode::GeneratePassword),
+            None => Err(ErrorCode::InternalServer("生成密码失败")),
         }?;
         let salt = match password_hash.salt {
             Some(salt) => Ok(salt.to_string()),
-            None => Err(ErrorCode::GeneratePassword),
+            None => Err(ErrorCode::InternalServer("生成密码失败")),
         }?;
         Ok((hash, salt))
     }
@@ -57,9 +57,13 @@ impl Password {
             algorithm: Algorithm::default().ident(),
             version: Some(Version::V0x13.into()),
             params: ParamsString::try_from(&Self::build_params()?)
-                .map_err(|_| ErrorCode::GeneratePassword)?,
-            salt: Some(Salt::from_b64(&salt).map_err(|_| ErrorCode::GeneratePassword)?),
-            hash: Some(Output::b64_decode(&hash).map_err(|_| ErrorCode::GeneratePassword)?),
+                .map_err(|_| ErrorCode::InternalServer("验证密码失败"))?,
+            salt: Some(
+                Salt::from_b64(&salt).map_err(|_| ErrorCode::InternalServer("验证密码失败"))?,
+            ),
+            hash: Some(
+                Output::b64_decode(&hash).map_err(|_| ErrorCode::InternalServer("验证密码失败"))?,
+            ),
         };
         Ok(argon2
             .verify_password(input_password, &password_hash)
