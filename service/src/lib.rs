@@ -1,5 +1,5 @@
 mod prisma;
-pub mod sys_user;
+pub mod system_user;
 
 pub type Database = std::sync::Arc<prisma::PrismaClient>;
 pub type Result<T> = std::result::Result<T, ServiceError>;

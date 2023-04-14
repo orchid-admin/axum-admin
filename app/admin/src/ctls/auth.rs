@@ -12,7 +12,7 @@ use axum::{
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use service::sys_user;
+use service::system_user;
 use utoipa::{Path, ToSchema};
 
 pub fn routers<S>(state: AppState) -> Router<S> {
@@ -55,7 +55,7 @@ async fn login_by_account(
     State(state): State<AppState>,
     extract::Json(params): extract::Json<LoginByAccountRequest>,
 ) -> Result<Json<impl Serialize>> {
-    match sys_user::find_user_by_username(state.db.clone(), &params.username).await? {
+    match system_user::find_user_by_username(state.db.clone(), &params.username).await? {
         Some(user) => {
             let verify_result =
                 Password::verify_password(user.password, user.salt, params.password.as_bytes())?;
@@ -91,7 +91,7 @@ async fn login_by_mobile(
     State(state): State<AppState>,
     extract::Json(params): extract::Json<LoginByMobileRequest>,
 ) -> Result<Json<impl Serialize>> {
-    match sys_user::find_user_by_phone(state.db.clone(), &params.mobile).await? {
+    match system_user::find_user_by_phone(state.db.clone(), &params.mobile).await? {
         Some(user) => {
             let token = state
                 .jwt
