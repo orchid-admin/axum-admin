@@ -1,4 +1,4 @@
-use crate::{ctls::Claims, error::ErrorCode, jwt::UseType, state::AppState};
+use crate::{ctls::Claims,  state::AppState};
 use axum::{
     body::Body,
     extract::{rejection::MatchedPathRejection, MatchedPath, State},
@@ -16,6 +16,7 @@ pub async fn token_check<B>(
     mut req: Request<B>,
     next: Next<B>,
 ) -> Result<Response, StatusCode> {
+    // use { error::ErrorCode, jwt::UseType };
     let jwt = state.jwt.lock().await;
     match jwt.decode::<Claims>(&token) {
         Ok(claims) => {
