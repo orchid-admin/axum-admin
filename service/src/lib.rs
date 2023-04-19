@@ -1,7 +1,9 @@
 use prisma_client_rust::chrono::{DateTime, FixedOffset, Utc};
 
+#[allow(unused)]
 mod prisma;
 pub mod sys_menu;
+mod sys_role_menu;
 pub mod sys_user;
 
 pub type Database = std::sync::Arc<prisma::PrismaClient>;

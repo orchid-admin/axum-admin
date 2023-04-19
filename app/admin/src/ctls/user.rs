@@ -78,7 +78,7 @@ async fn get_user_permission(
     Extension(claims): Extension<Claims>,
     State(state): State<AppState>,
 ) -> Result<impl IntoResponse> {
-    match sys_user::get_current_user_info(state.db.clone(), claims.user_id).await? {
+    match sys_user::get_current_user_info(&state.db, claims.user_id).await? {
         Some(permission) => Ok(Json(UserPermission {
             username: permission.user.username,
             photo: None,
