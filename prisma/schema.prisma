@@ -48,65 +48,72 @@ model SystemUser {
 
 /// 角色表
 model SystemRole {
-  id         Int          @id @default(autoincrement())
+  id             Int              @id @default(autoincrement())
   /// 角色名称
-  name       String
+  name           String
   /// 角色标识
-  sign       String
+  sign           String
   /// 排序
-  sort       Int          @default(0)
+  sort           Int              @default(0)
   /// 角色描述
-  describe   String?
+  describe       String?
   /// 角色状态
-  status     Boolean      @default(true)
-  created_at DateTime
-  updated_at DateTime
-  deleted_at DateTime?
-  SystemUser SystemUser[]
+  status         Boolean          @default(true)
+  created_at     DateTime
+  updated_at     DateTime
+  deleted_at     DateTime?
+  SystemUser     SystemUser[]
+  SystemRoleMenu SystemRoleMenu[]
 }
 
 /// 菜单表
 model SystemMenu {
-  id                 Int       @id @default(autoincrement())
+  id                 Int              @id @default(autoincrement())
   /// 父级ID
-  parent_id          Int       @default(0)
+  parent_id          Int              @default(0)
   /// 菜单类型：menu.菜单，btn.按钮
-  type               String    @default("menu")
+  type               String           @default("menu")
   /// 路由名称
-  router_name        String
-  ///
-  ///component          String
+  router_name        String           @default("")
   ///组件路径
-  component_alias    String
+  component          String           @default("")
   /// 是否外链
-  is_link            Boolean   @default(false)
+  is_link            Boolean          @default(false)
   /// 路由路径
-  path               String
+  path               String           @default("")
   /// 路由重定向
-  redirect           String
+  redirect           String           @default("")
   /// 菜单名称
   meta_title         String
   /// 菜单图标
-  meta_icon          String
+  meta_icon          String           @default("")
   /// 是否隐藏
-  meta_is_hide       Boolean   @default(false)
+  meta_is_hide       Boolean          @default(false)
   /// 页面缓存
-  meta_is_keep_alive Boolean   @default(true)
+  meta_is_keep_alive Boolean          @default(true)
   /// 是否固定
-  meta_is_affix      Boolean   @default(false)
+  meta_is_affix      Boolean          @default(false)
   /// 链接地址
-  meta_link          String    @default("")
+  meta_link          String           @default("")
   /// 是否内嵌
-  meta_is_iframe     Boolean   @default(false)
+  meta_is_iframe     Boolean          @default(false)
   /// 权限标识
-  meta_roles         String    @default("")
-  /// 权限标识
-  btn_power          String    @default("")
+  btn_power          String           @default("")
   /// 菜单排序
-  sort               Int       @default(0)
+  sort               Int              @default(0)
   created_at         DateTime
   updated_at         DateTime
   deleted_at         DateTime?
+  SystemRoleMenu     SystemRoleMenu[]
+}
+
+model SystemRoleMenu {
+  id         Int        @id @default(autoincrement())
+  role       SystemRole @relation(fields: [role_id], references: [id])
+  menu       SystemMenu @relation(fields: [menu_id], references: [id])
+  role_id    Int
+  menu_id    Int
+  deleted_at DateTime?
 }
 
 /// 部门表

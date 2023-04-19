@@ -1,5 +1,5 @@
 [alias]
-prisma = "run -p cli --"
+prisma = "run -p prisma_cli --"
 
 #[http]
 #proxy = "127.0.0.1:7890"

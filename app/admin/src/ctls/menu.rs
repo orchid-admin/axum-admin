@@ -1,99 +1,69 @@
 use axum::{
-    extract::{self, State},
+    extract::State,
     response::IntoResponse,
     routing::{get, post},
-    Json, Router,
+    Extension, Json, Router,
 };
-use serde::{Deserialize, Serialize};
-use service::sys_menu::{self, MenuCreateParams};
+use serde::Deserialize;
+use service::sys_menu::{self, MenuCreateParams, MenuInfo, MenuInfoMeta};
 use ts_rs::TS;
 use utoipa::{Path, ToSchema};
 use validator::Validate;
 
 use crate::{error::Result, extracts::ValidatorJson, openapi::DocmentPathSchema, state::AppState};
 
+use super::Claims;
+
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
     Router::new()
-        .route("/menu/index", get(index))
-        .route("/menu/info/:id", get(info))
+        .route("/menu/index", get(tree))
         .route("/menu/create", post(create))
         .with_state(state)
 }
 
 pub fn api_docment() -> DocmentPathSchema {
     let paths = crate::api_doc_path! {
-        __path_index,
-        __path_info,
-        __path_create
+        __path_create,
+        __path_tree
     };
     let schemas = crate::api_doc_schema! {
-        IndexResponse
+        MenuInfo,
+        MenuInfoMeta
     };
     (paths, schemas)
 }
-/// 列表
-#[utoipa::path(
-    get,
-    path = "/menu/index",
-    tag = "menu",
-    responses(
-        (status = 200, body = [IndexResponse])
-    )
-)]
-async fn index() -> Result<Json<impl Serialize>> {
-    Ok(Json(IndexResponse {}))
-}
-
-/// 详情
-#[utoipa::path(
-    get,
-    path = "/menu/info/:id",
-    tag = "menu",
-    responses(
-        (status = 200, body = [IndexResponse])
-    )
-)]
-async fn info(extract::Path(_id): extract::Path<i64>) -> Result<impl IntoResponse> {
-    Ok(Json(IndexResponse {}))
-}
 
 /// 新增
-#[utoipa::path(
-    get,
-    path = "/menu/create",
-    tag = "menu",
-    responses(
-        (status = 200, body = IndexResponse)
-    )
-)]
+#[utoipa::path(get, path = "/menu/create", tag = "菜单")]
 async fn create(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<MenuCreateRequest>,
 ) -> Result<impl IntoResponse> {
-    let create_params = MenuCreateParams {
-        parent_id: params.parent_id,
-        r#type: params.r#type,
-        router_name: params.router_name,
-        component_alias: params.component_alias,
-        is_link: params.is_link,
-        path: params.path,
-        redirect: params.redirect,
-        btn_power: params.btn_power,
-        sort: params.sort,
-        title: params.meta.title,
-        icon: params.meta.icon,
-        is_hide: params.meta.is_hide,
-        is_keep_alive: params.meta.is_keep_alive,
-        is_affix: params.meta.is_affix,
-        link: params.meta.link,
-        is_iframe: params.meta.is_iframe,
-    };
-    sys_menu::create(state.db.clone(), create_params).await?;
+    sys_menu::create(
+        state.db.clone(),
+        params.meta.title.clone(),
+        params.to_partial_unchecked(),
+    )
+    .await?;
     Ok("")
 }
 
-#[derive(Debug, Serialize, ToSchema)]
-struct IndexResponse {}
+/// 获取树形
+#[utoipa::path(
+    get,
+    path = "/menu/tree",
+    tag = "菜单",
+    responses(
+        (status = 200, body = Vec<MenuInfo>)
+    )
+)]
+async fn tree(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+) -> Result<impl IntoResponse> {
+    let data = sys_menu::get_user_menu(state.db.clone(), claims.user_id).await?;
+    Ok(Json(data))
+}
 
 #[allow(dead_code)]
 #[derive(Debug, Deserialize, Validate, ToSchema, TS)]
@@ -102,19 +72,21 @@ struct MenuCreateRequest {
     parent_id: Option<i32>,
     #[validate(length(min = 2, message = "类型长度错误"))]
     #[serde(rename = "menuType")]
-    r#type: String,
+    #[validate(required)]
+    r#type: Option<String>,
     #[serde(rename = "name")]
-    router_name: String,
+    router_name: Option<String>,
     #[serde(rename = "componentAlias")]
-    component_alias: String,
+    component: Option<String>,
     #[serde(rename = "isLink")]
-    is_link: bool,
-    path: String,
-    redirect: String,
+    is_link: Option<bool>,
+    path: Option<String>,
+    redirect: Option<String>,
     #[serde(rename = "btnPower")]
-    btn_power: String,
+    btn_power: Option<String>,
     #[serde(rename = "menuSort")]
-    sort: i32,
+    #[validate(required)]
+    sort: Option<i32>,
     meta: MenuMeta,
 }
 
@@ -122,16 +94,37 @@ struct MenuCreateRequest {
 #[ts(export)]
 struct MenuMeta {
     title: String,
-    icon: String,
+    icon: Option<String>,
     #[serde(rename = "isHide")]
-    is_hide: bool,
+    is_hide: Option<bool>,
     #[serde(rename = "isKeepAlive")]
-    is_keep_alive: bool,
+    is_keep_alive: Option<bool>,
     #[serde(rename = "isAffix")]
-    is_affix: bool,
+    is_affix: Option<bool>,
     #[serde(rename = "isLink")]
-    link: String,
+    link: Option<String>,
     #[serde(rename = "isIframe")]
-    is_iframe: bool,
-    roles: Vec<String>,
+    is_iframe: Option<bool>,
+}
+
+impl MenuCreateRequest {
+    fn to_partial_unchecked(self) -> MenuCreateParams {
+        MenuCreateParams {
+            parent_id: self.parent_id,
+            r#type: self.r#type,
+            router_name: self.router_name,
+            component: self.component,
+            is_link: self.is_link,
+            path: self.path,
+            redirect: self.redirect,
+            btn_power: self.btn_power,
+            sort: self.sort,
+            meta_icon: self.meta.icon,
+            meta_is_hide: self.meta.is_hide,
+            meta_is_keep_alive: self.meta.is_keep_alive,
+            meta_is_affix: self.meta.is_affix,
+            meta_link: self.meta.link,
+            meta_is_iframe: self.meta.is_iframe,
+        }
+    }
 }

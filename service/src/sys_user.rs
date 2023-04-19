@@ -29,7 +29,7 @@ pub async fn find_user_by_phone(
         .await?)
 }
 
-pub async fn get_current_user_info(client: Database, id: i32) -> Result<Option<UserPermission>> {
+pub async fn get_current_user_info(client: &Database, id: i32) -> Result<Option<UserPermission>> {
     Ok(client
         .system_user()
         .find_first(vec![system_user::id::equals(id)])
