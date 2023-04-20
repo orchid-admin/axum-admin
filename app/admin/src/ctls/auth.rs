@@ -66,7 +66,7 @@ async fn login_by_account(
                 return Err(ErrorCode::Other("验证码错误"));
             }
             captcha.remove_item(&captcha_item);
-            match sys_user::find_user_by_username(state.db.clone(), &params.username).await? {
+            match sys_user::find_user_by_username(&state.db, &params.username).await? {
                 Some(user) => {
                     let verify_result = Password::verify_password(
                         user.password,
@@ -110,7 +110,7 @@ async fn login_by_mobile(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<LoginByMobileRequest>,
 ) -> Result<impl IntoResponse> {
-    match sys_user::find_user_by_phone(state.db.clone(), &params.mobile).await? {
+    match sys_user::find_user_by_phone(&state.db, &params.mobile).await? {
         Some(user) => {
             let token = state
                 .jwt

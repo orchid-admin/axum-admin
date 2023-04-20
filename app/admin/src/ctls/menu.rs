@@ -1,18 +1,15 @@
+use crate::{error::Result, extracts::ValidatorJson, openapi::DocmentPathSchema, state::AppState};
 use axum::{
     extract::State,
     response::IntoResponse,
     routing::{get, post},
-    Extension, Json, Router,
+    Json, Router,
 };
 use serde::Deserialize;
 use service::sys_menu::{self, MenuCreateParams, MenuInfo, MenuInfoMeta};
 use ts_rs::TS;
 use utoipa::{Path, ToSchema};
 use validator::Validate;
-
-use crate::{error::Result, extracts::ValidatorJson, openapi::DocmentPathSchema, state::AppState};
-
-use super::Claims;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
     Router::new()
@@ -39,12 +36,7 @@ async fn create(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<MenuCreateRequest>,
 ) -> Result<impl IntoResponse> {
-    sys_menu::create(
-        state.db.clone(),
-        params.meta.title.clone(),
-        params.to_partial_unchecked(),
-    )
-    .await?;
+    sys_menu::create(&state.db, params.meta.title.clone(), params.into()).await?;
     Ok("")
 }
 
@@ -57,12 +49,8 @@ async fn create(
         (status = 200, body = Vec<MenuInfo>)
     )
 )]
-async fn tree(
-    State(state): State<AppState>,
-    Extension(claims): Extension<Claims>,
-) -> Result<impl IntoResponse> {
-    let data = sys_menu::get_user_menu(state.db.clone(), claims.user_id).await?;
-    Ok(Json(data))
+async fn tree(State(state): State<AppState>) -> Result<impl IntoResponse> {
+    Ok(Json(sys_menu::get_menus_tree(&state.db).await?))
 }
 
 #[allow(dead_code)]
@@ -107,24 +95,24 @@ struct MenuMeta {
     is_iframe: Option<bool>,
 }
 
-impl MenuCreateRequest {
-    fn to_partial_unchecked(self) -> MenuCreateParams {
+impl From<MenuCreateRequest> for MenuCreateParams {
+    fn from(params: MenuCreateRequest) -> MenuCreateParams {
         MenuCreateParams {
-            parent_id: self.parent_id,
-            r#type: self.r#type,
-            router_name: self.router_name,
-            component: self.component,
-            is_link: self.is_link,
-            path: self.path,
-            redirect: self.redirect,
-            btn_power: self.btn_power,
-            sort: self.sort,
-            meta_icon: self.meta.icon,
-            meta_is_hide: self.meta.is_hide,
-            meta_is_keep_alive: self.meta.is_keep_alive,
-            meta_is_affix: self.meta.is_affix,
-            meta_link: self.meta.link,
-            meta_is_iframe: self.meta.is_iframe,
+            parent_id: params.parent_id,
+            r#type: params.r#type,
+            router_name: params.router_name,
+            component: params.component,
+            is_link: params.is_link,
+            path: params.path,
+            redirect: params.redirect,
+            btn_power: params.btn_power,
+            sort: params.sort,
+            meta_icon: params.meta.icon,
+            meta_is_hide: params.meta.is_hide,
+            meta_is_keep_alive: params.meta.is_keep_alive,
+            meta_is_affix: params.meta.is_affix,
+            meta_link: params.meta.link,
+            meta_is_iframe: params.meta.is_iframe,
         }
     }
 }

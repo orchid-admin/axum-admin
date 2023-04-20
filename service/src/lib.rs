@@ -1,16 +1,6 @@
 use prisma_client_rust::chrono::{DateTime, FixedOffset, Utc};
 
-#[allow(
-    unused,
-    clippy::from_over_into,
-    clippy::self_named_constructors,
-    clippy::redundant_closure,
-    clippy::wrong_self_convention,
-    clippy::enum_variant_names,
-    clippy::useless_conversion,
-    clippy::crate_in_macro_def,
-    clippy::redundant_static_lifetimes
-)]
+#[allow(unused, warnings)]
 mod prisma;
 pub mod sys_menu;
 mod sys_role_menu;
@@ -22,7 +12,7 @@ pub type Result<T> = std::result::Result<T, ServiceError>;
 pub async fn new_client() -> Result<Database> {
     let database = std::sync::Arc::new(prisma::PrismaClient::_builder().build().await?);
     if let Err(e) = sys_user::upset(
-        database.clone(),
+        &database,
         "admin",
         "sfWTwt9NxLNapTmoIdzfUbbRODMk266kc7ArZcF2EsQ",
         "nodiZ0cU0ER5Vg3n+rOsoQ",
@@ -47,6 +37,8 @@ pub enum ServiceError {
     QueryError(String),
     #[attr(code = "RelationNotFetchedError")]
     RelationNotFetchedError(String),
+    #[attr(code = "DataNotFound")]
+    DataNotFound,
 }
 
 impl From<prisma_client_rust::NewClientError> for ServiceError {

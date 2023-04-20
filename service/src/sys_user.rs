@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub async fn find_user_by_username(
-    client: Database,
+    client: &Database,
     username: &str,
 ) -> Result<Option<system_user::Data>> {
     Ok(client
@@ -19,7 +19,7 @@ pub async fn find_user_by_username(
 }
 
 pub async fn find_user_by_phone(
-    client: Database,
+    client: &Database,
     phone: &str,
 ) -> Result<Option<system_user::Data>> {
     Ok(client
@@ -43,7 +43,7 @@ pub async fn get_current_user_info(client: &Database, id: i32) -> Result<Option<
 }
 
 pub async fn create(
-    client: Database,
+    client: &Database,
     username: &str,
     password: &str,
     salt: &str,
@@ -64,7 +64,7 @@ pub async fn create(
 }
 
 pub async fn upset(
-    client: Database,
+    client: &Database,
     username: &str,
     password: &str,
     salt: &str,
