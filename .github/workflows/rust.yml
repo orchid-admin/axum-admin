@@ -23,6 +23,7 @@ jobs:
       OS: ${{ matrix.OS }}
     steps:
       - uses: actions/checkout@v3
+      - uses: taiki-e/install-action@protoc
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         # - uses: Swatinem/rust-cache@ce325b60658c1b38465c06cc965b79baf32c1e72
