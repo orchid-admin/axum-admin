@@ -26,6 +26,8 @@ jobs:
           key: test-cargo-registry
       - name: List
         run: find ./
+      - name: install prisma
+        run: cargo prisma generate
       - name: Run tests
         run: cargo test --verbose
 
