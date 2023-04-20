@@ -1,12 +1,13 @@
 [workspace]
 members = [
-    "cli",
     "prisma/prisma_cli",
     "service",
+    "app/cli",
     "app/api",
     "app/admin",
     "app/merchant",
 ]
+default-members = ["app/cli"]
 resolver = "2"
 
 [workspace.package]
