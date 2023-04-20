@@ -16,7 +16,7 @@ pub async fn init() -> service::Result<()> {
     let client = service::new_client().await?;
 
     for info in data.data.into_iter() {
-        let res = insert(client.clone(), None, info).await;
+        let res = insert(&client, None, info).await;
         if let Err(err) = res {
             println!("error: {:#?}", err);
         }
@@ -26,7 +26,7 @@ pub async fn init() -> service::Result<()> {
 
 #[async_recursion]
 async fn insert(
-    client: service::Database,
+    client: &service::Database,
     parent_id: Option<i32>,
     info: service::sys_menu::MenuInfo,
 ) -> service::Result<()> {
@@ -47,10 +47,10 @@ async fn insert(
         meta_link: info.meta.is_link,
         meta_is_iframe: Some(info.meta.is_iframe),
     };
-    let data = service::sys_menu::create(client.clone(), info.meta.title, params).await?;
+    let data = service::sys_menu::create(client, info.meta.title, params).await?;
     if let Some(children) = info.children {
         for child in children {
-            let res = insert(client.clone(), Some(data.id), child).await;
+            let res = insert(client, Some(data.id.unwrap()), child).await;
             if let Err(err) = res {
                 println!("error: {:#?}", err);
             }
