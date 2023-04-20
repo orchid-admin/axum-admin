@@ -74,6 +74,8 @@ jobs:
           key: build-cargo-registry-${{matrix.TARGET}}
       - name: List
         run: find ./
+      - name: install prisma
+        run: cargo prisma generate
       - name: Install and configure dependencies
         run: |
           # dependencies are only needed on ubuntu as that's the only place where
