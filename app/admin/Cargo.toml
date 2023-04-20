@@ -6,37 +6,28 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+argon2 = { workspace = true }
 axum = { workspace = true }
-axum-macros = { workspace = true }
 axum-auth = { workspace = true }
-# async require (tokio debug add feature: tracing)
-tokio = { workspace = true }
-# log require (tokio debug add feature(registry) to tracing-subscriber)
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
-# time require
-time = { workspace = true }
-# swagger require
-utoipa = { workspace = true }
-utoipa-swagger-ui = { workspace = true }
-# json require
+axum-macros = { workspace = true }
+captcha-rs = { workspace = true }
+custom_attrs = { workspace = true }
+jsonwebtoken = { workspace = true }
+password-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-# captcha require
-captcha-rs = { workspace = true }
-# jwt require
-jsonwebtoken = { workspace = true }
-# static file require
+service = { path = "../../service" }
+thiserror = { workspace = true }
+time = { workspace = true }
+tokio = { workspace = true }
 # tower = { workspace = true }
 tower-http = { workspace = true }
-argon2 = { workspace = true }
-password-hash = { workspace = true }
-custom_attrs = { workspace = true }
-thiserror = { workspace = true }
-validator = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 ts-rs = { workspace = true }
-
-service = { path = "../../service" }
+utoipa = { workspace = true }
+utoipa-swagger-ui = { workspace = true }
+validator = { workspace = true }
 
 [build-dependencies]
 fs_extra = "1.3"
