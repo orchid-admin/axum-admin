@@ -3,6 +3,7 @@ use std::{
     fs::{self, File},
     io::Write,
     path::PathBuf,
+    process::Command,
 };
 
 fn run_dir() -> PathBuf {
@@ -10,7 +11,7 @@ fn run_dir() -> PathBuf {
 }
 
 fn current_dir() -> PathBuf {
-    run_dir().join("cli").join("bindings")
+    run_dir().join("app").join("cli").join("bindings")
 }
 
 fn types_dir() -> PathBuf {
@@ -27,12 +28,24 @@ pub fn init() {
         fs::create_dir_all(current_dir()).unwrap();
     }
     let exports = vec![dir.join("app").join("admin"), dir.join("service")];
+
+    run_test("service");
+    run_test("admin");
     for export in exports {
         merge_file(export);
     }
     move_dir();
 }
 
+fn run_test(name: &str) {
+    let output = Command::new("cargo")
+        .arg("test")
+        .arg("-p")
+        .arg(name)
+        .output()
+        .expect("failed to execute process");
+    std::io::stdout().write_all(&output.stdout).unwrap();
+}
 /// 复制ts文件到当前目录下
 fn merge_file(dir: PathBuf) {
     let dir_path = dir.join("bindings");
@@ -67,6 +80,7 @@ fn merge_file(dir: PathBuf) {
 
 /// 移动bingings目录到前端源码类型目录
 fn move_dir() {
+    // println!("{:#?}", types_dir());
     fs_extra::dir::move_dir(
         current_dir(),
         types_dir(),
