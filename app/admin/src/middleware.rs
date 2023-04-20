@@ -1,4 +1,4 @@
-use crate::{ctls::Claims,  state::AppState};
+use crate::{ctls::Claims, state::AppState};
 use axum::{
     body::Body,
     extract::{rejection::MatchedPathRejection, MatchedPath, State},
