@@ -1,6 +1,16 @@
 use prisma_client_rust::chrono::{DateTime, FixedOffset, Utc};
 
-#[allow(unused)]
+#[allow(
+    unused,
+    clippy::from_over_into,
+    clippy::self_named_constructors,
+    clippy::redundant_closure,
+    clippy::wrong_self_convention,
+    clippy::enum_variant_names,
+    clippy::useless_conversion,
+    clippy::crate_in_macro_def,
+    clippy::redundant_static_lifetimes
+)]
 mod prisma;
 pub mod sys_menu;
 mod sys_role_menu;

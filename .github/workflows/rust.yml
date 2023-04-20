@@ -1,4 +1,4 @@
-name: Rust
+name: CI
 
 on:
   push:
@@ -38,7 +38,7 @@ jobs:
         run: cargo test --verbose
 
       - name: Run fmt
-        run: cargo fmt --all --check
+        run: cargo fmt --all --check --verbose
 
       - name: Run build
         run: cargo build --release --verbose
