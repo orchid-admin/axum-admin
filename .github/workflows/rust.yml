@@ -20,31 +20,25 @@ jobs:
         OS: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.OS }}
     env:
-      TARGET: ${{ matrix.TARGET }}
       OS: ${{ matrix.OS }}
     steps:
       - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: Cargo cache
-        uses: actions/cache@v3
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          path: |
-            ~/.cargo/registry
-            ./target
-          key: build-cargo-registry-${{matrix.TARGET}}
+          components: clippy, rustfmt
 
       - name: run prisma generate
         run: cargo prisma generate
 
-      - name: Install rust target
-        run: rustup target add $TARGET
+      - name: Run Check
+        run: cargo clippy --verbose
 
       - name: Run tests
         run: cargo test --verbose
 
       - name: Run fmt
-        run: cargo fmt -- --check
+        run: cargo fmt --all --check
 
       - name: Run build
-        run: cargo build --release --verbose --target $TARGET
+        run: cargo build --release --verbose
