@@ -40,10 +40,10 @@ async fn create(
     Ok("")
 }
 
-/// 获取树形
+/// 获取树形列表
 #[utoipa::path(
     get,
-    path = "/menu/tree",
+    path = "/menu/index",
     tag = "菜单",
     responses(
         (status = 200, body = Vec<MenuInfo>)

@@ -164,7 +164,7 @@ impl From<system_menu::Data> for MenuInfo {
                     false => Some(menu.meta_link),
                     true => None,
                 },
-                is_hide: menu.is_link,
+                is_hide: menu.meta_is_hide,
                 is_keep_alive: menu.meta_is_keep_alive,
                 is_affix: menu.meta_is_affix,
                 is_iframe: menu.meta_is_iframe,
