@@ -109,6 +109,8 @@ pub struct MenuInfo {
     pub id: Option<i32>,
     /// 父级ID
     pub parent_id: Option<i32>,
+    /// 类型，menu:菜单,btn:按钮权限
+    pub r#type: Option<String>,
     /// 路径
     pub path: String,
     /// 路由名称
@@ -151,6 +153,7 @@ impl From<system_menu::Data> for MenuInfo {
         Self {
             id: Some(menu.id),
             parent_id: Some(menu.parent_id),
+            r#type: Some(menu.r#type),
             path: menu.path,
             name: menu.router_name,
             component: menu.component,
