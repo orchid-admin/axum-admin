@@ -6,7 +6,7 @@ use axum::{
     Json, Router,
 };
 use serde::Deserialize;
-use service::sys_menu::{self, MenuCreateParams, MenuInfo, MenuInfoMeta};
+use service::sys_menu::{self, MenuCreateParams, MenuInfoMeta, MenuTreeInfo};
 use ts_rs::TS;
 use utoipa::{Path, ToSchema};
 use validator::Validate;
@@ -24,7 +24,7 @@ pub fn api_docment() -> DocmentPathSchema {
         __path_tree
     };
     let schemas = crate::api_doc_schema! {
-        MenuInfo,
+        MenuTreeInfo,
         MenuInfoMeta
     };
     (paths, schemas)
@@ -36,7 +36,7 @@ async fn create(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<MenuCreateRequest>,
 ) -> Result<impl IntoResponse> {
-    sys_menu::create(&state.db, params.meta.title.clone(), params.into()).await?;
+    sys_menu::create(&state.db, &params.meta.title.clone(), params.into()).await?;
     Ok("")
 }
 
@@ -46,7 +46,7 @@ async fn create(
     path = "/menu/index",
     tag = "菜单",
     responses(
-        (status = 200, body = Vec<MenuInfo>)
+        (status = 200, body = Vec<MenuTreeInfo>)
     )
 )]
 async fn tree(State(state): State<AppState>) -> Result<impl IntoResponse> {

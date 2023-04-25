@@ -47,7 +47,7 @@ async fn insert(
         meta_link: info.meta.is_link,
         meta_is_iframe: Some(info.meta.is_iframe),
     };
-    let data = service::sys_menu::create(client, info.meta.title, params).await?;
+    let data = service::sys_menu::create(client, &info.meta.title, params).await?;
     if let Some(children) = info.children {
         for child in children {
             let res = insert(client, Some(data.id.unwrap()), child).await;

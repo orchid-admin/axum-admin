@@ -3,6 +3,7 @@ use prisma_client_rust::chrono::{DateTime, FixedOffset, Utc};
 #[allow(unused, warnings)]
 mod prisma;
 pub mod sys_menu;
+pub mod sys_role;
 mod sys_role_menu;
 pub mod sys_user;
 
@@ -11,19 +12,22 @@ pub type Result<T> = std::result::Result<T, ServiceError>;
 
 pub async fn new_client() -> Result<Database> {
     let database = std::sync::Arc::new(prisma::PrismaClient::_builder().build().await?);
-    if let Err(e) = sys_user::upset(
+    let role = sys_role::upsert(&database, "超级管理员", "admin", vec![]).await?;
+    sys_user::upset(
         &database,
         "admin",
-        "sfWTwt9NxLNapTmoIdzfUbbRODMk266kc7ArZcF2EsQ",
-        "nodiZ0cU0ER5Vg3n+rOsoQ",
+        sys_user::UserCreateParams {
+            password: Some("sfWTwt9NxLNapTmoIdzfUbbRODMk266kc7ArZcF2EsQ".to_owned()),
+            salt: Some("nodiZ0cU0ER5Vg3n+rOsoQ".to_owned()),
+            role_id: Some(Some(role.id)),
+        }
+        .to_params(),
     )
-    .await
-    {
-        println!("{:#?}", e);
-    }
+    .await?;
     Ok(database)
 }
 
+#[allow(dead_code)]
 fn now_time() -> DateTime<FixedOffset> {
     Utc::now().with_timezone(&FixedOffset::east_opt(0).unwrap())
 }
