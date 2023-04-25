@@ -8,7 +8,7 @@ use axum::{extract::State, response::IntoResponse, routing::get, Extension, Json
 use axum_macros::debug_handler;
 use serde::Serialize;
 use service::{
-    sys_menu::{self, MenuInfo},
+    sys_menu::{self, MenuTreeInfo},
     sys_user,
 };
 use utoipa::{Path, ToSchema};
@@ -30,7 +30,7 @@ pub fn api_docment() -> DocmentPathSchema {
     let schemas = crate::api_doc_schema! {
         IndexResponse,
         UserPermission,
-        MenuInfo
+        MenuTreeInfo
     };
     (paths, schemas)
 }
@@ -53,7 +53,7 @@ async fn index() -> Result<Json<impl Serialize>> {
     path = "/user/get_menu",
     tag = "用户管理",
     responses(
-        (status = 200, body = Vec<MenuInfo>)
+        (status = 200, body = Vec<MenuTreeInfo>)
     )
 )]
 async fn get_menu(

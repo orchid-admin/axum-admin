@@ -62,7 +62,8 @@ async fn login_by_account(
     let mut captcha = state.captcha.lock().await;
     match captcha.get_item(&CaptchaUseType::AdminLogin, &params.key) {
         Some(captcha_item) => {
-            if !captcha_item.verify(&params.code) {
+            let captcha_item_text = captcha_item.get_text().to_lowercase();
+            if !captcha_item.check() || !captcha_item_text.eq(&params.code.to_lowercase()) {
                 return Err(ErrorCode::Other("验证码错误"));
             }
             captcha.remove_item(&captcha_item);

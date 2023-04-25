@@ -152,4 +152,8 @@ impl CaptchaItem {
     pub fn verify(&self, text: &str) -> bool {
         self.check() && self.text.eq(text)
     }
+
+    pub fn get_text(&self) -> &str {
+        self.text.as_str()
+    }
 }

@@ -18,7 +18,7 @@ model SystemUser {
   /// 账户名称
   username    String      @unique
   /// 用户昵称
-  nickname    String?
+  nickname    String      @default("")
   /// 角色ID
   role_id     Int?
   role        SystemRole? @relation(fields: [role_id], references: [id])
@@ -26,23 +26,23 @@ model SystemUser {
   dept_id     Int?
   dept        SystemDept? @relation(fields: [dept_id], references: [id])
   /// 手机号
-  phone       String?
+  phone       String      @default("")
   /// 邮箱
-  email       String?
+  email       String      @default("")
   /// 性别
   sex         Int         @default(1)
   /// 账户密码
-  password    String
+  password    String      @default("")
   /// 账户密码salt
-  salt        String
+  salt        String      @default("")
   /// 账户过期
   expire_time DateTime?
   /// 用户状态
   status      Boolean     @default(true)
   /// 用户描述
-  describe    String?
-  created_at  DateTime
-  updated_at  DateTime
+  describe    String      @default("")
+  created_at  DateTime    @default(now())
+  updated_at  DateTime    @default(now())
   deleted_at  DateTime?
 }
 
@@ -52,15 +52,15 @@ model SystemRole {
   /// 角色名称
   name           String
   /// 角色标识
-  sign           String
+  sign           String           @unique
   /// 排序
   sort           Int              @default(0)
   /// 角色描述
-  describe       String?
+  describe       String           @default("")
   /// 角色状态
   status         Boolean          @default(true)
-  created_at     DateTime
-  updated_at     DateTime
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @default(now())
   deleted_at     DateTime?
   SystemUser     SystemUser[]
   SystemRoleMenu SystemRoleMenu[]
@@ -101,8 +101,8 @@ model SystemMenu {
   btn_power          String           @default("")
   /// 菜单排序
   sort               Int              @default(0)
-  created_at         DateTime
-  updated_at         DateTime
+  created_at         DateTime         @default(now())
+  updated_at         DateTime         @default(now())
   deleted_at         DateTime?
   SystemRoleMenu     SystemRoleMenu[]
 }
@@ -124,19 +124,19 @@ model SystemDept {
   /// 部门名称
   name         String
   /// 负责人姓名
-  person_name  String?
+  person_name  String       @default("")
   /// 负责人电话
-  person_phone String?
+  person_phone String       @default("")
   /// 负责人邮箱
-  person_email String?
+  person_email String       @default("")
   /// 部门描述
-  describe     String?
+  describe     String       @default("")
   /// 角色状态
   status       Boolean      @default(true)
   /// 菜单排序
   sort         Int          @default(0)
-  created_at   DateTime
-  updated_at   DateTime
+  created_at   DateTime     @default(now())
+  updated_at   DateTime     @default(now())
   deleted_at   DateTime?
   SystemUser   SystemUser[]
 }
@@ -151,7 +151,7 @@ model SystemDict {
   value      String
   /// 状态
   status     Boolean   @default(true)
-  created_at DateTime
-  updated_at DateTime
+  created_at DateTime  @default(now())
+  updated_at DateTime  @default(now())
   deleted_at DateTime?
 }
