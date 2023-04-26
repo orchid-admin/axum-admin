@@ -4,7 +4,7 @@ pub async fn init() -> service::Result<()> {
     struct Data {
         code: i32,
         r#type: String,
-        data: Vec<service::sys_menu::MenuInfo>,
+        data: Vec<service::sys_menu::MenuTreeInfo>,
     }
     let dir = std::env::current_dir().unwrap();
     let path = dir.join("data").join("adminMenu.json");
@@ -28,32 +28,30 @@ pub async fn init() -> service::Result<()> {
 async fn insert(
     client: &service::Database,
     parent_id: Option<i32>,
-    info: service::sys_menu::MenuInfo,
+    info: service::sys_menu::MenuTreeInfo,
 ) -> service::Result<()> {
     let params = service::sys_menu::MenuCreateParams {
         parent_id,
         r#type: None,
-        router_name: Some(info.name),
-        component: Some(info.component),
-        is_link: Some(info.meta.is_link.is_some()),
-        path: Some(info.path),
-        redirect: info.redirect,
+        router_name: Some(info.base_info.name),
+        component: Some(info.base_info.component),
+        is_link: Some(info.base_info.meta.is_link.is_some()),
+        path: Some(info.base_info.path),
+        redirect: Some(info.base_info.redirect),
         btn_power: None,
         sort: None,
-        meta_icon: info.meta.icon,
-        meta_is_hide: Some(info.meta.is_hide),
-        meta_is_keep_alive: Some(info.meta.is_keep_alive),
-        meta_is_affix: Some(info.meta.is_affix),
-        meta_link: info.meta.is_link,
-        meta_is_iframe: Some(info.meta.is_iframe),
+        meta_icon: info.base_info.meta.icon,
+        meta_is_hide: Some(info.base_info.meta.is_hide),
+        meta_is_keep_alive: Some(info.base_info.meta.is_keep_alive),
+        meta_is_affix: Some(info.base_info.meta.is_affix),
+        meta_link: info.base_info.meta.is_link,
+        meta_is_iframe: Some(info.base_info.meta.is_iframe),
     };
-    let data = service::sys_menu::create(client, &info.meta.title, params).await?;
-    if let Some(children) = info.children {
-        for child in children {
-            let res = insert(client, Some(data.id.unwrap()), child).await;
-            if let Err(err) = res {
-                println!("error: {:#?}", err);
-            }
+    let data = service::sys_menu::create(client, &info.base_info.meta.title, params).await?;
+    for child in info.children {
+        let res = insert(client, Some(data.id), child).await;
+        if let Err(err) = res {
+            println!("error: {:#?}", err);
         }
     }
     Ok(())
