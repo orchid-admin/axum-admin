@@ -4,7 +4,6 @@ use crate::{
     error::{ErrorCode, Result},
     extracts::ValidatorJson,
     jwt::UseType as JwtUseType,
-    openapi::DocmentPathSchema,
     password::Password,
     state::AppState,
 };
@@ -16,8 +15,6 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use service::sys_user;
-use ts_rs::TS;
-use utoipa::{Path, ToSchema};
 use validator::Validate;
 
 pub fn routers<S>(state: AppState) -> Router<S> {
@@ -29,32 +26,7 @@ pub fn routers<S>(state: AppState) -> Router<S> {
         .with_state(state)
 }
 
-pub fn api_docment() -> DocmentPathSchema {
-    let paths = crate::api_doc_path! {
-        __path_login_by_account,
-        __path_login_by_mobile,
-        __path_login_by_qrcode,
-        __path_get_captcha
-    };
-    let schemas = crate::api_doc_schema! {
-        LoginByAccountRequest,
-        LoginByMobileRequest,
-        LoginReponse,
-        GetCaptchaReponse
-    };
-    (paths, schemas)
-}
 /// 账户登录
-#[utoipa::path(
-    post,
-    path = "/login_by_account",
-    tag = "授权",
-    request_body = LoginByAccountRequest,
-    responses(
-        (status = 200, body = LoginReponse),
-        (status = 500, body = ErrorCode, example = json!(ErrorCode::Other("用户名或密码错误").to_json_string()))
-    )
-)]
 async fn login_by_account(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<LoginByAccountRequest>,
@@ -97,16 +69,6 @@ async fn login_by_account(
 }
 
 /// 手机号登录
-#[utoipa::path(
-    post,
-    path = "/login_by_mobile",
-    tag = "授权",
-    request_body = LoginByMobileRequest,
-    responses(
-        (status = 200, body = LoginReponse),
-        (status = 500, body = ErrorCode, example = json!(ErrorCode::Other("用户名或密码错误").to_json_string()))
-    )
-)]
 async fn login_by_mobile(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<LoginByMobileRequest>,
@@ -128,17 +90,6 @@ async fn login_by_mobile(
 }
 
 /// 扫码登录
-///
-///
-#[utoipa::path(
-    post,
-    path = "/login_by_qrcode",
-    tag = "授权",
-    request_body = LoginByAccountRequest,
-    responses(
-        (status = 200, body = [LoginReponse])
-    )
-)]
 async fn login_by_qrcode(
     State(state): State<AppState>,
     ValidatorJson(_params): ValidatorJson<LoginByAccountRequest>,
@@ -155,15 +106,6 @@ async fn login_by_qrcode(
 }
 
 /// 获取登录验证码
-#[utoipa::path(
-    get,
-    path = "/get_captcha",
-    tag = "授权",
-    responses(
-        (status = 200, body = GetCaptchaReponse),
-        (status = 500, body = ErrorCode, example = json!(ErrorCode::InternalServer("生成验证码失败").to_json_string()))
-    )
-)]
 async fn get_captcha(State(state): State<AppState>) -> Result<impl IntoResponse> {
     let (key, image) =
         state
@@ -176,8 +118,7 @@ async fn get_captcha(State(state): State<AppState>) -> Result<impl IntoResponse>
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Serialize, Deserialize, Validate, ToSchema, TS)]
-#[ts(export)]
+#[derive(Debug, Serialize, Deserialize, Validate)]
 struct LoginByAccountRequest {
     /// 用户名
     #[validate(length(min = 5, message = "用户名长度错误"))]
@@ -193,8 +134,7 @@ struct LoginByAccountRequest {
     code: String,
 }
 #[allow(dead_code)]
-#[derive(Debug, Serialize, Deserialize, Validate, ToSchema, TS)]
-#[ts(export)]
+#[derive(Debug, Serialize, Deserialize, Validate)]
 struct LoginByMobileRequest {
     /// 手机号码
     mobile: String,
@@ -202,8 +142,7 @@ struct LoginByMobileRequest {
     code: String,
 }
 
-#[derive(Debug, Serialize, ToSchema, TS)]
-#[ts(export)]
+#[derive(Debug, Serialize)]
 struct LoginReponse {
     /// 登录账户的TOKEN
     token: String,
@@ -211,8 +150,7 @@ struct LoginReponse {
     username: Option<String>,
 }
 
-#[derive(Debug, Serialize, ToSchema, TS)]
-#[ts(export)]
+#[derive(Debug, Serialize)]
 struct GetCaptchaReponse {
     /// 图片key（用于提交时识别）
     key: String,

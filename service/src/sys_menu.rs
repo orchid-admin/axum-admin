@@ -1,8 +1,5 @@
-use serde::{Deserialize, Serialize};
-use ts_rs::TS;
-use utoipa::ToSchema;
-
 use crate::{prisma::system_menu, sys_role_menu, sys_user, Database, Result};
+use serde::{Deserialize, Serialize};
 
 system_menu::partial_unchecked!(MenuCreateParams {
     parent_id
@@ -89,8 +86,7 @@ fn menus_tree(parent_id: i32, menus: Vec<MenuTreeInfo>) -> Vec<MenuTreeInfo> {
         .collect::<Vec<MenuTreeInfo>>()
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, TS, ToSchema)]
-#[ts(export)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MenuBase {
     /// 类型，menu:菜单,btn:按钮权限
     pub r#type: String,
@@ -120,8 +116,7 @@ impl From<system_menu::Data> for MenuBase {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, TS, ToSchema)]
-#[ts(export)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MenuTreeInfo {
     /// 菜单ID
     pub id: i32,
@@ -147,8 +142,7 @@ impl From<system_menu::Data> for MenuTreeInfo {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, TS, ToSchema)]
-#[ts(export)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MenuInfoMeta {
     /// 菜单名称
     pub title: String,

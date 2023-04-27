@@ -10,7 +10,6 @@ mod error;
 mod extracts;
 mod jwt;
 mod middleware;
-mod openapi;
 mod password;
 mod router;
 mod state;
