@@ -1,19 +1,33 @@
+use super::Claims;
 use crate::{error::Result, extracts::ValidatorJson, state::AppState};
 use axum::{
-    extract::State,
+    body::Empty,
+    extract::{Path, State},
     response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
+    routing::{delete, get, post, put},
+    Extension, Json, Router,
 };
 use serde::Deserialize;
-use service::sys_menu::{self, MenuCreateParams};
+use service::sys_menu::{self, MenuCreateParams, MenuUpdateParams};
 use validator::Validate;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
     Router::new()
-        .route("/menu/index", get(tree))
-        .route("/menu/create", post(create))
+        .route("/menu", get(index))
+        .route("/menu", post(create))
+        .route("/menu/:id", put(update))
+        .route("/menu/:id", delete(del))
         .with_state(state)
+}
+
+/// 获取树形列表
+async fn index(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+) -> Result<impl IntoResponse> {
+    Ok(Json(
+        sys_menu::get_user_menu_trees(&state.db, claims.user_id, None).await?,
+    ))
 }
 
 /// 新增
@@ -22,57 +36,55 @@ async fn create(
     ValidatorJson(params): ValidatorJson<MenuCreateRequest>,
 ) -> Result<impl IntoResponse> {
     sys_menu::create(&state.db, &params.meta.title.clone(), params.into()).await?;
-    Ok("")
+    Ok(Empty::new())
 }
 
-/// 获取树形列表
-async fn tree(State(state): State<AppState>) -> Result<impl IntoResponse> {
-    Ok(Json(sys_menu::get_menus_tree(&state.db).await?))
+/// 更新
+async fn update(
+    Path(id): Path<i32>,
+    State(state): State<AppState>,
+    ValidatorJson(params): ValidatorJson<MenuCreateRequest>,
+) -> Result<impl IntoResponse> {
+    sys_menu::update(&state.db, id, params.into()).await?;
+    Ok(Empty::new())
+}
+
+async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
+    sys_menu::delete(&state.db, id).await?;
+    Ok(Empty::new())
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 struct MenuCreateRequest {
-    parent_id: Option<i32>,
-    #[validate(length(min = 2, message = "类型长度错误"))]
-    #[serde(rename = "menuType")]
-    #[validate(required)]
-    r#type: Option<String>,
-    #[serde(rename = "name")]
-    router_name: Option<String>,
-    #[serde(rename = "componentAlias")]
-    component: Option<String>,
-    #[serde(rename = "isLink")]
-    is_link: Option<bool>,
-    path: Option<String>,
-    redirect: Option<String>,
-    #[serde(rename = "btnPower")]
-    btn_power: Option<String>,
-    #[serde(rename = "menuSort")]
-    #[validate(required)]
-    sort: Option<i32>,
-    meta: MenuMeta,
-}
-
-#[derive(Debug, Deserialize, Validate)]
-struct MenuMeta {
+    parent_id: i32,
+    r#type: i32,
     title: String,
-    icon: Option<String>,
-    #[serde(rename = "isHide")]
+    icon: String,
+    router_name: String,
+    router_component: String,
+    router_path: String,
+    redirect: String,
+    link: String,
+    iframe: String,
+    btn_auth: String,
+    api_url: String,
+    api_method: String,
     is_hide: Option<bool>,
-    #[serde(rename = "isKeepAlive")]
     is_keep_alive: Option<bool>,
-    #[serde(rename = "isAffix")]
     is_affix: Option<bool>,
-    #[serde(rename = "isLink")]
-    link: Option<String>,
-    #[serde(rename = "isIframe")]
-    is_iframe: Option<bool>,
+    sort: i32,
 }
 
 impl From<MenuCreateRequest> for MenuCreateParams {
-    fn from(params: MenuCreateRequest) -> MenuCreateParams {
-        MenuCreateParams {
+    fn from(value: MenuCreateRequest) -> MenuCreateParams {
+        MenuCreateParams {}
+    }
+}
+
+impl From<MenuCreateRequest> for MenuUpdateParams {
+    fn from(params: MenuCreateRequest) -> MenuUpdateParams {
+        MenuUpdateParams {
             parent_id: params.parent_id,
             r#type: params.r#type,
             router_name: params.router_name,
@@ -88,6 +100,7 @@ impl From<MenuCreateRequest> for MenuCreateParams {
             meta_is_affix: params.meta.is_affix,
             meta_link: params.meta.link,
             meta_is_iframe: params.meta.is_iframe,
+            meta_title: Some(params.meta.title),
         }
     }
 }

@@ -28,8 +28,15 @@ pub async fn new_client() -> Result<Database> {
 }
 
 #[allow(dead_code)]
-fn now_time() -> DateTime<FixedOffset> {
+pub fn now_time() -> DateTime<FixedOffset> {
     Utc::now().with_timezone(&FixedOffset::east_opt(0).unwrap())
+}
+#[allow(dead_code)]
+fn to_local_string(datetime: DateTime<FixedOffset>) -> String {
+    datetime
+        .with_timezone(&FixedOffset::east_opt(8 * 3600).unwrap())
+        .format("%Y-%m-%d %H:%M:%S")
+        .to_string()
 }
 
 #[derive(Debug, custom_attrs::CustomAttrs)]

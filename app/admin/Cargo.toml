@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 argon2 = { workspace = true }
 axum = { workspace = true }
-axum-auth = { workspace = true }
 axum-macros = { workspace = true }
 captcha-rs = { workspace = true }
 custom_attrs = { workspace = true }

@@ -5,8 +5,8 @@ use crate::error::Result;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
     Router::new()
-        .route("/role/index", get(index))
-        .route("/role/info/:id", get(info))
+        .route("/role", get(index))
+        .route("/role/:id", get(info))
         .with_state(state)
 }
 

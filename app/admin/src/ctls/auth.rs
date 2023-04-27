@@ -107,14 +107,18 @@ async fn login_by_qrcode(
 
 /// 获取登录验证码
 async fn get_captcha(State(state): State<AppState>) -> Result<impl IntoResponse> {
-    let (key, image) =
+    let content =
         state
             .captcha
             .lock()
             .await
             .generate(CaptchaUseType::AdminLogin, 5, 130, 40, false, 1)?;
 
-    Ok(Json(GetCaptchaReponse { key, image }))
+    Ok(Json(GetCaptchaReponse {
+        key: content.key,
+        image: content.image,
+        value: content.text,
+    }))
 }
 
 #[allow(dead_code)]
@@ -156,4 +160,6 @@ struct GetCaptchaReponse {
     key: String,
     /// 图片base64编码
     image: String,
+    /// 文本值
+    value: String,
 }

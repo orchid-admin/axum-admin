@@ -5,11 +5,14 @@ use crate::{
 };
 use axum::{extract::State, response::IntoResponse, routing::get, Extension, Json, Router};
 use serde::Serialize;
-use service::{sys_menu, sys_user};
+use service::{
+    sys_menu::{self, MenuType},
+    sys_user,
+};
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
     Router::new()
-        .route("/user/index", get(index))
+        .route("/user", get(index))
         .route("/user/get_menu", get(get_menu))
         .route("/user/get_user_permission", get(get_user_permission))
         .with_state(state)
@@ -25,7 +28,12 @@ async fn get_menu(
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<impl Serialize>> {
     Ok(Json(
-        sys_menu::get_user_menu(&state.db, claims.user_id).await?,
+        sys_menu::get_user_menu_trees(
+            &state.db,
+            claims.user_id,
+            Some(vec![MenuType::Menu, MenuType::Redirect, MenuType::Iframe]),
+        )
+        .await?,
     ))
 }
 
