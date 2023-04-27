@@ -41,7 +41,7 @@ impl Captcha {
         height: u32,
         dark_mode: bool,
         complexity: u32,
-    ) -> Result<(String, String)> {
+    ) -> Result<CaptchaContent> {
         let captcha = captcha_rs::CaptchaBuilder::new()
             .length(length)
             .width(width)
@@ -53,7 +53,11 @@ impl Captcha {
 
         let key = OffsetDateTime::now_utc().unix_timestamp_nanos().to_string();
         match self.add(use_type, &key, &captcha.text)? {
-            true => Ok((key, captcha.to_base64())),
+            true => Ok(CaptchaContent {
+                key,
+                text: captcha.text.to_owned(),
+                image: captcha.to_base64(),
+            }),
             false => Err(ErrorCode::InternalServer("生成验证码失败")),
         }
     }
@@ -156,4 +160,11 @@ impl CaptchaItem {
     pub fn get_text(&self) -> &str {
         self.text.as_str()
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CaptchaContent {
+    pub key: String,
+    pub text: String,
+    pub image: String,
 }

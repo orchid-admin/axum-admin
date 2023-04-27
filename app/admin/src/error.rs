@@ -15,6 +15,9 @@ pub enum ErrorCode {
     /// 内部服务错误
     #[attr(status_code = StatusCode::INTERNAL_SERVER_ERROR,message = "服务异常")]
     InternalServer(&'static str),
+    /// 内部服务错误
+    #[attr(status_code = StatusCode::INTERNAL_SERVER_ERROR,message = "服务异常")]
+    InternalServerString(String),
     /// TOKEN无效
     #[attr(status_code = StatusCode::UNAUTHORIZED,message = "无效TOKEN")]
     Unauthorized,
@@ -33,8 +36,14 @@ pub enum ErrorCode {
 }
 
 impl From<service::ServiceError> for ErrorCode {
-    fn from(_value: service::ServiceError) -> Self {
-        Self::InternalServer("")
+    fn from(value: service::ServiceError) -> Self {
+        Self::InternalServerString(value.get_code().to_owned())
+    }
+}
+
+impl From<axum::http::StatusCode> for ErrorCode {
+    fn from(value: axum::http::StatusCode) -> Self {
+        Self::InternalServerString(value.to_string())
     }
 }
 
@@ -52,6 +61,7 @@ impl IntoResponse for ErrorCode {
                     Self::ParamsValidator(ref err_str) => Some(err_str),
                     Self::RequestParams(ref err_str) => Some(err_str), // todo
                     Self::Other(err_str) => Some(err_str),
+                    Self::InternalServerString(ref err_str) => Some(err_str),
                     _ => self.get_message(),
                 },
             }),

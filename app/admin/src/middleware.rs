@@ -1,40 +1,54 @@
-use crate::{ctls::Claims, state::AppState};
+use crate::{ctls::Claims, error::ErrorCode, jwt::UseType, state::AppState};
 use axum::{
     body::Body,
     extract::{rejection::MatchedPathRejection, MatchedPath, State},
-    http::{Request, StatusCode},
+    http::{header::AUTHORIZATION, Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
     RequestExt,
 };
-use axum_auth::AuthBearer;
 
 /// token检查
 pub async fn token_check<B>(
-    AuthBearer(token): AuthBearer,
     State(state): State<AppState>,
     mut req: Request<B>,
     next: Next<B>,
 ) -> Result<Response, StatusCode> {
-    // use { error::ErrorCode, jwt::UseType };
-    let jwt = state.jwt.lock().await;
-    match jwt.decode::<Claims>(&token) {
+    match parse_token(state, &req).await {
         Ok(claims) => {
-            // match jwt.get_item(&UseType::Admin, &token) {
-            //     Some(jwt_item) => {
-            //         if !jwt_item.check() {
-            //             return Ok(ErrorCode::Unauthorized.into_response());
-            //         }
-            //         req.extensions_mut().insert(claims);
-            //         Ok(next.run(req).await)
-            //     }
-            //     None => Ok(ErrorCode::Unauthorized.into_response()),
-            // }
             req.extensions_mut().insert(claims);
             Ok(next.run(req).await)
         }
         Err(err) => Ok(err.into_response()),
     }
+}
+
+async fn parse_token<B>(state: AppState, req: &Request<B>) -> crate::error::Result<Claims> {
+    let authorization = req
+        .headers()
+        .get(AUTHORIZATION)
+        .ok_or(ErrorCode::Unauthorized)?
+        .to_str()
+        .map_err(|_| ErrorCode::Unauthorized)?;
+
+    let (_, token) = authorization
+        .split_once(' ')
+        .and_then(|(name, token)| {
+            if name != "Bearer" {
+                return None;
+            }
+            Some((name, token))
+        })
+        .ok_or(ErrorCode::Unauthorized)?;
+    let jwt = state.jwt.lock().await;
+    let claims = jwt.decode::<Claims>(&token)?;
+    let jwt_item = jwt
+        .get_item(&UseType::Admin, &token)
+        .ok_or(ErrorCode::Unauthorized)?;
+    if !jwt_item.check() {
+        return Err(ErrorCode::Unauthorized);
+    }
+    Ok(claims)
 }
 
 pub async fn access_matched_path(mut request: Request<Body>) -> Request<Body> {
