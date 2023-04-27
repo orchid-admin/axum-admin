@@ -1,4 +1,4 @@
-use crate::{error::Result, extracts::ValidatorJson, openapi::DocmentPathSchema, state::AppState};
+use crate::{error::Result, extracts::ValidatorJson, state::AppState};
 use axum::{
     extract::State,
     response::IntoResponse,
@@ -6,9 +6,7 @@ use axum::{
     Json, Router,
 };
 use serde::Deserialize;
-use service::sys_menu::{self, MenuCreateParams, MenuInfoMeta, MenuTreeInfo};
-use ts_rs::TS;
-use utoipa::{Path, ToSchema};
+use service::sys_menu::{self, MenuCreateParams};
 use validator::Validate;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
@@ -18,20 +16,7 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .with_state(state)
 }
 
-pub fn api_docment() -> DocmentPathSchema {
-    let paths = crate::api_doc_path! {
-        __path_create,
-        __path_tree
-    };
-    let schemas = crate::api_doc_schema! {
-        MenuTreeInfo,
-        MenuInfoMeta
-    };
-    (paths, schemas)
-}
-
 /// 新增
-#[utoipa::path(get, path = "/menu/create", tag = "菜单")]
 async fn create(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<MenuCreateRequest>,
@@ -41,21 +26,12 @@ async fn create(
 }
 
 /// 获取树形列表
-#[utoipa::path(
-    get,
-    path = "/menu/index",
-    tag = "菜单",
-    responses(
-        (status = 200, body = Vec<MenuTreeInfo>)
-    )
-)]
 async fn tree(State(state): State<AppState>) -> Result<impl IntoResponse> {
     Ok(Json(sys_menu::get_menus_tree(&state.db).await?))
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Deserialize, Validate, ToSchema, TS)]
-#[ts(export)]
+#[derive(Debug, Deserialize, Validate)]
 struct MenuCreateRequest {
     parent_id: Option<i32>,
     #[validate(length(min = 2, message = "类型长度错误"))]
@@ -78,8 +54,7 @@ struct MenuCreateRequest {
     meta: MenuMeta,
 }
 
-#[derive(Debug, Deserialize, Validate, ToSchema, TS)]
-#[ts(export)]
+#[derive(Debug, Deserialize, Validate)]
 struct MenuMeta {
     title: String,
     icon: Option<String>,

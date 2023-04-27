@@ -1,17 +1,11 @@
 use super::Claims;
 use crate::{
     error::{ErrorCode, Result},
-    openapi::DocmentPathSchema,
     state::AppState,
 };
 use axum::{extract::State, response::IntoResponse, routing::get, Extension, Json, Router};
-use axum_macros::debug_handler;
 use serde::Serialize;
-use service::{
-    sys_menu::{self, MenuTreeInfo},
-    sys_user,
-};
-use utoipa::{Path, ToSchema};
+use service::{sys_menu, sys_user};
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
     Router::new()
@@ -20,42 +14,12 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .route("/user/get_user_permission", get(get_user_permission))
         .with_state(state)
 }
-
-pub fn api_docment() -> DocmentPathSchema {
-    let paths = crate::api_doc_path! {
-        __path_index,
-        __path_get_menu,
-        __path_get_user_permission
-    };
-    let schemas = crate::api_doc_schema! {
-        IndexResponse,
-        UserPermission,
-        MenuTreeInfo
-    };
-    (paths, schemas)
-}
 /// 列表
-#[utoipa::path(
-    get,
-    path = "/user/index",
-    tag = "用户管理",
-    responses(
-        (status = 200, body = [IndexResponse])
-    )
-)]
 async fn index() -> Result<Json<impl Serialize>> {
     Ok(Json(IndexResponse {}))
 }
 
 /// 获取当前用户角色菜单
-#[utoipa::path(
-    get,
-    path = "/user/get_menu",
-    tag = "用户管理",
-    responses(
-        (status = 200, body = Vec<MenuTreeInfo>)
-    )
-)]
 async fn get_menu(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -66,16 +30,6 @@ async fn get_menu(
 }
 
 /// 获取当前用户权限
-#[utoipa::path(
-    get,
-    path = "/user/get_user_permission",
-    tag = "用户管理",
-    responses(
-        (status = 200, body = CurrentUserInfo),
-        (status = 500, body = ErrorCode, example = json!(ErrorCode::Unauthorized.to_json_string()))
-    )
-)]
-#[debug_handler]
 async fn get_user_permission(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -96,10 +50,10 @@ async fn get_user_permission(
     }
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 struct IndexResponse {}
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 struct UserPermission {
     #[serde(rename = "userName")]
     username: String,

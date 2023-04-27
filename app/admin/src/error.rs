@@ -5,11 +5,10 @@ use axum::{
 use custom_attrs::CustomAttrs;
 use serde::Serialize;
 use tracing::warn;
-use utoipa::ToSchema;
 
 pub type Result<T> = std::result::Result<T, ErrorCode>;
 
-#[derive(Debug, CustomAttrs, ToSchema)]
+#[derive(Debug, CustomAttrs)]
 #[attr(pub status_code: StatusCode)]
 #[attr(pub message: Option<&str>)]
 pub enum ErrorCode {
@@ -58,19 +57,6 @@ impl IntoResponse for ErrorCode {
             }),
         )
             .into_response()
-    }
-}
-
-impl ErrorCode {
-    pub fn to_json_string(&self) -> String {
-        let resoinse = ErrorResponse {
-            code: 1,
-            msg: match self {
-                Self::ParamsValidator(ref err_str) => Some(err_str),
-                _ => self.get_message(),
-            },
-        };
-        serde_json::to_string(&resoinse).unwrap()
     }
 }
 

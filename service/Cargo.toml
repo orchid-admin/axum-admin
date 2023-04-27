@@ -11,5 +11,3 @@ custom_attrs = { workspace = true }
 prisma-client-rust = { workspace = true, default-features = false, features = ["sqlite"] }
 serde = { workspace = true }
 # async-recursion = { workspace = true }
-ts-rs = { workspace = true }
-utoipa = { workspace = true }
