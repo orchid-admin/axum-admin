@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 mod menu;
-mod ts_export;
+// mod ts_export;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -12,7 +12,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     MenuInit,
-    TsExport,
+    // TsExport,
 }
 
 #[tokio::main]
@@ -25,9 +25,9 @@ async fn main() {
         Some(Commands::MenuInit) => {
             menu::init().await.unwrap();
         }
-        Some(Commands::TsExport) => {
-            ts_export::init();
-        }
+        // Some(Commands::TsExport) => {
+        //     ts_export::init();
+        // }
         None => {}
     };
 }
