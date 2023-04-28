@@ -1,7 +1,9 @@
 use crate::{
     now_time, prisma::system_menu, sys_role_menu, sys_user, to_local_string, Database, Result,
+    ServiceError,
 };
 use serde::Serialize;
+use serde_repr::Serialize_repr;
 
 pub async fn create(client: &Database, title: &str, params: MenuCreateParams) -> Result<Info> {
     Ok(client
@@ -33,39 +35,27 @@ pub async fn delete(client: &Database, id: i32) -> Result<Info> {
         .into())
 }
 
-async fn get_menus(client: &Database) -> Result<Vec<Info>> {
+pub async fn info(client: &Database, id: i32) -> Result<Info> {
     Ok(client
         .system_menu()
-        .find_many(vec![system_menu::deleted_at::equals(None)])
+        .find_first(vec![
+            system_menu::id::equals(id),
+            system_menu::deleted_at::equals(None),
+        ])
         .exec()
         .await?
-        .into_iter()
-        .map(|x| x.into())
-        .collect::<Vec<Info>>())
-}
-
-async fn get_menus_by_user_id(client: &Database, user_id: i32) -> Result<Vec<Info>> {
-    Ok(
-        match sys_user::get_current_user_info(client, user_id).await? {
-            Some(user_permission) => match user_permission.role {
-                Some(role) => match role.sign.as_str() {
-                    "admin" => get_menus(client).await?,
-                    _ => sys_role_menu::get_role_menus(client, role.id).await?,
-                },
-                None => vec![],
-            },
-            None => vec![],
-        },
-    )
+        .ok_or(ServiceError::DataNotFound)?
+        .into())
 }
 
 pub async fn get_menu_trees(
     client: &Database,
+    user_id: i32,
     menu_type: Option<Vec<MenuType>>,
 ) -> Result<Vec<Menu>> {
     Ok(menus_tree::<Menu>(
         &0,
-        get_menus(client).await.and_then(|x| {
+        get_menus_by_user_id(client, user_id).await.and_then(|x| {
             Ok(match menu_type {
                 Some(t) => x
                     .into_iter()
@@ -107,7 +97,33 @@ fn menus_tree<T: Tree<T> + std::convert::From<Info>>(parent_id: &i32, menus: Vec
         .collect::<Vec<T>>()
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+async fn get_menus(client: &Database) -> Result<Vec<Info>> {
+    Ok(client
+        .system_menu()
+        .find_many(vec![system_menu::deleted_at::equals(None)])
+        .exec()
+        .await?
+        .into_iter()
+        .map(|x| x.into())
+        .collect::<Vec<Info>>())
+}
+
+async fn get_menus_by_user_id(client: &Database, user_id: i32) -> Result<Vec<Info>> {
+    Ok(
+        match sys_user::get_current_user_info(client, user_id).await? {
+            Some(user_permission) => match user_permission.role {
+                Some(role) => match role.sign.as_str() {
+                    "admin" => get_menus(client).await?,
+                    _ => sys_role_menu::get_role_menus(client, role.id).await?,
+                },
+                None => vec![],
+            },
+            None => vec![],
+        },
+    )
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize_repr)]
 #[repr(i32)]
 pub enum MenuType {
     /// 1.菜单

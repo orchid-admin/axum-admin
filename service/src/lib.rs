@@ -4,6 +4,7 @@ use prisma_client_rust::chrono::{DateTime, FixedOffset, Utc};
 mod prisma;
 pub mod sys_menu;
 pub mod sys_role;
+#[allow(unused)]
 mod sys_role_menu;
 pub mod sys_user;
 
