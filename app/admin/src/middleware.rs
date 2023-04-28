@@ -1,4 +1,4 @@
-use crate::{ctls::Claims, error::ErrorCode, jwt::UseType, state::AppState};
+use crate::{ctls::Claims, error::ErrorCode, state::AppState};
 use axum::{
     body::Body,
     extract::{rejection::MatchedPathRejection, MatchedPath, State},
@@ -42,12 +42,12 @@ async fn parse_token<B>(state: AppState, req: &Request<B>) -> crate::error::Resu
         .ok_or(ErrorCode::Unauthorized)?;
     let jwt = state.jwt.lock().await;
     let claims = jwt.decode::<Claims>(&token)?;
-    let jwt_item = jwt
-        .get_item(&UseType::Admin, &token)
-        .ok_or(ErrorCode::Unauthorized)?;
-    if !jwt_item.check() {
-        return Err(ErrorCode::Unauthorized);
-    }
+    // let jwt_item = jwt
+    //     .get_item(&jwt::UseType::Admin, &token)
+    //     .ok_or(ErrorCode::Unauthorized)?;
+    // if !jwt_item.check() {
+    //     return Err(ErrorCode::Unauthorized);
+    // }
     Ok(claims)
 }
 
