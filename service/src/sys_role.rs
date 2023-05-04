@@ -1,13 +1,13 @@
 use crate::{
     now_time,
     prisma::{
-        system_role::{self, SetParam, UncheckedSetParam, WhereParam},
-        system_role_menu::{self, Create},
+        system_role,
+        system_role_menu,
+        SortOrder,
     },
     sys_menu, sys_role_menu, DataPower, Database, PaginateRequest, PaginateResponse, Result,
     ServiceError, ADMIN_ROLE_SIGN,
 };
-use prisma_client_rust::Direction;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -34,7 +34,7 @@ pub async fn create(
         let role_menus = menus
             .into_iter()
             .map(|x| sys_role_menu::_create(&new_client, role.id, x.id))
-            .collect::<Vec<Create>>();
+            .collect::<Vec<system_role_menu::CreateQuery>>();
         if !role_menus.is_empty() {
             new_client._batch(role_menus).await?;
         }
@@ -93,7 +93,7 @@ pub async fn update(
                                 wait_create
                                     .into_iter()
                                     .map(|x| sys_role_menu::_create(&new_client, role.id, x))
-                                    .collect::<Vec<system_role_menu::Create>>(),
+                                    .collect::<Vec<system_role_menu::CreateQuery>>(),
                             )
                             .await?;
                     }
@@ -101,7 +101,7 @@ pub async fn update(
                     let role_menus = menus
                         .into_iter()
                         .map(|x| sys_role_menu::_create(&new_client, role.id, x.id))
-                        .collect::<Vec<Create>>();
+                        .collect::<Vec<system_role_menu::CreateQuery>>();
                     if !role_menus.is_empty() {
                         new_client._batch(role_menus).await?;
                     }
@@ -141,7 +141,7 @@ pub async fn paginate(client: &Database, params: RoleSearchParams) -> Result<imp
         .find_many(params.to_params())
         .skip(params.paginate.get_skip())
         .take(params.paginate.limit)
-        .order_by(system_role::id::order(Direction::Desc))
+        .order_by(system_role::id::order(SortOrder::Desc))
         .select(RoleQuery::select())
         .exec()
         .await?
@@ -177,22 +177,13 @@ pub async fn info(client: &Database, id: i32) -> Result<RoleQuery::Data> {
     Ok(data)
 }
 
-pub(crate) async fn upsert(
-    client: &Database,
-    name: &str,
-    sign: &str,
-    params: Vec<UncheckedSetParam>,
-) -> Result<system_role::Data> {
-    let data = params
-        .into_iter()
-        .map(|x| x.into())
-        .collect::<Vec<SetParam>>();
+pub(crate) async fn upsert(client: &Database, name: &str, sign: &str) -> Result<system_role::Data> {
     Ok(client
         .system_role()
         .upsert(
             system_role::sign::equals(sign.to_owned()),
-            (name.to_owned(), sign.to_owned(), data.clone()),
-            data,
+            system_role::create(name.to_owned(), sign.to_owned(), vec![]),
+            vec![],
         )
         .exec()
         .await?)
@@ -231,7 +222,7 @@ pub struct RoleSearchParams {
 }
 
 impl RoleSearchParams {
-    fn to_params(&self) -> Vec<WhereParam> {
+    fn to_params(&self) -> Vec<system_role::WhereParam> {
         let mut params = vec![system_role::deleted_at::equals(None)];
         if let Some(name) = &self.name {
             params.push(system_role::name::contains(name.to_string()));

@@ -1,16 +1,8 @@
 use crate::{
-    prisma::{
-        system_dept, system_role,
-        system_user::{self, SetParam, UncheckedSetParam},
-    },
+    prisma::{system_dept, system_role, system_user},
     Database, Result,
 };
 
-system_user::partial_unchecked!(UserCreateParams {
-    password
-    salt
-    role_id
-});
 pub async fn find_user_by_username(
     client: &Database,
     username: &str,
@@ -71,7 +63,10 @@ pub async fn batch_set_dept(
         .system_user()
         .update_many(
             vec![system_user::id::in_vec(user_ids)],
-            vec![system_user::dept_id::set(dept_id)],
+            vec![match dept_id {
+                Some(dept_id) => system_user::dept::connect(system_dept::id::equals(dept_id)),
+                None => system_user::dept::disconnect(),
+            }],
         )
         .exec()
         .await?)
@@ -80,7 +75,7 @@ pub async fn batch_set_dept(
 pub async fn create(
     client: &Database,
     username: &str,
-    params: Vec<UncheckedSetParam>,
+    params: Vec<system_user::UncheckedSetParam>,
 ) -> Result<system_user::Data> {
     Ok(client
         .system_user()
@@ -92,18 +87,24 @@ pub async fn create(
 pub async fn upset(
     client: &Database,
     username: &str,
-    params: Vec<UncheckedSetParam>,
+    params: UserCreateParams,
 ) -> Result<system_user::Data> {
-    let data = params
-        .into_iter()
-        .map(|x| x.into())
-        .collect::<Vec<SetParam>>();
+    let mut data = vec![];
+    if let Some(password) = params.password {
+        data.push(system_user::password::set(password));
+    }
+    if let Some(salt) = params.salt {
+        data.push(system_user::salt::set(salt));
+    }
+    if let Some(Some(role_id)) = params.role_id {
+        data.push(system_user::role::connect(system_role::id::equals(role_id)));
+    }
 
     Ok(client
         .system_user()
         .upsert(
             system_user::username::equals(username.to_owned()),
-            (username.to_owned(), data.clone()),
+            system_user::create(username.to_owned(), data.clone()),
             data,
         )
         .exec()
@@ -115,3 +116,9 @@ pub struct UserPermission {
     pub role: Option<system_role::Data>,
     pub dept: Option<system_dept::Data>,
 }
+
+system_user::partial_unchecked!(UserCreateParams {
+    password
+    salt
+    role_id
+});

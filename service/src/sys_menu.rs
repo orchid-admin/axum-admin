@@ -2,8 +2,8 @@ use crate::{
     now_time, prisma::system_menu, sys_role_menu, sys_user, to_local_string, Database, Result,
     ServiceError, Tree, ADMIN_ROLE_SIGN,
 };
-use serde::Serialize;
-use serde_repr::Serialize_repr;
+use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 
 pub async fn create(client: &Database, title: &str, params: MenuCreateParams) -> Result<Info> {
     Ok(client
@@ -116,19 +116,12 @@ pub async fn get_user_menus_by_menu_ids(
         false => get_menus_by_user_id(client, user_id)
             .await?
             .into_iter()
-            .filter(|x| {
-                !menu_ids
-                    .clone()
-                    .into_iter()
-                    .filter(|z| x.id.eq(z))
-                    .collect::<Vec<i32>>()
-                    .is_empty()
-            })
+            .filter(|x| menu_ids.clone().into_iter().any(|z| x.id.eq(&z)))
             .collect::<Vec<Info>>(),
     })
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize_repr)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
 #[repr(i32)]
 pub enum MenuType {
     /// 1.菜单
@@ -158,6 +151,20 @@ impl From<i32> for MenuType {
         }
     }
 }
+
+impl From<MenuType> for i32 {
+    fn from(value: MenuType) -> Self {
+        match value {
+            MenuType::Menu => 1,
+            MenuType::Redirect => 2,
+            MenuType::Link => 3,
+            MenuType::Iframe => 4,
+            MenuType::BtnAuth => 5,
+            MenuType::Api => 6,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct UserMenu {
     /// 菜单名称
@@ -207,11 +214,21 @@ impl From<Info> for UserMenu {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Menu {
     #[serde(flatten)]
     info: Info,
     children: Vec<Menu>,
+}
+
+impl Menu {
+    pub fn get_children(self) -> Vec<Menu> {
+        self.children
+    }
+
+    pub fn get_title(self) -> String {
+        self.info.title
+    }
 }
 
 impl Tree<Menu> for Menu {
@@ -229,7 +246,7 @@ impl From<Info> for Menu {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Info {
     /// 菜单ID
     pub id: i32,
@@ -316,6 +333,29 @@ system_menu::partial_unchecked!(MenuCreateParams {
     is_affix
     sort
 });
+
+impl From<Menu> for MenuCreateParams {
+    fn from(value: Menu) -> Self {
+        Self {
+            parent_id: Some(value.info.parent_id),
+            r#type: Some(value.info.r#type.into()),
+            icon: Some(value.info.icon),
+            router_name: Some(value.info.router_name),
+            router_component: Some(value.info.router_component),
+            router_path: Some(value.info.router_path),
+            redirect: Some(value.info.redirect),
+            link: Some(value.info.link),
+            iframe: Some(value.info.iframe),
+            btn_auth: Some(value.info.btn_auth),
+            api_url: Some(value.info.api_url),
+            api_method: Some(value.info.api_method),
+            is_hide: Some(value.info.is_hide),
+            is_keep_alive: Some(value.info.is_keep_alive),
+            is_affix: Some(value.info.is_affix),
+            sort: Some(value.info.sort),
+        }
+    }
+}
 
 system_menu::partial_unchecked!(MenuUpdateParams {
     parent_id
