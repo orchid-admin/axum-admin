@@ -220,13 +220,6 @@ impl From<RoleQuery::Data> for DataPower<RoleQuery::Data> {
     }
 }
 
-system_role::select!(RoleQuery {
-    id
-    name
-    sign
-    describe
-    status
-});
 #[derive(Debug, Deserialize)]
 pub struct RoleSearchParams {
     name: Option<String>,
@@ -255,6 +248,14 @@ impl RoleSearchParams {
         params
     }
 }
+
+system_role::select!(RoleQuery {
+    id
+    name
+    sign
+    describe
+    status
+});
 
 system_role::partial_unchecked!(RoleCreateParams {
     sort

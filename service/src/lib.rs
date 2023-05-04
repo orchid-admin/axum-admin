@@ -3,6 +3,7 @@ use serde_with::{serde_as, DisplayFromStr};
 
 #[allow(unused, warnings)]
 mod prisma;
+pub mod sys_dept;
 pub mod sys_menu;
 pub mod sys_role;
 #[allow(unused)]
@@ -82,6 +83,10 @@ pub struct DataPower<T: serde::Serialize> {
     _can_delete: bool,
     #[serde(flatten)]
     data: T,
+}
+
+trait Tree<T> {
+    fn set_children(&mut self, data: Vec<T>);
 }
 
 impl From<prisma_client_rust::NewClientError> for ServiceError {
