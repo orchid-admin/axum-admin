@@ -39,7 +39,7 @@ async fn info(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl
 /// 新增
 async fn create(
     State(state): State<AppState>,
-    ValidatorJson(params): ValidatorJson<MenuCreateRequest>,
+    ValidatorJson(params): ValidatorJson<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     sys_menu::create(&state.db, &params.title.clone(), params.into()).await?;
     Ok(Empty::new())
@@ -49,7 +49,7 @@ async fn create(
 async fn update(
     Path(id): Path<i32>,
     State(state): State<AppState>,
-    ValidatorJson(params): ValidatorJson<MenuCreateRequest>,
+    ValidatorJson(params): ValidatorJson<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     sys_menu::update(&state.db, id, params.into()).await?;
     Ok(Empty::new())
@@ -62,7 +62,7 @@ async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl 
 
 #[allow(dead_code)]
 #[derive(Debug, Deserialize, Validate)]
-struct MenuCreateRequest {
+struct CreateRequest {
     parent_id: i32,
     r#type: i32,
     title: String,
@@ -82,9 +82,9 @@ struct MenuCreateRequest {
     sort: i32,
 }
 
-impl From<MenuCreateRequest> for MenuCreateParams {
-    fn from(value: MenuCreateRequest) -> MenuCreateParams {
-        MenuCreateParams {
+impl From<CreateRequest> for MenuCreateParams {
+    fn from(value: CreateRequest) -> Self {
+        Self {
             parent_id: Some(value.parent_id),
             r#type: Some(value.r#type),
             icon: Some(value.icon),
@@ -105,9 +105,9 @@ impl From<MenuCreateRequest> for MenuCreateParams {
     }
 }
 
-impl From<MenuCreateRequest> for MenuUpdateParams {
-    fn from(value: MenuCreateRequest) -> MenuUpdateParams {
-        MenuUpdateParams {
+impl From<CreateRequest> for MenuUpdateParams {
+    fn from(value: CreateRequest) -> Self {
+        Self {
             parent_id: Some(value.parent_id),
             r#type: Some(value.r#type),
             title: Some(value.title),

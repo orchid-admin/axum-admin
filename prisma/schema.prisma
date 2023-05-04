@@ -116,6 +116,8 @@ model SystemRoleMenu {
   role_id    Int
   menu_id    Int
   deleted_at DateTime?
+
+  @@unique([role_id, menu_id])
 }
 
 /// 部门表
