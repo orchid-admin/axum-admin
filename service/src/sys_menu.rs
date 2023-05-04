@@ -1,6 +1,6 @@
 use crate::{
     now_time, prisma::system_menu, sys_role_menu, sys_user, to_local_string, Database, Result,
-    ServiceError, ADMIN_ROLE_SIGN,
+    ServiceError, Tree, ADMIN_ROLE_SIGN,
 };
 use serde::Serialize;
 use serde_repr::Serialize_repr;
@@ -48,12 +48,12 @@ pub async fn info(client: &Database, id: i32) -> Result<Info> {
         .into())
 }
 
-pub async fn get_menu_trees(
+pub async fn get_user_menu_trees(
     client: &Database,
     user_id: i32,
     menu_type: Option<Vec<MenuType>>,
-) -> Result<Vec<Menu>> {
-    Ok(menus_tree::<Menu>(
+) -> Result<Vec<UserMenu>> {
+    Ok(menus_tree::<UserMenu>(
         &0,
         get_menus_by_user_id(client, user_id)
             .await
@@ -65,23 +65,6 @@ pub async fn get_menu_trees(
                 None => x,
             })?,
     ))
-}
-
-pub async fn get_user_menu_trees(
-    client: &Database,
-    user_id: i32,
-    menu_type: Option<Vec<MenuType>>,
-) -> Result<Vec<UserMenu>> {
-    let menus = get_menus_by_user_id(client, user_id)
-        .await
-        .map(|x| match menu_type {
-            Some(t) => x
-                .into_iter()
-                .filter(|x| t.contains(&x.r#type))
-                .collect::<Vec<Info>>(),
-            None => x,
-        })?;
-    Ok(menus_tree::<UserMenu>(&0, menus))
 }
 
 fn menus_tree<T: Tree<T> + std::convert::From<Info>>(parent_id: &i32, menus: Vec<Info>) -> Vec<T> {
@@ -174,9 +157,6 @@ impl From<i32> for MenuType {
             _ => Self::Menu,
         }
     }
-}
-trait Tree<T> {
-    fn set_children(&mut self, data: Vec<T>);
 }
 #[derive(Debug, Clone, Serialize)]
 pub struct UserMenu {

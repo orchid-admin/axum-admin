@@ -1,3 +1,4 @@
+use super::Claims;
 use crate::{
     error::{ErrorCode, Result},
     extracts::ValidatorJson,
@@ -13,8 +14,6 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use service::{sys_menu, sys_role};
 use validator::Validate;
-
-use super::Claims;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
     Router::new()

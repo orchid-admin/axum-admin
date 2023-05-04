@@ -27,7 +27,7 @@ async fn index(
     Extension(claims): Extension<Claims>,
 ) -> Result<impl IntoResponse> {
     Ok(Json(
-        sys_menu::get_menu_trees(&state.db, claims.user_id, None).await?,
+        sys_menu::get_user_menu_trees(&state.db, claims.user_id, None).await?,
     ))
 }
 
