@@ -1,6 +1,6 @@
 use crate::{
     now_time, prisma::system_menu, sys_role_menu, sys_user, to_local_string, Database, Result,
-    ServiceError,
+    ServiceError, ADMIN_ROLE_SIGN,
 };
 use serde::Serialize;
 use serde_repr::Serialize_repr;
@@ -55,15 +55,15 @@ pub async fn get_menu_trees(
 ) -> Result<Vec<Menu>> {
     Ok(menus_tree::<Menu>(
         &0,
-        get_menus_by_user_id(client, user_id).await.and_then(|x| {
-            Ok(match menu_type {
+        get_menus_by_user_id(client, user_id)
+            .await
+            .map(|x| match menu_type {
                 Some(t) => x
                     .into_iter()
                     .filter(|x| t.contains(&x.r#type))
                     .collect::<Vec<Info>>(),
                 None => x,
-            })
-        })?,
+            })?,
     ))
 }
 
@@ -72,15 +72,15 @@ pub async fn get_user_menu_trees(
     user_id: i32,
     menu_type: Option<Vec<MenuType>>,
 ) -> Result<Vec<UserMenu>> {
-    let menus = get_menus_by_user_id(client, user_id).await.and_then(|x| {
-        Ok(match menu_type {
+    let menus = get_menus_by_user_id(client, user_id)
+        .await
+        .map(|x| match menu_type {
             Some(t) => x
                 .into_iter()
                 .filter(|x| t.contains(&x.r#type))
                 .collect::<Vec<Info>>(),
             None => x,
-        })
-    })?;
+        })?;
     Ok(menus_tree::<UserMenu>(&0, menus))
 }
 
@@ -113,7 +113,7 @@ async fn get_menus_by_user_id(client: &Database, user_id: i32) -> Result<Vec<Inf
         match sys_user::get_current_user_info(client, user_id).await? {
             Some(user_permission) => match user_permission.role {
                 Some(role) => match role.sign.as_str() {
-                    "admin" => get_menus(client).await?,
+                    ADMIN_ROLE_SIGN => get_menus(client).await?,
                     _ => sys_role_menu::get_role_menus(client, role.id).await?,
                 },
                 None => vec![],
@@ -121,6 +121,28 @@ async fn get_menus_by_user_id(client: &Database, user_id: i32) -> Result<Vec<Inf
             None => vec![],
         },
     )
+}
+
+pub async fn get_user_menus_by_menu_ids(
+    client: &Database,
+    user_id: i32,
+    menu_ids: Vec<i32>,
+) -> Result<Vec<Info>> {
+    Ok(match menu_ids.is_empty() {
+        true => vec![],
+        false => get_menus_by_user_id(client, user_id)
+            .await?
+            .into_iter()
+            .filter(|x| {
+                !menu_ids
+                    .clone()
+                    .into_iter()
+                    .filter(|z| x.id.eq(z))
+                    .collect::<Vec<i32>>()
+                    .is_empty()
+            })
+            .collect::<Vec<Info>>(),
+    })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize_repr)]
@@ -227,7 +249,7 @@ impl From<Info> for Menu {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Info {
     /// 菜单ID
     pub id: i32,

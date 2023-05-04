@@ -41,7 +41,7 @@ async fn parse_token<B>(state: AppState, req: &Request<B>) -> crate::error::Resu
         })
         .ok_or(ErrorCode::Unauthorized)?;
     let jwt = state.jwt.lock().await;
-    let claims = jwt.decode::<Claims>(&token)?;
+    let claims = jwt.decode::<Claims>(token)?;
     // let jwt_item = jwt
     //     .get_item(&jwt::UseType::Admin, &token)
     //     .ok_or(ErrorCode::Unauthorized)?;

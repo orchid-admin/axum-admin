@@ -33,11 +33,21 @@ pub enum ErrorCode {
     /// 其他错误提示
     #[attr(status_code = StatusCode::BAD_REQUEST)]
     Other(&'static str),
+    #[attr(status_code = StatusCode::BAD_REQUEST)]
+    OtherString(String),
 }
 
 impl From<service::ServiceError> for ErrorCode {
     fn from(value: service::ServiceError) -> Self {
-        Self::InternalServerString(value.get_code().to_owned())
+        let err_string = match value {
+            service::ServiceError::BuildClient(err) => format!("BuildDataClient: {}", err),
+            service::ServiceError::QueryError(err) => format!("QueryError: {}", err),
+            service::ServiceError::RelationNotFetchedError(err) => {
+                format!("RelationNotFetchedError: {}", err)
+            }
+            service::ServiceError::DataNotFound => "数据不存在".to_owned(),
+        };
+        Self::InternalServerString(err_string)
     }
 }
 
@@ -61,6 +71,7 @@ impl IntoResponse for ErrorCode {
                     Self::ParamsValidator(ref err_str) => Some(err_str),
                     Self::RequestParams(ref err_str) => Some(err_str), // todo
                     Self::Other(err_str) => Some(err_str),
+                    Self::OtherString(ref err_str) => Some(err_str),
                     Self::InternalServerString(ref err_str) => Some(err_str),
                     _ => self.get_message(),
                 },

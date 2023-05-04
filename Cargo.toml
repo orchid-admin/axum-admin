@@ -30,6 +30,7 @@ time = { version = "0.3", default-features = false, features = ["macros"] }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0" }
 serde_repr = { version = "0.1" }
+serde_with = { version = "3.0" }
 # captcha require
 captcha-rs = { version = "0.2" }
 # jwt require
