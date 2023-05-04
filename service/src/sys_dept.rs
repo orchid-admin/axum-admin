@@ -1,13 +1,10 @@
-use std::sync::Arc;
-
-use prisma_client_rust::query_core::In;
-use serde::{Deserialize, Serialize};
-
 use crate::{
     now_time,
-    prisma::{system_dept, system_role},
+    prisma::{system_dept, system_role, SortOrder},
     sys_user, Database, Result, ServiceError, Tree,
 };
+use serde::Serialize;
+use std::sync::Arc;
 
 pub async fn create(
     client: &Database,
@@ -84,7 +81,7 @@ async fn get_depts(client: &Database) -> Result<Vec<Info>> {
     Ok(client
         .system_dept()
         .find_many(vec![system_dept::deleted_at::equals(None)])
-        .order_by(system_dept::id::order(prisma_client_rust::Direction::Asc))
+        .order_by(system_dept::id::order(SortOrder::Asc))
         .exec()
         .await?
         .into_iter()
@@ -115,17 +112,17 @@ async fn get_depts_by_user_id(client: &Database, user_id: i32) -> Result<Vec<Inf
 
 async fn get_role_dept(client: &Database, role: system_role::Data) -> Result<Vec<Info>> {
     Ok(match role.sign.as_str() {
-        ADMIN_ROLE_SIGN => get_depts(client).await?,
+        super::ADMIN_ROLE_SIGN => get_depts(client).await?,
         _ => vec![],
     })
 }
 
 fn get_children_dept(depts: Vec<Info>, dept_id: i32) -> Vec<Info> {
     let mut new_depts = vec![];
-    for dept in depts {
+    for dept in depts.clone() {
         if dept.parent_id.eq(&dept_id) {
-            new_depts.push(dept);
-            let children = get_children_dept(depts, dept.id);
+            new_depts.push(dept.clone());
+            let children = get_children_dept(depts.clone(), dept.id);
             new_depts.extend(children);
         }
     }
@@ -138,6 +135,22 @@ pub struct Dept {
     info: Info,
     children: Vec<Dept>,
 }
+
+impl From<Info> for Dept {
+    fn from(value: Info) -> Self {
+        Self {
+            info: value,
+            children: vec![],
+        }
+    }
+}
+
+impl Tree<Dept> for Dept {
+    fn set_children(&mut self, data: Vec<Dept>) {
+        self.children = data;
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct Info {
     id: i32,

@@ -60,7 +60,7 @@ async fn create(
     let user_menus = sys_menu::get_user_menus_by_menu_ids(
         &state.db,
         claims.user_id,
-        params.menus.clone().unwrap_or(vec![]),
+        params.menus.clone().unwrap_or_default(),
     )
     .await?;
     sys_role::create(
@@ -98,7 +98,7 @@ async fn update(
     let user_menus = sys_menu::get_user_menus_by_menu_ids(
         &state.db,
         claims.user_id,
-        params.menus.clone().unwrap_or(vec![]),
+        params.menus.clone().unwrap_or_default(),
     )
     .await?;
     sys_role::update(&state.db, id, params.into(), user_menus).await?;

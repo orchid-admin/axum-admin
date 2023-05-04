@@ -39,8 +39,8 @@ jsonwebtoken = { version = "8.3" }
 tower = { version = "0.4", default-features = false, features = ["util"] }
 tower-http = { version = "0.4", default-features = false, features = ["fs", "trace"] }
 # orm require
-prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.8", default-features = false, features = ["sqlite"] }
-prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.8", default-features = false, features = ["sqlite"] }
+prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", branch="main", default-features = false, features = ["sqlite"] }
+prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", branch="main", default-features = false, features = ["sqlite"] }
 # error code require
 custom_attrs = "1.4"
 thiserror = "1.0"

@@ -1,6 +1,11 @@
+use prisma_client_rust::Upsert;
+
 use crate::{
     now_time,
-    prisma::{system_menu, system_role, system_role_menu},
+    prisma::{
+        system_menu, system_role,
+        system_role_menu::{self, Create, CreateQuery, UpsertQuery},
+    },
     sys_menu, Database, Result,
 };
 
@@ -55,11 +60,7 @@ pub async fn delete_by_role_id_menu_id(
         .await?)
 }
 
-pub fn _create(
-    client: &Database,
-    role_id: i32,
-    menu_id: i32,
-) -> prisma_client_rust::Create<system_role_menu::Types> {
+pub fn _create(client: &Database, role_id: i32, menu_id: i32) -> CreateQuery {
     client.system_role_menu().create(
         system_role::id::equals(role_id),
         system_menu::id::equals(menu_id),
@@ -70,14 +71,10 @@ pub fn _create(
     )
 }
 
-pub fn _upsert(
-    client: &Database,
-    role_id: i32,
-    menu_id: i32,
-) -> prisma_client_rust::Upsert<system_role_menu::Types> {
+pub fn _upsert(client: &Database, role_id: i32, menu_id: i32) -> UpsertQuery {
     client.system_role_menu().upsert(
         system_role_menu::role_id_menu_id(role_id, menu_id),
-        (
+        system_role_menu::create(
             system_role::id::equals(role_id),
             system_menu::id::equals(menu_id),
             vec![],

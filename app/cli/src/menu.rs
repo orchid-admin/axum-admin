@@ -1,10 +1,11 @@
 use async_recursion::async_recursion;
+use service::sys_menu::MenuCreateParams;
 pub async fn init() -> service::Result<()> {
     #[derive(Debug, serde::Deserialize, serde::Serialize)]
     struct Data {
         code: i32,
         r#type: String,
-        data: Vec<service::sys_menu::MenuTreeInfo>,
+        data: Vec<service::sys_menu::Menu>,
     }
     let dir = std::env::current_dir().unwrap();
     let path = dir.join("data").join("adminMenu.json");
@@ -28,27 +29,12 @@ pub async fn init() -> service::Result<()> {
 async fn insert(
     client: &service::Database,
     parent_id: Option<i32>,
-    info: service::sys_menu::MenuTreeInfo,
+    info: service::sys_menu::Menu,
 ) -> service::Result<()> {
-    let params = service::sys_menu::MenuCreateParams {
-        parent_id,
-        r#type: None,
-        router_name: Some(info.base_info.name),
-        component: Some(info.base_info.component),
-        is_link: Some(info.base_info.meta.is_link.is_some()),
-        path: Some(info.base_info.path),
-        redirect: Some(info.base_info.redirect),
-        btn_power: None,
-        sort: None,
-        meta_icon: info.base_info.meta.icon,
-        meta_is_hide: Some(info.base_info.meta.is_hide),
-        meta_is_keep_alive: Some(info.base_info.meta.is_keep_alive),
-        meta_is_affix: Some(info.base_info.meta.is_affix),
-        meta_link: info.base_info.meta.is_link,
-        meta_is_iframe: Some(info.base_info.meta.is_iframe),
-    };
-    let data = service::sys_menu::create(client, &info.base_info.meta.title, params).await?;
-    for child in info.children {
+    let mut params: MenuCreateParams = info.clone().into();
+    params.parent_id = parent_id;
+    let data = service::sys_menu::create(client, &info.clone().get_title(), params).await?;
+    for child in info.get_children() {
         let res = insert(client, Some(data.id), child).await;
         if let Err(err) = res {
             println!("error: {:#?}", err);

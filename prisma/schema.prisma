@@ -4,7 +4,7 @@
 generator client {
   provider    = "cargo prisma"
   output      = "../service/src/prisma.rs"
-  module_path = "prisma"
+  module_path = "crate::prisma"
 }
 
 datasource db {
