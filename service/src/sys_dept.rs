@@ -1,19 +1,19 @@
 use crate::{
-    now_time,
+    get_tree_start_parent_id, now_time,
     prisma::{system_dept, system_role, SortOrder},
-    sys_user, Database, Result, ServiceError, Tree,
+    sys_user, vec_to_tree_into, Database, Result, ServiceError, Tree, TreeInfo,
 };
 use serde::Serialize;
 use std::sync::Arc;
 
 pub async fn create(
     client: &Database,
-    name: String,
+    name: &str,
     params: DeptCreateParams,
 ) -> Result<system_dept::Data> {
     Ok(client
         .system_dept()
-        .create_unchecked(name, params.to_params())
+        .create_unchecked(name.to_owned(), params.to_params())
         .exec()
         .await?)
 }
@@ -58,23 +58,22 @@ pub async fn delete(client: &Database, id: i32) -> Result<system_dept::Data> {
 }
 
 pub async fn get_user_dept_trees(client: &Database, user_id: i32) -> Result<Vec<Dept>> {
-    Ok(tree::<Dept>(
-        &0,
-        get_depts_by_user_id(client, user_id).await?,
-    ))
+    let infos = get_depts_by_user_id(client, user_id).await?;
+    let parent_id = get_tree_start_parent_id::<Info>(&infos);
+    Ok(vec_to_tree_into::<Dept, Info>(&parent_id, &infos))
 }
 
-fn tree<T: Tree<T> + std::convert::From<Info>>(parent_id: &i32, menus: Vec<Info>) -> Vec<T> {
-    menus
-        .clone()
-        .into_iter()
-        .filter(|x| x.parent_id.eq(parent_id))
-        .map(|x| {
-            let mut data: T = x.clone().into();
-            data.set_children(tree::<T>(&x.id, menus.clone()));
-            data
-        })
-        .collect::<Vec<T>>()
+pub async fn info(client: &Database, id: i32) -> Result<Info> {
+    Ok(client
+        .system_dept()
+        .find_first(vec![
+            system_dept::id::equals(id),
+            system_dept::deleted_at::equals(None),
+        ])
+        .exec()
+        .await?
+        .ok_or(ServiceError::DataNotFound)?
+        .into())
 }
 
 async fn get_depts(client: &Database) -> Result<Vec<Info>> {
@@ -90,24 +89,21 @@ async fn get_depts(client: &Database) -> Result<Vec<Info>> {
 }
 
 async fn get_depts_by_user_id(client: &Database, user_id: i32) -> Result<Vec<Info>> {
-    Ok(
-        match sys_user::get_current_user_info(client, user_id).await? {
-            Some(user_permission) => match (user_permission.role, user_permission.dept) {
-                (Some(role), Some(dept)) => {
-                    let depts = get_role_dept(client, role).await?;
-                    if !depts.is_empty() {
-                        depts
-                    } else {
-                        get_children_dept(get_depts(client).await?, dept.id)
-                    }
-                }
-                (None, Some(dept)) => get_children_dept(get_depts(client).await?, dept.id),
-                (Some(role), None) => get_role_dept(client, role).await?,
-                _ => vec![],
-            },
-            None => vec![],
-        },
-    )
+    let user_permission = sys_user::get_current_user_info(client, user_id).await?;
+
+    Ok(match (user_permission.role, user_permission.dept) {
+        (Some(role), Some(dept)) => {
+            let depts = get_role_dept(client, role).await?;
+            if !depts.is_empty() {
+                depts
+            } else {
+                get_children_dept(get_depts(client).await?, dept.id)
+            }
+        }
+        (None, Some(dept)) => get_children_dept(get_depts(client).await?, dept.id),
+        (Some(role), None) => get_role_dept(client, role).await?,
+        _ => vec![],
+    })
 }
 
 async fn get_role_dept(client: &Database, role: system_role::Data) -> Result<Vec<Info>> {
@@ -146,7 +142,7 @@ impl From<Info> for Dept {
 }
 
 impl Tree<Dept> for Dept {
-    fn set_children(&mut self, data: Vec<Dept>) {
+    fn set_child(&mut self, data: Vec<Dept>) {
         self.children = data;
     }
 }
@@ -163,6 +159,15 @@ pub struct Info {
     status: bool,
 }
 
+impl TreeInfo for Info {
+    fn get_parent_id(&self) -> i32 {
+        self.parent_id
+    }
+
+    fn get_id(&self) -> i32 {
+        self.id
+    }
+}
 impl From<system_dept::Data> for Info {
     fn from(value: system_dept::Data) -> Self {
         Self {

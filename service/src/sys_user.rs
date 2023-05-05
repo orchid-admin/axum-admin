@@ -1,6 +1,6 @@
 use crate::{
     prisma::{system_dept, system_role, system_user},
-    Database, Result,
+    sys_menu, Database, Result, ServiceError,
 };
 
 pub async fn find_user_by_username(
@@ -25,19 +25,31 @@ pub async fn find_user_by_phone(
         .await?)
 }
 
-pub async fn get_current_user_info(client: &Database, id: i32) -> Result<Option<UserPermission>> {
-    Ok(client
+pub async fn get_current_user_info(client: &Database, id: i32) -> Result<UserPermission> {
+    let user = client
         .system_user()
         .find_first(vec![system_user::id::equals(id)])
         .with(system_user::role::fetch())
         .with(system_user::dept::fetch())
         .exec()
         .await?
-        .map(|user| {
-            let role = user.role().map(|x| x.cloned()).unwrap_or_default();
-            let dept = user.dept().map(|x| x.cloned()).unwrap_or_default();
-            UserPermission { user, role, dept }
-        }))
+        .ok_or(ServiceError::DataNotFound)?;
+    let role = user.role().map(|x| x.cloned()).unwrap_or_default();
+    let dept = user.dept().map(|x| x.cloned()).unwrap_or_default();
+    let btn_auths = sys_menu::filter_menu_types(
+        Some(vec![sys_menu::MenuType::BtnAuth]),
+        sys_menu::get_menu_by_role(client, role.clone()).await?,
+    )
+    .into_iter()
+    .map(|x| x.btn_auth)
+    .collect::<Vec<String>>();
+    let permission = UserPermission {
+        user,
+        role,
+        dept,
+        btn_auths,
+    };
+    Ok(permission)
 }
 
 pub async fn get_users_by_dept_id(
@@ -115,6 +127,7 @@ pub struct UserPermission {
     pub user: system_user::Data,
     pub role: Option<system_role::Data>,
     pub dept: Option<system_dept::Data>,
+    pub btn_auths: Vec<String>,
 }
 
 system_user::partial_unchecked!(UserCreateParams {

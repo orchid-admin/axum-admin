@@ -1,8 +1,5 @@
 use super::Claims;
-use crate::{
-    error::{ErrorCode, Result},
-    state::AppState,
-};
+use crate::{error::Result, state::AppState};
 use axum::{extract::State, response::IntoResponse, routing::get, Extension, Json, Router};
 use serde::Serialize;
 use service::{
@@ -28,7 +25,7 @@ async fn get_menu(
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<impl Serialize>> {
     Ok(Json(
-        sys_menu::get_user_menu_trees(
+        sys_menu::get_user_slide_menu_trees(
             &state.db,
             claims.user_id,
             Some(vec![MenuType::Menu, MenuType::Redirect, MenuType::Iframe]),
@@ -42,20 +39,18 @@ async fn get_user_permission(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
 ) -> Result<impl IntoResponse> {
-    match sys_user::get_current_user_info(&state.db, claims.user_id).await? {
-        Some(permission) => Ok(Json(UserPermission {
-            username: permission.user.username,
-            photo: None,
-            time: 0,
-            roles: match permission.role {
-                Some(role) => vec![role.sign],
-                None => vec!["admin".to_owned()],
-            },
-            // todo
-            auth_btn_list: vec![],
-        })),
-        None => Err(ErrorCode::Unauthorized),
-    }
+    let user_permission = sys_user::get_current_user_info(&state.db, claims.user_id).await?;
+    Ok(Json(UserPermission {
+        username: user_permission.user.username,
+        photo: None,
+        time: 0,
+        roles: match user_permission.role {
+            Some(role) => vec![role.sign],
+            None => vec!["admin".to_owned()],
+        },
+        // todo
+        btn_auths: user_permission.btn_auths,
+    }))
 }
 
 #[derive(Debug, Serialize)]
@@ -63,11 +58,9 @@ struct IndexResponse {}
 
 #[derive(Debug, Serialize)]
 struct UserPermission {
-    #[serde(rename = "userName")]
     username: String,
     photo: Option<String>,
     time: i64,
     roles: Vec<String>,
-    #[serde(rename = "authBtnList")]
-    auth_btn_list: Vec<String>,
+    btn_auths: Vec<String>,
 }
