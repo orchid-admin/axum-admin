@@ -1,6 +1,8 @@
 use crate::{
-    now_time, prisma::system_menu, sys_role_menu, sys_user, to_local_string, Database, Result,
-    ServiceError, Tree, ADMIN_ROLE_SIGN,
+    get_tree_start_parent_id, now_time,
+    prisma::{system_menu, system_role},
+    sys_role_menu, sys_user, to_local_string, vec_to_tree_into, Database, Result, ServiceError,
+    Tree, TreeInfo, ADMIN_ROLE_SIGN,
 };
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
@@ -52,58 +54,24 @@ pub async fn get_user_menu_trees(
     client: &Database,
     user_id: i32,
     menu_type: Option<Vec<MenuType>>,
+) -> Result<Vec<Menu>> {
+    let infos = get_user_menus(client, user_id, menu_type).await?;
+    let parent_id = get_tree_start_parent_id::<Info>(&infos);
+    Ok(vec_to_tree_into::<Menu, Info>(&parent_id, &infos))
+}
+
+pub async fn get_user_slide_menu_trees(
+    client: &Database,
+    user_id: i32,
+    menu_type: Option<Vec<MenuType>>,
 ) -> Result<Vec<UserMenu>> {
-    Ok(menus_tree::<UserMenu>(
-        &0,
-        get_menus_by_user_id(client, user_id)
-            .await
-            .map(|x| match menu_type {
-                Some(t) => x
-                    .into_iter()
-                    .filter(|x| t.contains(&x.r#type))
-                    .collect::<Vec<Info>>(),
-                None => x,
-            })?,
-    ))
-}
-
-fn menus_tree<T: Tree<T> + std::convert::From<Info>>(parent_id: &i32, menus: Vec<Info>) -> Vec<T> {
-    menus
-        .clone()
-        .into_iter()
-        .filter(|x| x.parent_id.eq(parent_id))
-        .map(|x| {
-            let mut data: T = x.clone().into();
-            data.set_children(menus_tree::<T>(&x.id, menus.clone()));
-            data
-        })
-        .collect::<Vec<T>>()
-}
-
-async fn get_menus(client: &Database) -> Result<Vec<Info>> {
-    Ok(client
-        .system_menu()
-        .find_many(vec![system_menu::deleted_at::equals(None)])
-        .exec()
+    let infos = get_user_menus(client, user_id, menu_type)
         .await?
         .into_iter()
-        .map(|x| x.into())
-        .collect::<Vec<Info>>())
-}
-
-async fn get_menus_by_user_id(client: &Database, user_id: i32) -> Result<Vec<Info>> {
-    Ok(
-        match sys_user::get_current_user_info(client, user_id).await? {
-            Some(user_permission) => match user_permission.role {
-                Some(role) => match role.sign.as_str() {
-                    ADMIN_ROLE_SIGN => get_menus(client).await?,
-                    _ => sys_role_menu::get_role_menus(client, role.id).await?,
-                },
-                None => vec![],
-            },
-            None => vec![],
-        },
-    )
+        .filter(|x| !x.is_hide)
+        .collect::<Vec<Info>>();
+    let parent_id = get_tree_start_parent_id::<Info>(&infos);
+    Ok(vec_to_tree_into::<UserMenu, Info>(&parent_id, &infos))
 }
 
 pub async fn get_user_menus_by_menu_ids(
@@ -119,6 +87,54 @@ pub async fn get_user_menus_by_menu_ids(
             .filter(|x| menu_ids.clone().into_iter().any(|z| x.id.eq(&z)))
             .collect::<Vec<Info>>(),
     })
+}
+
+pub(crate) fn filter_menu_types(menu_type: Option<Vec<MenuType>>, x: Vec<Info>) -> Vec<Info> {
+    match menu_type {
+        Some(t) => x
+            .into_iter()
+            .filter(|x| t.contains(&x.r#type))
+            .collect::<Vec<Info>>(),
+        None => x,
+    }
+}
+pub(crate) async fn get_menu_by_role(
+    client: &Database,
+    role: Option<system_role::Data>,
+) -> Result<Vec<Info>> {
+    Ok(match role {
+        Some(role) => match role.sign.as_str() {
+            ADMIN_ROLE_SIGN => get_menus(client).await?,
+            _ => sys_role_menu::get_role_menus(client, role.id).await?,
+        },
+        None => vec![],
+    })
+}
+
+async fn get_user_menus(
+    client: &Database,
+    user_id: i32,
+    menu_type: Option<Vec<MenuType>>,
+) -> Result<Vec<Info>> {
+    get_menus_by_user_id(client, user_id)
+        .await
+        .map(|x| filter_menu_types(menu_type, x))
+}
+
+async fn get_menus(client: &Database) -> Result<Vec<Info>> {
+    Ok(client
+        .system_menu()
+        .find_many(vec![system_menu::deleted_at::equals(None)])
+        .exec()
+        .await?
+        .into_iter()
+        .map(|x| x.into())
+        .collect::<Vec<Info>>())
+}
+
+async fn get_menus_by_user_id(client: &Database, user_id: i32) -> Result<Vec<Info>> {
+    let user_permission = sys_user::get_current_user_info(client, user_id).await?;
+    get_menu_by_role(client, user_permission.role).await
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
@@ -167,6 +183,12 @@ impl From<MenuType> for i32 {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct UserMenu {
+    /// 菜单ID
+    #[serde(skip)]
+    pub id: i32,
+    /// 父级ID
+    #[serde(skip)]
+    pub parent_id: i32,
     /// 菜单名称
     pub title: String,
     /// 图标
@@ -191,7 +213,7 @@ pub struct UserMenu {
 }
 
 impl Tree<UserMenu> for UserMenu {
-    fn set_children(&mut self, data: Vec<UserMenu>) {
+    fn set_child(&mut self, data: Vec<UserMenu>) {
         self.children = data;
     }
 }
@@ -199,6 +221,8 @@ impl Tree<UserMenu> for UserMenu {
 impl From<Info> for UserMenu {
     fn from(value: Info) -> Self {
         Self {
+            id: value.id,
+            parent_id: value.parent_id,
             title: value.title,
             icon: value.icon,
             router_name: value.router_name,
@@ -221,18 +245,8 @@ pub struct Menu {
     children: Vec<Menu>,
 }
 
-impl Menu {
-    pub fn get_children(self) -> Vec<Menu> {
-        self.children
-    }
-
-    pub fn get_title(self) -> String {
-        self.info.title
-    }
-}
-
 impl Tree<Menu> for Menu {
-    fn set_children(&mut self, data: Vec<Menu>) {
+    fn set_child(&mut self, data: Vec<Menu>) {
         self.children = data;
     }
 }
@@ -315,6 +329,15 @@ impl From<system_menu::Data> for Info {
     }
 }
 
+impl TreeInfo for Info {
+    fn get_parent_id(&self) -> i32 {
+        self.parent_id
+    }
+
+    fn get_id(&self) -> i32 {
+        self.id
+    }
+}
 system_menu::partial_unchecked!(MenuCreateParams {
     parent_id
     r#type
