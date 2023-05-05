@@ -35,14 +35,14 @@ model SystemUser {
   password    String      @default("")
   /// 账户密码salt
   salt        String      @default("")
+  /// 用户描述
+  describe    String      @default("")
   /// 账户过期
   expire_time DateTime?
   /// 用户状态
   status      Boolean     @default(true)
-  /// 用户描述
-  describe    String      @default("")
   created_at  DateTime    @default(now())
-  updated_at  DateTime    @default(now())
+  updated_at  DateTime    @updatedAt
   deleted_at  DateTime?
 }
 
@@ -104,7 +104,7 @@ model SystemMenu {
   /// 菜单排序
   sort             Int              @default(0)
   created_at       DateTime         @default(now())
-  updated_at       DateTime         @default(now())
+  updated_at       DateTime         @updatedAt
   deleted_at       DateTime?
   SystemRoleMenu   SystemRoleMenu[]
 }
@@ -140,7 +140,7 @@ model SystemDept {
   /// 菜单排序
   sort         Int          @default(0)
   created_at   DateTime     @default(now())
-  updated_at   DateTime     @default(now())
+  updated_at   DateTime     @updatedAt
   deleted_at   DateTime?
   SystemUser   SystemUser[]
 }
@@ -156,6 +156,6 @@ model SystemDict {
   /// 状态
   status     Boolean   @default(true)
   created_at DateTime  @default(now())
-  updated_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
   deleted_at DateTime?
 }

@@ -42,8 +42,8 @@ async fn login_by_account(
             match sys_user::find_user_by_username(&state.db, &params.username).await? {
                 Some(user) => {
                     let verify_result = Password::verify_password(
-                        user.password,
-                        user.salt,
+                        user.get_password(),
+                        user.get_salt(),
                         params.password.as_bytes(),
                     )?;
 
@@ -55,10 +55,10 @@ async fn login_by_account(
                         .jwt
                         .lock()
                         .await
-                        .generate(JwtUseType::Admin, Claims::build(user.id))?;
+                        .generate(JwtUseType::Admin, Claims::build(user.get_id()))?;
                     Ok(Json(LoginReponse {
                         token,
-                        username: Some(user.username),
+                        username: Some(user.get_username()),
                     }))
                 }
                 None => Err(ErrorCode::Other("用户名或密码错误")),
@@ -79,10 +79,10 @@ async fn login_by_mobile(
                 .jwt
                 .lock()
                 .await
-                .generate(JwtUseType::Admin, Claims::build(user.id))?;
+                .generate(JwtUseType::Admin, Claims::build(user.get_id()))?;
             Ok(Json(LoginReponse {
                 token,
-                username: Some(user.username),
+                username: Some(user.get_username()),
             }))
         }
         None => Err(ErrorCode::Other("用户名或密码错误")),

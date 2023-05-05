@@ -46,7 +46,7 @@ pub async fn delete(client: &Database, id: i32) -> Result<system_dept::Data> {
             let user_ids = sys_user::get_users_by_dept_id(&client, id)
                 .await?
                 .into_iter()
-                .map(|x| x.id)
+                .map(|x| x.get_id())
                 .collect::<Vec<i32>>();
             if !user_ids.is_empty() {
                 sys_user::batch_set_dept(&client, None, user_ids).await?;

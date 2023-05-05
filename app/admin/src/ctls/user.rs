@@ -41,7 +41,7 @@ async fn get_user_permission(
 ) -> Result<impl IntoResponse> {
     let user_permission = sys_user::get_current_user_info(&state.db, claims.user_id).await?;
     Ok(Json(UserPermission {
-        username: user_permission.user.username,
+        username: user_permission.user.get_username(),
         photo: None,
         time: 0,
         roles: match user_permission.role {
