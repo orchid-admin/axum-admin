@@ -245,6 +245,16 @@ pub struct Menu {
     children: Vec<Menu>,
 }
 
+impl Menu {
+    pub fn get_children(self) -> Vec<Menu> {
+        self.children
+    }
+
+    pub fn get_title(self) -> String {
+        self.info.title
+    }
+}
+
 impl Tree<Menu> for Menu {
     fn set_child(&mut self, data: Vec<Menu>) {
         self.children = data;
