@@ -19,14 +19,12 @@ pub type Result<T> = std::result::Result<T, ServiceError>;
 pub async fn new_client() -> Result<Database> {
     let database = std::sync::Arc::new(prisma::PrismaClient::_builder().build().await?);
     let role = sys_role::upsert(&database, "超级管理员", ADMIN_ROLE_SIGN).await?;
-    sys_user::upset(
+    sys_user::upsert_system_user(
         &database,
         ADMIN_USERNAME,
-        sys_user::UserCreateParams {
-            password: Some("sfWTwt9NxLNapTmoIdzfUbbRODMk266kc7ArZcF2EsQ".to_owned()),
-            salt: Some("nodiZ0cU0ER5Vg3n+rOsoQ".to_owned()),
-            role_id: Some(Some(role.id)),
-        },
+        "sfWTwt9NxLNapTmoIdzfUbbRODMk266kc7ArZcF2EsQ",
+        "nodiZ0cU0ER5Vg3n+rOsoQ",
+        role.id,
     )
     .await?;
     Ok(database)

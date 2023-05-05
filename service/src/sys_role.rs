@@ -1,10 +1,6 @@
 use crate::{
     now_time,
-    prisma::{
-        system_role,
-        system_role_menu,
-        SortOrder,
-    },
+    prisma::{system_role, system_role_menu, SortOrder},
     sys_menu, sys_role_menu, DataPower, Database, PaginateRequest, PaginateResponse, Result,
     ServiceError, ADMIN_ROLE_SIGN,
 };

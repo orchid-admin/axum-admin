@@ -1,5 +1,3 @@
-use prisma_client_rust::Upsert;
-
 use crate::{
     now_time,
     prisma::{
@@ -8,6 +6,7 @@ use crate::{
     },
     sys_menu, Database, Result,
 };
+use prisma_client_rust::Upsert;
 
 pub async fn get_role_menus(client: &Database, role_id: i32) -> Result<Vec<sys_menu::Info>> {
     let role_menus = client

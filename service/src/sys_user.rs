@@ -1,28 +1,25 @@
 use crate::{
     prisma::{system_dept, system_role, system_user},
-    sys_menu, Database, Result, ServiceError,
+    sys_menu, to_local_string, Database, Result, ServiceError,
 };
+use serde::Serialize;
 
-pub async fn find_user_by_username(
-    client: &Database,
-    username: &str,
-) -> Result<Option<system_user::Data>> {
+pub async fn find_user_by_username(client: &Database, username: &str) -> Result<Option<Info>> {
     Ok(client
         .system_user()
         .find_first(vec![system_user::username::equals(username.to_owned())])
         .exec()
-        .await?)
+        .await?
+        .map(|x| x.into()))
 }
 
-pub async fn find_user_by_phone(
-    client: &Database,
-    phone: &str,
-) -> Result<Option<system_user::Data>> {
+pub async fn find_user_by_phone(client: &Database, phone: &str) -> Result<Option<Info>> {
     Ok(client
         .system_user()
         .find_first(vec![system_user::phone::equals(phone.to_owned())])
         .exec()
-        .await?)
+        .await?
+        .map(|x| x.into()))
 }
 
 pub async fn get_current_user_info(client: &Database, id: i32) -> Result<UserPermission> {
@@ -44,7 +41,7 @@ pub async fn get_current_user_info(client: &Database, id: i32) -> Result<UserPer
     .map(|x| x.btn_auth)
     .collect::<Vec<String>>();
     let permission = UserPermission {
-        user,
+        user: user.into(),
         role,
         dept,
         btn_auths,
@@ -52,10 +49,7 @@ pub async fn get_current_user_info(client: &Database, id: i32) -> Result<UserPer
     Ok(permission)
 }
 
-pub async fn get_users_by_dept_id(
-    client: &Database,
-    dept_id: i32,
-) -> Result<Vec<system_user::Data>> {
+pub async fn get_users_by_dept_id(client: &Database, dept_id: i32) -> Result<Vec<Info>> {
     Ok(client
         .system_user()
         .find_many(vec![
@@ -63,7 +57,10 @@ pub async fn get_users_by_dept_id(
             system_user::deleted_at::equals(None),
         ])
         .exec()
-        .await?)
+        .await?
+        .into_iter()
+        .map(|x| x.into())
+        .collect::<Vec<Info>>())
 }
 
 pub async fn batch_set_dept(
@@ -84,33 +81,27 @@ pub async fn batch_set_dept(
         .await?)
 }
 
-pub async fn create(
-    client: &Database,
-    username: &str,
-    params: Vec<system_user::UncheckedSetParam>,
-) -> Result<system_user::Data> {
+pub async fn create(client: &Database, username: &str, params: UserCreateParams) -> Result<Info> {
     Ok(client
         .system_user()
-        .create_unchecked(username.to_owned(), params)
+        .create_unchecked(username.to_owned(), params.to_params())
         .exec()
-        .await?)
+        .await?
+        .into())
 }
 
-pub async fn upset(
+pub async fn upsert_system_user(
     client: &Database,
     username: &str,
-    params: UserCreateParams,
-) -> Result<system_user::Data> {
-    let mut data = vec![];
-    if let Some(password) = params.password {
-        data.push(system_user::password::set(password));
-    }
-    if let Some(salt) = params.salt {
-        data.push(system_user::salt::set(salt));
-    }
-    if let Some(Some(role_id)) = params.role_id {
-        data.push(system_user::role::connect(system_role::id::equals(role_id)));
-    }
+    password: &str,
+    salt: &str,
+    role_id: i32,
+) -> Result<Info> {
+    let data = vec![
+        system_user::password::set(password.to_owned()),
+        system_user::salt::set(salt.to_owned()),
+        system_user::role::connect(system_role::id::equals(role_id)),
+    ];
 
     Ok(client
         .system_user()
@@ -120,11 +111,68 @@ pub async fn upset(
             data,
         )
         .exec()
-        .await?)
+        .await?
+        .into())
+}
+
+#[derive(Debug, Serialize)]
+pub struct Info {
+    id: i32,
+    username: String,
+    nickname: String,
+    role_id: Option<i32>,
+    dept_id: Option<i32>,
+    phone: String,
+    email: String,
+    sex: i32,
+    #[serde(skip)]
+    password: String,
+    #[serde(skip)]
+    salt: String,
+    describe: String,
+    expire_time: Option<String>,
+    status: bool,
+    created_at: String,
+}
+
+impl Info {
+    pub fn get_id(&self) -> i32 {
+        self.id
+    }
+    pub fn get_username(&self) -> String {
+        self.username.clone()
+    }
+    pub fn get_password(&self) -> String {
+        self.password.clone()
+    }
+    pub fn get_salt(&self) -> String {
+        self.salt.clone()
+    }
+}
+
+impl From<system_user::Data> for Info {
+    fn from(value: system_user::Data) -> Self {
+        Self {
+            id: value.id,
+            username: value.username,
+            nickname: value.nickname,
+            role_id: value.role_id,
+            dept_id: value.dept_id,
+            phone: value.phone,
+            email: value.email,
+            sex: value.sex,
+            password: value.password,
+            salt: value.salt,
+            describe: value.describe,
+            expire_time: value.expire_time.map(to_local_string),
+            status: value.status,
+            created_at: to_local_string(value.created_at),
+        }
+    }
 }
 
 pub struct UserPermission {
-    pub user: system_user::Data,
+    pub user: Info,
     pub role: Option<system_role::Data>,
     pub dept: Option<system_dept::Data>,
     pub btn_auths: Vec<String>,
