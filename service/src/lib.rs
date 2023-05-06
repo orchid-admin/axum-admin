@@ -1,4 +1,6 @@
-use prisma_client_rust::chrono::{DateTime, FixedOffset, Utc};
+use prisma_client_rust::chrono::{
+    DateTime, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc,
+};
 use serde_with::{serde_as, DisplayFromStr};
 
 #[allow(unused, warnings)]
@@ -40,6 +42,22 @@ fn to_local_string(datetime: DateTime<FixedOffset>) -> String {
         .with_timezone(&FixedOffset::east_opt(8 * 3600).unwrap())
         .format("%Y-%m-%d %H:%M:%S")
         .to_string()
+}
+
+#[allow(dead_code)]
+pub fn parse_string(datetime: String) -> DateTime<FixedOffset> {
+    let time = NaiveTime::from_hms_opt(00, 00, 00).unwrap();
+
+    let now_datetime = now_time();
+    match NaiveDate::parse_from_str(datetime.as_str(), "%Y-%m-%d") {
+        Ok(date) => {
+            let local_datetime = NaiveDateTime::new(date, time);
+            let tz_offset = FixedOffset::east_opt(8 * 3600).unwrap();
+            let res = TimeZone::from_local_datetime(&tz_offset, &local_datetime).unwrap();
+            res
+        }
+        Err(_) => now_datetime,
+    }
 }
 
 #[derive(Debug)]

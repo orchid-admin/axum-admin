@@ -57,6 +57,28 @@ pub async fn delete(client: &Database, id: i32) -> Result<system_dept::Data> {
     Ok(res)
 }
 
+pub async fn get_user_dept_ids(
+    client: &Database,
+    user_id: i32,
+    parent_dept_id: i32,
+) -> Result<Vec<i32>> {
+    let infos = get_user_dept_trees(client, user_id).await?;
+    let mut parent_dept_ids = vec![parent_dept_id];
+    Ok(get_children_ids(infos, &mut parent_dept_ids).clone())
+}
+
+fn get_children_ids(tree: Vec<Dept>, parent_dept_ids: &mut Vec<i32>) -> &mut Vec<i32> {
+    for dept in tree {
+        if parent_dept_ids.contains(&dept.info.parent_id) {
+            parent_dept_ids.push(dept.info.id);
+        }
+        if !dept.children.is_empty() {
+            get_children_ids(dept.children, parent_dept_ids);
+        }
+    }
+    parent_dept_ids
+}
+
 pub async fn get_user_dept_trees(client: &Database, user_id: i32) -> Result<Vec<Dept>> {
     let infos = get_depts_by_user_id(client, user_id).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
