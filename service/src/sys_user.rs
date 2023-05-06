@@ -1,8 +1,9 @@
 use crate::{
-    prisma::{system_dept, system_role, system_user},
-    sys_menu, to_local_string, Database, Result, ServiceError,
+    now_time,
+    prisma::{system_dept, system_role, system_user, SortOrder},
+    sys_menu, to_local_string, Database, PaginateRequest, PaginateResponse, Result, ServiceError,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 pub async fn find_user_by_username(client: &Database, username: &str) -> Result<Option<Info>> {
     Ok(client
@@ -90,6 +91,61 @@ pub async fn create(client: &Database, username: &str, params: UserCreateParams)
         .into())
 }
 
+pub async fn update(client: &Database, id: i32, params: UserCreateParams) -> Result<Info> {
+    Ok(client
+        .system_user()
+        .update_unchecked(system_user::id::equals(id), params.to_params())
+        .exec()
+        .await?
+        .into())
+}
+
+pub async fn delete(client: &Database, id: i32) -> Result<Info> {
+    Ok(client
+        .system_user()
+        .update(
+            system_user::id::equals(id),
+            vec![system_user::deleted_at::set(Some(now_time()))],
+        )
+        .exec()
+        .await?
+        .into())
+}
+
+pub async fn info(client: &Database, id: i32) -> Result<Info> {
+    Ok(client
+        .system_user()
+        .find_first(vec![
+            system_user::id::equals(id),
+            system_user::deleted_at::equals(None),
+        ])
+        .exec()
+        .await?
+        .map(|x| x.into())
+        .ok_or(ServiceError::DataNotFound)?)
+}
+
+pub async fn paginate(
+    client: &Database,
+    params: UserSearchParams,
+) -> Result<PaginateResponse<Vec<Info>>> {
+    let (data, total): (Vec<system_user::Data>, i64) = client
+        ._batch((
+            client
+                .system_user()
+                .find_many(params.to_params())
+                .skip(params.paginate.get_skip())
+                .take(params.paginate.limit)
+                .order_by(system_user::id::order(SortOrder::Desc)),
+            client.system_user().count(params.to_params()),
+        ))
+        .await?;
+    Ok(PaginateResponse {
+        total,
+        data: data.into_iter().map(|x| x.into()).collect::<Vec<Info>>(),
+    })
+}
+
 pub async fn upsert_system_user(
     client: &Database,
     username: &str,
@@ -113,6 +169,46 @@ pub async fn upsert_system_user(
         .exec()
         .await?
         .into())
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UserSearchParams {
+    username: Option<String>,
+    nickname: Option<String>,
+    phone: Option<String>,
+    email: Option<String>,
+    status: Option<bool>,
+    role_id: Option<i32>,
+    dept_id: Option<i32>,
+    #[serde(flatten)]
+    paginate: PaginateRequest,
+}
+impl UserSearchParams {
+    fn to_params(&self) -> Vec<system_user::WhereParam> {
+        let mut params = vec![system_user::deleted_at::equals(None)];
+        if let Some(username) = &self.username {
+            params.push(system_user::username::contains(username.to_string()));
+        }
+        if let Some(nickname) = &self.nickname {
+            params.push(system_user::nickname::contains(nickname.to_string()));
+        }
+        if let Some(phone) = &self.phone {
+            params.push(system_user::phone::contains(phone.to_string()));
+        }
+        if let Some(email) = &self.email {
+            params.push(system_user::email::contains(email.to_string()));
+        }
+        if let Some(status) = self.status {
+            params.push(system_user::status::equals(status));
+        }
+        if let Some(role_id) = self.role_id {
+            params.push(system_user::role_id::equals(Some(role_id)));
+        }
+        if let Some(dept_id) = self.dept_id {
+            params.push(system_user::dept_id::equals(Some(dept_id)));
+        }
+        params
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -179,7 +275,30 @@ pub struct UserPermission {
 }
 
 system_user::partial_unchecked!(UserCreateParams {
+    nickname
+    role_id
+    dept_id
+    phone
+    email
+    sex
     password
     salt
+    describe
+    expire_time
+    status
+});
+
+system_user::partial_unchecked!(UserUpdateParams {
+    username
+    nickname
     role_id
+    dept_id
+    phone
+    email
+    sex
+    password
+    salt
+    describe
+    expire_time
+    status
 });

@@ -132,27 +132,25 @@ pub async fn delete(client: &Database, id: i32) -> Result<system_role::Data> {
 }
 
 pub async fn paginate(client: &Database, params: RoleSearchParams) -> Result<impl Serialize> {
-    let data = client
-        .system_role()
-        .find_many(params.to_params())
-        .skip(params.paginate.get_skip())
-        .take(params.paginate.limit)
-        .order_by(system_role::id::order(SortOrder::Desc))
-        .select(RoleQuery::select())
-        .exec()
-        .await?
-        .into_iter()
-        .map(|x| x.into())
-        .collect::<Vec<DataPower<RoleQuery::Data>>>();
-    let res = PaginateResponse {
-        total: client
-            .system_role()
-            .count(params.to_params())
-            .exec()
-            .await?,
-        data,
-    };
-    Ok(res)
+    let (data, total) = client
+        ._batch((
+            client
+                .system_role()
+                .find_many(params.to_params())
+                .skip(params.paginate.get_skip())
+                .take(params.paginate.limit)
+                .order_by(system_role::id::order(SortOrder::Desc))
+                .select(RoleQuery::select()),
+            client.system_role().count(params.to_params()),
+        ))
+        .await?;
+    Ok(PaginateResponse {
+        total,
+        data: data
+            .into_iter()
+            .map(|x| x.into())
+            .collect::<Vec<DataPower<RoleQuery::Data>>>(),
+    })
 }
 
 pub async fn info(client: &Database, id: i32) -> Result<RoleQuery::Data> {
