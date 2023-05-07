@@ -53,8 +53,7 @@ pub fn parse_string(datetime: String) -> DateTime<FixedOffset> {
         Ok(date) => {
             let local_datetime = NaiveDateTime::new(date, time);
             let tz_offset = FixedOffset::east_opt(8 * 3600).unwrap();
-            let res = TimeZone::from_local_datetime(&tz_offset, &local_datetime).unwrap();
-            res
+            TimeZone::from_local_datetime(&tz_offset, &local_datetime).unwrap()
         }
         Err(_) => now_datetime,
     }
