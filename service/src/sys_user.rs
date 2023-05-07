@@ -113,7 +113,7 @@ pub async fn delete(client: &Database, id: i32) -> Result<Info> {
 }
 
 pub async fn info(client: &Database, id: i32) -> Result<Info> {
-    Ok(client
+    client
         .system_user()
         .find_first(vec![
             system_user::id::equals(id),
@@ -122,7 +122,7 @@ pub async fn info(client: &Database, id: i32) -> Result<Info> {
         .exec()
         .await?
         .map(|x| x.into())
-        .ok_or(ServiceError::DataNotFound)?)
+        .ok_or(ServiceError::DataNotFound)
 }
 
 pub async fn paginate(
