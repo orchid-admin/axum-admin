@@ -1,6 +1,6 @@
 use crate::{
     get_tree_start_parent_id, now_time,
-    prisma::{system_menu, system_role},
+    prisma::{system_menu, system_role, SortOrder},
     sys_role_menu, sys_user, to_local_string, vec_to_tree_into, Database, Result, ServiceError,
     Tree, TreeInfo, ADMIN_ROLE_SIGN,
 };
@@ -16,7 +16,7 @@ pub async fn create(client: &Database, title: &str, params: MenuCreateParams) ->
         .into())
 }
 
-pub async fn update(client: &Database, id: i32, params: MenuCreateParams) -> Result<Info> {
+pub async fn update(client: &Database, id: i32, params: MenuUpdateParams) -> Result<Info> {
     Ok(client
         .system_menu()
         .update_unchecked(system_menu::id::equals(id), params.to_params())
@@ -125,6 +125,8 @@ async fn get_menus(client: &Database) -> Result<Vec<Info>> {
     Ok(client
         .system_menu()
         .find_many(vec![system_menu::deleted_at::equals(None)])
+        .order_by(system_menu::sort::order(SortOrder::Asc))
+        .order_by(system_menu::id::order(SortOrder::Asc))
         .exec()
         .await?
         .into_iter()
@@ -189,26 +191,23 @@ pub struct UserMenu {
     /// 父级ID
     #[serde(skip)]
     pub parent_id: i32,
-    /// 菜单名称
-    pub title: String,
-    /// 图标
-    pub icon: String,
     /// 路由名称
+    #[serde(rename = "name")]
     pub router_name: String,
     /// 组件地址
+    #[serde(rename = "component")]
     pub router_component: String,
+    /// 路径
+    #[serde(rename = "path")]
+    pub router_path: String,
     /// 重定向
     pub redirect: String,
     /// 外链地址
     pub link: String,
     /// 内嵌地址
     pub iframe: String,
-    /// 是否隐藏
-    pub is_hide: bool,
-    /// 是否开启keep_alive
-    pub is_keep_alive: bool,
-    /// 是否固定
-    pub is_affix: bool,
+    /// Meta信息
+    pub meta: UserMenuMeta,
     pub children: Vec<UserMenu>,
 }
 
@@ -223,19 +222,38 @@ impl From<Info> for UserMenu {
         Self {
             id: value.id,
             parent_id: value.parent_id,
-            title: value.title,
-            icon: value.icon,
             router_name: value.router_name,
             router_component: value.router_component,
+            router_path: value.router_path,
             redirect: value.redirect,
             link: value.link,
             iframe: value.iframe,
-            is_hide: value.is_hide,
-            is_keep_alive: value.is_keep_alive,
-            is_affix: value.is_affix,
+            meta: UserMenuMeta {
+                title: value.title,
+                icon: value.icon,
+                is_hide: value.is_hide,
+                is_keep_alive: value.is_keep_alive,
+                is_affix: value.is_affix,
+            },
             children: vec![],
         }
     }
+}
+#[derive(Debug, Clone, Serialize)]
+pub struct UserMenuMeta {
+    /// 菜单名称
+    pub title: String,
+    /// 图标
+    pub icon: String,
+    /// 是否隐藏
+    #[serde(rename = "isHide")]
+    pub is_hide: bool,
+    /// 是否开启keep_alive
+    #[serde(rename = "isKeepAlive")]
+    pub is_keep_alive: bool,
+    /// 是否固定
+    #[serde(rename = "isAffix")]
+    pub is_affix: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
