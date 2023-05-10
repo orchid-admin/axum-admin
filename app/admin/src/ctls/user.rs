@@ -72,7 +72,12 @@ async fn get_menu(
         sys_menu::get_user_slide_menu_trees(
             &state.db,
             claims.user_id,
-            Some(vec![MenuType::Menu, MenuType::Redirect, MenuType::Iframe]),
+            Some(vec![
+                MenuType::Menu,
+                MenuType::Redirect,
+                MenuType::Iframe,
+                MenuType::Link,
+            ]),
         )
         .await?,
     ))

@@ -65,11 +65,7 @@ pub async fn get_user_slide_menu_trees(
     user_id: i32,
     menu_type: Option<Vec<MenuType>>,
 ) -> Result<Vec<UserMenu>> {
-    let infos = get_user_menus(client, user_id, menu_type)
-        .await?
-        .into_iter()
-        .filter(|x| !x.is_hide)
-        .collect::<Vec<Info>>();
+    let infos = get_user_menus(client, user_id, menu_type).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
     Ok(vec_to_tree_into::<UserMenu, Info>(&parent_id, &infos))
 }
@@ -144,7 +140,7 @@ async fn get_menus_by_user_id(client: &Database, user_id: i32) -> Result<Vec<Inf
 pub enum MenuType {
     /// 1.菜单
     Menu = 1,
-    /// 2.重定向
+    /// 2.重定向/目录
     Redirect = 2,
     /// 3.外链
     Link = 3,
@@ -202,10 +198,6 @@ pub struct UserMenu {
     pub router_path: String,
     /// 重定向
     pub redirect: String,
-    /// 外链地址
-    pub link: String,
-    /// 内嵌地址
-    pub iframe: String,
     /// Meta信息
     pub meta: UserMenuMeta,
     pub children: Vec<UserMenu>,
@@ -222,15 +214,25 @@ impl From<Info> for UserMenu {
         Self {
             id: value.id,
             parent_id: value.parent_id,
-            router_name: value.router_name,
+            router_name: match value.router_name.is_empty() {
+                false => value.router_name,
+                true => value.router_path.replace('/', "_"),
+            },
             router_component: value.router_component,
-            router_path: value.router_path,
+            router_path: match value.r#type {
+                MenuType::Menu => value.router_path,
+                _ => format!("/{}", value.title.replace('.', "_")),
+            },
             redirect: value.redirect,
-            link: value.link,
-            iframe: value.iframe,
             meta: UserMenuMeta {
                 title: value.title,
                 icon: value.icon,
+                is_link: match value.r#type {
+                    MenuType::Link => value.link,
+                    MenuType::Iframe => value.iframe.clone(),
+                    _ => "".to_owned(),
+                },
+                is_iframe: !value.iframe.is_empty() && value.r#type.eq(&MenuType::Iframe),
                 is_hide: value.is_hide,
                 is_keep_alive: value.is_keep_alive,
                 is_affix: value.is_affix,
@@ -245,6 +247,12 @@ pub struct UserMenuMeta {
     pub title: String,
     /// 图标
     pub icon: String,
+    /// 外链地址
+    #[serde(rename = "isLink")]
+    pub is_link: String,
+    /// 内嵌地址
+    #[serde(rename = "isIframe")]
+    pub is_iframe: bool,
     /// 是否隐藏
     #[serde(rename = "isHide")]
     pub is_hide: bool,
@@ -294,7 +302,7 @@ pub struct Info {
     pub id: i32,
     /// 父级ID
     pub parent_id: i32,
-    /// 菜单类型：1.菜单，2.重定向，3.外链，4.嵌套，5.按钮权限，6.接口权限
+    /// 菜单类型：1.菜单，2.重定向/目录，3.外链，4.嵌套，5.按钮权限，6.接口权限
     pub r#type: MenuType,
     /// 菜单名称
     pub title: String,
