@@ -55,6 +55,7 @@ async fn update(
     Ok(Empty::new())
 }
 
+/// 删除
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
     sys_menu::delete(&state.db, id).await?;
     Ok(Empty::new())
