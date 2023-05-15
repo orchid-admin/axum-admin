@@ -38,8 +38,6 @@ async fn main() -> Result<()> {
 
     let app = router::init(state).await.layer(
         tower_http::trace::TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {
-            // Log the matched route's path (with placeholders not filled in).
-            // Use request.uri() or OriginalUri if you want the real path.
             let matched_path = request
                 .extensions()
                 .get::<MatchedPath>()
@@ -50,6 +48,7 @@ async fn main() -> Result<()> {
                 method = ?request.method(),
                 matched_path,
                 some_other_field = tracing::field::Empty,
+                query = request.uri().query().unwrap_or_default()
             )
         }),
     );

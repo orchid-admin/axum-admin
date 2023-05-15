@@ -9,6 +9,7 @@ edition = "2021"
 argon2 = { workspace = true }
 axum = { workspace = true }
 axum-macros = { workspace = true }
+axum-extra = { workspace = true }
 captcha-rs = { workspace = true }
 custom_attrs = { workspace = true }
 jsonwebtoken = { workspace = true }
