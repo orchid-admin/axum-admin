@@ -7,8 +7,9 @@ use axum::{
     routing::{delete, get, post, put},
     Extension, Json, Router,
 };
+use axum_extra::extract::Query as ExtractQuery;
 use serde::Deserialize;
-use service::sys_menu::{self, MenuCreateParams, MenuUpdateParams};
+use service::sys_menu::{self, MenuCreateParams, MenuSearchParams, MenuUpdateParams};
 use validator::Validate;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
@@ -25,9 +26,11 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
 async fn index(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
+    ExtractQuery(query): ExtractQuery<SearchParamsRequest>,
 ) -> Result<impl IntoResponse> {
+    println!("{:#?}", query);
     Ok(Json(
-        sys_menu::get_user_menu_trees(&state.db, claims.user_id, None).await?,
+        sys_menu::get_user_menu_trees(&state.db, claims.user_id, query.into()).await?,
     ))
 }
 
@@ -61,7 +64,24 @@ async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl 
     Ok(Empty::new())
 }
 
-#[allow(dead_code)]
+// #[serde_as]
+#[derive(Debug, Deserialize)]
+struct SearchParamsRequest {
+    keyword: Option<String>,
+    menu_types: Option<Vec<i32>>,
+}
+
+impl From<SearchParamsRequest> for MenuSearchParams {
+    fn from(value: SearchParamsRequest) -> Self {
+        Self {
+            keyword: value.keyword,
+            menu_types: value
+                .menu_types
+                .map(|x| x.into_iter().map(|y| y.into()).collect()),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Validate)]
 struct CreateRequest {
     parent_id: i32,
