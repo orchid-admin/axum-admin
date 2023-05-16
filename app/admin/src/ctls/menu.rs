@@ -24,7 +24,6 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
 
 /// 获取树形列表
 async fn index(
-
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     ExtractQuery(query): ExtractQuery<SearchParamsRequest>,
