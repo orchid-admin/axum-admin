@@ -11,7 +11,7 @@ use axum::{
     routing::{delete, get, post, put},
     Extension, Json, Router,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use service::{sys_menu, sys_role};
 use validator::Validate;
 
@@ -60,7 +60,7 @@ async fn create(
     let user_menus = sys_menu::get_user_menus_by_menu_ids(
         &state.db,
         claims.user_id,
-        params.menus.clone().unwrap_or_default(),
+        params.menu_ids.clone().unwrap_or_default(),
     )
     .await?;
     sys_role::create(
@@ -98,7 +98,7 @@ async fn update(
     let user_menus = sys_menu::get_user_menus_by_menu_ids(
         &state.db,
         claims.user_id,
-        params.menus.clone().unwrap_or_default(),
+        params.menu_ids.clone().unwrap_or_default(),
     )
     .await?;
     sys_role::update(&state.db, id, params.into(), user_menus).await?;
@@ -115,9 +115,6 @@ async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl 
     Ok(Empty::new())
 }
 
-#[derive(Debug, Serialize)]
-struct IndexResponse {}
-
 #[derive(Debug, Deserialize, Validate)]
 struct CreateRequest {
     name: String,
@@ -128,7 +125,7 @@ struct CreateRequest {
     describe: String,
     #[serde(default)]
     status: bool,
-    menus: Option<Vec<i32>>,
+    menu_ids: Option<Vec<i32>>,
 }
 
 impl From<CreateRequest> for sys_role::RoleCreateParams {
