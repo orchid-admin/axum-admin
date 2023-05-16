@@ -1,7 +1,7 @@
 use crate::{
     get_tree_start_parent_id, now_time,
     prisma::{system_dept, system_role, SortOrder},
-    sys_user, vec_to_tree_into, Database, Result, ServiceError, Tree, TreeInfo,
+    sys_user, to_local_string, vec_to_tree_into, Database, Result, ServiceError, Tree, TreeInfo,
 };
 use serde::Serialize;
 use std::sync::Arc;
@@ -179,6 +179,8 @@ pub struct Info {
     person_email: String,
     describe: String,
     status: bool,
+    sort: i32,
+    created_at: String,
 }
 
 impl TreeInfo for Info {
@@ -201,6 +203,8 @@ impl From<system_dept::Data> for Info {
             person_email: value.person_email,
             describe: value.describe,
             status: value.status,
+            sort: value.sort,
+            created_at: to_local_string(value.created_at),
         }
     }
 }
