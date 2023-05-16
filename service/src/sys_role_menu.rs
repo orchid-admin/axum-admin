@@ -64,8 +64,8 @@ pub fn _create(client: &Database, role_id: i32, menu_id: i32) -> CreateQuery {
         system_role::id::equals(role_id),
         system_menu::id::equals(menu_id),
         vec![
-            system_role_menu::role::connect(system_role::id::equals(role_id)),
-            system_role_menu::menu::connect(system_menu::id::equals(menu_id)),
+            // system_role_menu::role::connect(system_role::id::equals(role_id)),
+            // system_role_menu::menu::connect(system_menu::id::equals(menu_id)),
         ],
     )
 }
