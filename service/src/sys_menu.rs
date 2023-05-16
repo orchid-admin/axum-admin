@@ -53,9 +53,9 @@ pub async fn info(client: &Database, id: i32) -> Result<Info> {
 pub async fn get_user_menu_trees(
     client: &Database,
     user_id: i32,
-    menu_type: Option<Vec<MenuType>>,
+    query_params: MenuSearchParams,
 ) -> Result<Vec<Menu>> {
-    let infos = get_user_menus(client, user_id, menu_type).await?;
+    let infos = get_user_menus(client, user_id, query_params).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
     Ok(vec_to_tree_into::<Menu, Info>(&parent_id, &infos))
 }
@@ -63,9 +63,9 @@ pub async fn get_user_menu_trees(
 pub async fn get_user_slide_menu_trees(
     client: &Database,
     user_id: i32,
-    menu_type: Option<Vec<MenuType>>,
+    query_params: MenuSearchParams,
 ) -> Result<Vec<UserMenu>> {
-    let infos = get_user_menus(client, user_id, menu_type).await?;
+    let infos = get_user_menus(client, user_id, query_params).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
     Ok(vec_to_tree_into::<UserMenu, Info>(&parent_id, &infos))
 }
@@ -110,11 +110,44 @@ pub(crate) async fn get_menu_by_role(
 async fn get_user_menus(
     client: &Database,
     user_id: i32,
-    menu_type: Option<Vec<MenuType>>,
+    query_params: MenuSearchParams,
 ) -> Result<Vec<Info>> {
     get_menus_by_user_id(client, user_id)
         .await
-        .map(|x| filter_menu_types(menu_type, x))
+        .map(|x| filter_menu_by_search(query_params, x))
+}
+
+fn filter_menu_by_search(query_params: MenuSearchParams, x: Vec<Info>) -> Vec<Info> {
+    let type_filters = match query_params.menu_types {
+        Some(t) => x
+            .into_iter()
+            .filter(|x| t.contains(&x.r#type))
+            .collect::<Vec<Info>>(),
+        None => x,
+    };
+    match query_params.keyword {
+        Some(keyword) => {
+            if !keyword.is_empty() {
+                return type_filters
+                    .into_iter()
+                    .filter(|x| {
+                        x.title.contains(&keyword)
+                            || x.router_name.contains(&keyword)
+                            || x.router_component.contains(&keyword)
+                            || x.router_path.contains(&keyword)
+                            || x.redirect.contains(&keyword)
+                            || x.link.contains(&keyword)
+                            || x.iframe.contains(&keyword)
+                            || x.btn_auth.contains(&keyword)
+                            || x.api_url.contains(&keyword)
+                            || x.api_method.contains(&keyword)
+                    })
+                    .collect::<Vec<Info>>();
+            }
+            type_filters
+        }
+        None => type_filters,
+    }
 }
 
 async fn get_menus(client: &Database) -> Result<Vec<Info>> {
@@ -374,6 +407,12 @@ impl TreeInfo for Info {
         self.id
     }
 }
+
+pub struct MenuSearchParams {
+    pub keyword: Option<String>,
+    pub menu_types: Option<Vec<MenuType>>,
+}
+
 system_menu::partial_unchecked!(MenuCreateParams {
     parent_id
     r#type

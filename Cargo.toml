@@ -16,8 +16,9 @@ edition = "2021"
 
 [workspace.dependencies]
 # web server require
-axum = { version = "0.6.17", features = ["headers", "matched-path", "form", "ws", "tracing"] }
+axum = { version = "0.6.18", default-features = false, features = ["headers", "matched-path", "form", "ws", "tracing", "query", "json"] }
 axum-macros = { version = "0.3" }
+axum-extra = { version = "0.7", features = ["query"] }
 # async require
 tokio = { version = "1.17", default-features = false, features = ["macros", "rt-multi-thread"] }
 # log require

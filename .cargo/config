@@ -2,7 +2,7 @@
 prisma = "run -p prisma_cli --"
 
 #[http]
-#proxy = "127.0.0.1:59128"
+#proxy = "127.0.0.1:50614"
 
 #[https]
-#proxy = "127.0.0.1:59128"
+#proxy = "127.0.0.1:50614"
