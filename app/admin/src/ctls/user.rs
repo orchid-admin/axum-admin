@@ -72,15 +72,15 @@ async fn get_menu(
         sys_menu::get_user_slide_menu_trees(
             &state.db,
             claims.user_id,
-            sys_menu::MenuSearchParams {
-                keyword: None,
-                menu_types: Some(vec![
+            &sys_menu::MenuSearchParams::new(
+                None,
+                Some(vec![
                     MenuType::Menu,
                     MenuType::Redirect,
                     MenuType::Iframe,
                     MenuType::Link,
                 ]),
-            },
+            ),
         )
         .await?,
     ))
@@ -100,7 +100,6 @@ async fn get_user_permission(
             Some(role) => vec![role.sign],
             None => vec!["admin".to_owned()],
         },
-        // todo
         btn_auths: user_permission.btn_auths,
     }))
 }
