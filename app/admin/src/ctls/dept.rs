@@ -7,6 +7,7 @@ use axum::{
     routing::{delete, get, post, put},
     Extension, Json, Router,
 };
+use axum_extra::extract::Query;
 use serde::Deserialize;
 use service::sys_dept::{self, DeptCreateParams, DeptUpdateParams};
 use validator::Validate;
@@ -24,9 +25,10 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
 async fn index(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
+    Query(params): Query<SearchRequest>,
 ) -> Result<impl IntoResponse> {
     Ok(Json(
-        sys_dept::get_user_dept_trees(&state.db, claims.user_id).await?,
+        sys_dept::get_user_dept_trees(&state.db, claims.user_id, &params.into()).await?,
     ))
 }
 
@@ -59,6 +61,16 @@ async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl 
     Ok(Empty::new())
 }
 
+#[derive(Debug, Deserialize)]
+struct SearchRequest {
+    keyword: Option<String>,
+    status: Option<bool>,
+}
+impl From<SearchRequest> for sys_dept::DeptSearchParams {
+    fn from(value: SearchRequest) -> Self {
+        Self::new(value.keyword, value.status)
+    }
+}
 #[derive(Debug, Deserialize, Validate)]
 struct CreateRequest {
     parent_id: i32,

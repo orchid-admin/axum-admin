@@ -3,6 +3,7 @@ use crate::{
     prisma::{system_dept, system_role, SortOrder},
     sys_user, to_local_string, vec_to_tree_into, Database, Result, ServiceError, Tree, TreeInfo,
 };
+use prisma_client_rust::or;
 use serde::Serialize;
 use std::sync::Arc;
 
@@ -62,7 +63,15 @@ pub async fn get_user_dept_ids(
     user_id: i32,
     parent_dept_id: i32,
 ) -> Result<Vec<i32>> {
-    let infos = get_user_dept_trees(client, user_id).await?;
+    let infos = get_user_dept_trees(
+        client,
+        user_id,
+        &DeptSearchParams {
+            keyword: None,
+            status: None,
+        },
+    )
+    .await?;
     let mut parent_dept_ids = vec![parent_dept_id];
     Ok(get_children_ids(infos, &mut parent_dept_ids).clone())
 }
@@ -79,8 +88,12 @@ fn get_children_ids(tree: Vec<Dept>, parent_dept_ids: &mut Vec<i32>) -> &mut Vec
     parent_dept_ids
 }
 
-pub async fn get_user_dept_trees(client: &Database, user_id: i32) -> Result<Vec<Dept>> {
-    let infos = get_depts_by_user_id(client, user_id).await?;
+pub async fn get_user_dept_trees(
+    client: &Database,
+    user_id: i32,
+    params: &DeptSearchParams,
+) -> Result<Vec<Dept>> {
+    let infos = get_depts_by_user_id(client, user_id, params).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
     Ok(vec_to_tree_into::<Dept, Info>(&parent_id, &infos))
 }
@@ -98,10 +111,10 @@ pub async fn info(client: &Database, id: i32) -> Result<Info> {
         .into())
 }
 
-async fn get_depts(client: &Database) -> Result<Vec<Info>> {
+async fn get_depts(client: &Database, params: &DeptSearchParams) -> Result<Vec<Info>> {
     Ok(client
         .system_dept()
-        .find_many(vec![system_dept::deleted_at::equals(None)])
+        .find_many(params.to_params())
         .order_by(system_dept::id::order(SortOrder::Asc))
         .exec()
         .await?
@@ -110,27 +123,35 @@ async fn get_depts(client: &Database) -> Result<Vec<Info>> {
         .collect::<Vec<Info>>())
 }
 
-async fn get_depts_by_user_id(client: &Database, user_id: i32) -> Result<Vec<Info>> {
+async fn get_depts_by_user_id(
+    client: &Database,
+    user_id: i32,
+    params: &DeptSearchParams,
+) -> Result<Vec<Info>> {
     let user_permission = sys_user::get_current_user_info(client, user_id).await?;
 
     Ok(match (user_permission.role, user_permission.dept) {
         (Some(role), Some(dept)) => {
-            let depts = get_role_dept(client, role).await?;
+            let depts = get_role_dept(client, role, params).await?;
             if !depts.is_empty() {
                 depts
             } else {
-                get_children_dept(get_depts(client).await?, dept.id)
+                get_children_dept(get_depts(client, params).await?, dept.id)
             }
         }
-        (None, Some(dept)) => get_children_dept(get_depts(client).await?, dept.id),
-        (Some(role), None) => get_role_dept(client, role).await?,
+        (None, Some(dept)) => get_children_dept(get_depts(client, params).await?, dept.id),
+        (Some(role), None) => get_role_dept(client, role, params).await?,
         _ => vec![],
     })
 }
 
-async fn get_role_dept(client: &Database, role: system_role::Data) -> Result<Vec<Info>> {
+async fn get_role_dept(
+    client: &Database,
+    role: system_role::Data,
+    params: &DeptSearchParams,
+) -> Result<Vec<Info>> {
     Ok(match role.sign.as_str() {
-        super::ADMIN_ROLE_SIGN => get_depts(client).await?,
+        super::ADMIN_ROLE_SIGN => get_depts(client, params).await?,
         _ => vec![],
     })
 }
@@ -206,6 +227,33 @@ impl From<system_dept::Data> for Info {
             sort: value.sort,
             created_at: to_local_string(value.created_at),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct DeptSearchParams {
+    keyword: Option<String>,
+    status: Option<bool>,
+}
+impl DeptSearchParams {
+    fn to_params(&self) -> Vec<system_dept::WhereParam> {
+        let mut params = vec![system_dept::deleted_at::equals(None)];
+        if let Some(keyword) = &self.keyword {
+            params.push(or!(
+                system_dept::name::contains(keyword.to_string()),
+                system_dept::person_name::contains(keyword.to_string()),
+                system_dept::person_email::contains(keyword.to_string()),
+                system_dept::person_phone::contains(keyword.to_string()),
+                system_dept::describe::contains(keyword.to_string())
+            ));
+        }
+        if let Some(status) = self.status {
+            params.push(system_dept::status::equals(status));
+        }
+        params
+    }
+    pub fn new(keyword: Option<String>, status: Option<bool>) -> Self {
+        Self { keyword, status }
     }
 }
 

@@ -1,8 +1,8 @@
 use crate::{
     now_time,
     prisma::{system_role, system_role_menu, SortOrder},
-    sys_menu, sys_role_menu, to_local_string, DataPower, Database, PaginateRequest,
-    PaginateResponse, Result, ServiceError, ADMIN_ROLE_SIGN,
+    sys_menu, sys_role_menu, to_local_string, DataPower, Database, PaginateParams, PaginateResult,
+    Result, ServiceError, ADMIN_ROLE_SIGN,
 };
 use prisma_client_rust::or;
 use serde::{Deserialize, Serialize};
@@ -140,7 +140,7 @@ pub async fn delete(client: &Database, id: i32) -> Result<system_role::Data> {
     Ok(result)
 }
 
-pub async fn paginate(client: &Database, params: RoleSearchParams) -> Result<impl Serialize> {
+pub async fn paginate(client: &Database, params: &RoleSearchParams) -> Result<impl Serialize> {
     let (data, total) = client
         ._batch((
             client
@@ -152,7 +152,7 @@ pub async fn paginate(client: &Database, params: RoleSearchParams) -> Result<imp
             client.system_role().count(params.to_params()),
         ))
         .await?;
-    Ok(PaginateResponse {
+    Ok(PaginateResult {
         total,
         data: data
             .into_iter()
@@ -223,7 +223,7 @@ pub struct RoleSearchParams {
     keyword: Option<String>,
     status: Option<bool>,
     #[serde(flatten)]
-    paginate: PaginateRequest,
+    paginate: PaginateParams,
 }
 
 impl RoleSearchParams {
@@ -240,6 +240,14 @@ impl RoleSearchParams {
             params.push(system_role::status::equals(status));
         }
         params
+    }
+
+    pub fn new(keyword: Option<String>, status: Option<bool>, paginate: PaginateParams) -> Self {
+        Self {
+            keyword,
+            status,
+            paginate,
+        }
     }
 }
 

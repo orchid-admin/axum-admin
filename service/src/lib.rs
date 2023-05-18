@@ -69,14 +69,14 @@ pub enum ServiceError {
 
 #[serde_as]
 #[derive(Debug, serde::Deserialize)]
-pub struct PaginateRequest {
+pub struct PaginateParams {
     #[serde_as(as = "DisplayFromStr")]
     page: i64,
     #[serde_as(as = "DisplayFromStr")]
     limit: i64,
 }
 
-impl PaginateRequest {
+impl PaginateParams {
     fn get_skip(&self) -> i64 {
         match self.page > 0 {
             true => (self.page - 1) * self.limit,
@@ -86,7 +86,7 @@ impl PaginateRequest {
 }
 
 #[derive(Debug, serde::Serialize)]
-pub struct PaginateResponse<T: serde::Serialize> {
+pub struct PaginateResult<T: serde::Serialize> {
     total: i64,
     data: T,
 }

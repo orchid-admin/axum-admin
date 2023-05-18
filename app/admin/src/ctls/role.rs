@@ -6,13 +6,14 @@ use crate::{
 };
 use axum::{
     body::Empty,
-    extract::{self, Path, Query, State},
+    extract::{self, Path, State},
     response::IntoResponse,
     routing::{delete, get, post, put},
     Extension, Json, Router,
 };
+use axum_extra::extract::Query;
 use serde::Deserialize;
-use service::{sys_menu, sys_role};
+use service::{sys_menu, sys_role, PaginateParams};
 use validator::Validate;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
@@ -28,9 +29,9 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
 /// 列表
 async fn index(
     State(state): State<AppState>,
-    Query(params): Query<sys_role::RoleSearchParams>,
+    Query(params): Query<SearchRequest>,
 ) -> Result<impl IntoResponse> {
-    let data = sys_role::paginate(&state.db, params).await?;
+    let data = sys_role::paginate(&state.db, &params.into()).await?;
     Ok(Json(data))
 }
 
@@ -115,6 +116,18 @@ async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl 
     Ok(Empty::new())
 }
 
+#[derive(Debug, Deserialize)]
+struct SearchRequest {
+    keyword: Option<String>,
+    status: Option<bool>,
+    #[serde(flatten)]
+    paginate: PaginateParams,
+}
+impl From<SearchRequest> for sys_role::RoleSearchParams {
+    fn from(value: SearchRequest) -> Self {
+        Self::new(value.keyword, value.status, value.paginate)
+    }
+}
 #[derive(Debug, Deserialize, Validate)]
 struct CreateRequest {
     name: String,

@@ -1,7 +1,7 @@
 use crate::{
     now_time,
     prisma::{system_dept, system_role, system_user, SortOrder},
-    sys_menu, to_local_string, Database, PaginateRequest, PaginateResponse, Result, ServiceError,
+    sys_menu, to_local_string, Database, PaginateParams, PaginateResult, Result, ServiceError,
 };
 use serde::{Deserialize, Serialize};
 
@@ -128,7 +128,7 @@ pub async fn info(client: &Database, id: i32) -> Result<Info> {
 pub async fn paginate(
     client: &Database,
     params: UserSearchParams,
-) -> Result<PaginateResponse<Vec<Info>>> {
+) -> Result<PaginateResult<Vec<Info>>> {
     let (data, total): (Vec<system_user::Data>, i64) = client
         ._batch((
             client
@@ -140,7 +140,7 @@ pub async fn paginate(
             client.system_user().count(params.to_params()),
         ))
         .await?;
-    Ok(PaginateResponse {
+    Ok(PaginateResult {
         total,
         data: data.into_iter().map(|x| x.into()).collect::<Vec<Info>>(),
     })
@@ -181,7 +181,7 @@ pub struct UserSearchParams {
     role_id: Option<i32>,
     dept_id: Option<i32>,
     #[serde(flatten)]
-    paginate: PaginateRequest,
+    paginate: PaginateParams,
 }
 impl UserSearchParams {
     fn to_params(&self) -> Vec<system_user::WhereParam> {

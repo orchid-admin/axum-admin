@@ -7,9 +7,9 @@ use axum::{
     routing::{delete, get, post, put},
     Extension, Json, Router,
 };
-use axum_extra::extract::Query as ExtractQuery;
+use axum_extra::extract::Query;
 use serde::Deserialize;
-use service::sys_menu::{self, MenuCreateParams, MenuSearchParams, MenuUpdateParams};
+use service::sys_menu;
 use validator::Validate;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
@@ -26,11 +26,10 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
 async fn index(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
-    ExtractQuery(query): ExtractQuery<SearchParamsRequest>,
+    Query(query): Query<SearchRequest>,
 ) -> Result<impl IntoResponse> {
-    println!("{:#?}", query);
     Ok(Json(
-        sys_menu::get_user_menu_trees(&state.db, claims.user_id, query.into()).await?,
+        sys_menu::get_user_menu_trees(&state.db, claims.user_id, &query.into()).await?,
     ))
 }
 
@@ -66,19 +65,19 @@ async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl 
 
 // #[serde_as]
 #[derive(Debug, Deserialize)]
-struct SearchParamsRequest {
+struct SearchRequest {
     keyword: Option<String>,
     menu_types: Option<Vec<i32>>,
 }
 
-impl From<SearchParamsRequest> for MenuSearchParams {
-    fn from(value: SearchParamsRequest) -> Self {
-        Self {
-            keyword: value.keyword,
-            menu_types: value
+impl From<SearchRequest> for sys_menu::MenuSearchParams {
+    fn from(value: SearchRequest) -> Self {
+        Self::new(
+            value.keyword,
+            value
                 .menu_types
                 .map(|x| x.into_iter().map(|y| y.into()).collect()),
-        }
+        )
     }
 }
 
@@ -103,7 +102,7 @@ struct CreateRequest {
     sort: i32,
 }
 
-impl From<CreateRequest> for MenuCreateParams {
+impl From<CreateRequest> for sys_menu::MenuCreateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             parent_id: Some(value.parent_id),
@@ -126,7 +125,7 @@ impl From<CreateRequest> for MenuCreateParams {
     }
 }
 
-impl From<CreateRequest> for MenuUpdateParams {
+impl From<CreateRequest> for sys_menu::MenuUpdateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             parent_id: Some(value.parent_id),
