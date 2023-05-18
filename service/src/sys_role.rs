@@ -4,7 +4,7 @@ use crate::{
     sys_menu, sys_role_menu, to_local_string, DataPower, Database, PaginateParams, PaginateResult,
     Result, ServiceError, ADMIN_ROLE_SIGN,
 };
-use prisma_client_rust::or;
+use prisma_client_rust::{or, ModelQuery, Query, QueryConvert, SetQuery};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -57,46 +57,53 @@ pub async fn update(
                 .update_unchecked(system_role::id::equals(id), params.to_params())
                 .exec()
                 .await?;
+            // let role = client
+            //     .system_role()
+            //     .find_unique(system_role::id::equals(id))
+            //     .exec()
+            //     .await?.unwrap();
 
             let new_client = Arc::new(client);
             let current_menus = sys_role_menu::get_role_menus(&new_client, role.id).await?;
+            // let mut batch_querys: Vec<
+            //     Box<
+            //         dyn SetQuery<
+            //             RawType = system_role_menu::Data,
+            //             ReturnValue = system_role_menu::Data,
+            //         >,
+            //     >,
+            // > = Vec::new();
             if !menus.is_empty() {
                 if !current_menus.is_empty() {
-                    let mut wait_deletes = vec![];
-                    let mut wait_creates = vec![];
-                    for current_menu in current_menus.clone() {
-                        if !menus.contains(&current_menu) {
-                            wait_deletes.push(current_menu.id);
-                        }
-                    }
-                    for menu in menus {
-                        if !current_menus.contains(&menu) {
-                            wait_creates.push(menu.id);
-                        }
-                    }
+                    let wait_deletes = current_menus
+                        .clone()
+                        .into_iter()
+                        .filter(|x| !menus.contains(&x))
+                        .map(|x| system_role_menu::role_id_menu_id(role.id, x.id))
+                        .collect::<Vec<system_role_menu::WhereParam>>();
+
+                    let wait_creates = menus
+                        .into_iter()
+                        .filter(|x| !current_menus.contains(&x))
+                        .map(|x| sys_role_menu::_create(&new_client, role.id, x.id))
+                        .collect::<Vec<system_role_menu::CreateQuery>>();
                     if !wait_deletes.is_empty() {
-                        sys_role_menu::delete_by_role_id_menu_id(
-                            &new_client,
-                            wait_deletes
-                                .into_iter()
-                                .map(|x| system_role_menu::role_id_menu_id(role.id, x))
-                                .collect::<Vec<system_role_menu::WhereParam>>(),
-                        )
-                        .await?;
-                    }
-                    if !wait_creates.is_empty() {
                         // new_client
-                        //     ._batch(
-                        //         wait_creates
-                        //             .into_iter()
-                        //             .map(|x| sys_role_menu::_create(&new_client, role.id, x))
-                        //             .collect::<Vec<system_role_menu::CreateQuery>>(),
-                        //     )
+                        //     ._batch((
+                        //         wait_creates,
+                        //         sys_role_menu::_delete_by_role_id_menu_id(
+                        //             &new_client,
+                        //             wait_deletes,
+                        //         ),
+                        //     ))
                         //     .await?;
+                        sys_role_menu::delete_by_role_id_menu_id(&new_client, wait_deletes).await?;
+                    }
+
+                    if !wait_creates.is_empty() {
+                        // new_client._batch(wait_creates).await?;
                         for wait_create in wait_creates {
-                            sys_role_menu::_create(&new_client, role.id, wait_create)
-                                .exec()
-                                .await?;
+                            wait_create.exec().await?;
                         }
                     }
                 } else {
@@ -138,6 +145,19 @@ pub async fn delete(client: &Database, id: i32) -> Result<system_role::Data> {
         })
         .await?;
     Ok(result)
+}
+
+pub async fn all(client: &Database) -> Result<impl Serialize> {
+    let data = client
+        .system_role()
+        .find_many(vec![system_role::deleted_at::equals(None)])
+        .order_by(system_role::id::order(SortOrder::Desc))
+        .exec()
+        .await?
+        .into_iter()
+        .map(|x| x.into())
+        .collect::<Vec<DataPower<Info>>>();
+    Ok(data)
 }
 
 pub async fn paginate(client: &Database, params: &RoleSearchParams) -> Result<impl Serialize> {
