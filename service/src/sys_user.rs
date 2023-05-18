@@ -3,6 +3,7 @@ use crate::{
     prisma::{system_dept, system_role, system_user, SortOrder},
     sys_menu, to_local_string, Database, PaginateParams, PaginateResult, Result, ServiceError,
 };
+use prisma_client_rust::or;
 use serde::{Deserialize, Serialize};
 
 pub async fn find_user_by_username(client: &Database, username: &str) -> Result<Option<Info>> {
@@ -82,7 +83,7 @@ pub async fn batch_set_dept(
         .await?)
 }
 
-pub async fn create(client: &Database, username: &str, params: UserCreateParams) -> Result<Info> {
+pub async fn create(client: &Database, username: &str, params: CreateParams) -> Result<Info> {
     Ok(client
         .system_user()
         .create_unchecked(username.to_owned(), params.to_params())
@@ -91,7 +92,7 @@ pub async fn create(client: &Database, username: &str, params: UserCreateParams)
         .into())
 }
 
-pub async fn update(client: &Database, id: i32, params: UserCreateParams) -> Result<Info> {
+pub async fn update(client: &Database, id: i32, params: UpdateParams) -> Result<Info> {
     Ok(client
         .system_user()
         .update_unchecked(system_user::id::equals(id), params.to_params())
@@ -173,10 +174,7 @@ pub async fn upsert_system_user(
 
 #[derive(Debug, Deserialize)]
 pub struct UserSearchParams {
-    username: Option<String>,
-    nickname: Option<String>,
-    phone: Option<String>,
-    email: Option<String>,
+    keyword: Option<String>,
     status: Option<bool>,
     role_id: Option<i32>,
     dept_id: Option<i32>,
@@ -186,17 +184,13 @@ pub struct UserSearchParams {
 impl UserSearchParams {
     fn to_params(&self) -> Vec<system_user::WhereParam> {
         let mut params = vec![system_user::deleted_at::equals(None)];
-        if let Some(username) = &self.username {
-            params.push(system_user::username::contains(username.to_string()));
-        }
-        if let Some(nickname) = &self.nickname {
-            params.push(system_user::nickname::contains(nickname.to_string()));
-        }
-        if let Some(phone) = &self.phone {
-            params.push(system_user::phone::contains(phone.to_string()));
-        }
-        if let Some(email) = &self.email {
-            params.push(system_user::email::contains(email.to_string()));
+        if let Some(k) = &self.keyword {
+            params.push(or!(
+                system_user::username::contains(k.to_string()),
+                system_user::nickname::contains(k.to_string()),
+                system_user::phone::contains(k.to_string()),
+                system_user::email::contains(k.to_string())
+            ));
         }
         if let Some(status) = self.status {
             params.push(system_user::status::equals(status));
@@ -208,6 +202,22 @@ impl UserSearchParams {
             params.push(system_user::dept_id::equals(Some(dept_id)));
         }
         params
+    }
+
+    pub fn new(
+        keyword: Option<String>,
+        status: Option<bool>,
+        role_id: Option<i32>,
+        dept_id: Option<i32>,
+        paginate: PaginateParams,
+    ) -> Self {
+        Self {
+            keyword,
+            status,
+            role_id,
+            dept_id,
+            paginate,
+        }
     }
 }
 
@@ -274,7 +284,7 @@ pub struct UserPermission {
     pub btn_auths: Vec<String>,
 }
 
-system_user::partial_unchecked!(UserCreateParams {
+system_user::partial_unchecked!(CreateParams {
     nickname
     role_id
     dept_id
@@ -288,7 +298,7 @@ system_user::partial_unchecked!(UserCreateParams {
     status
 });
 
-system_user::partial_unchecked!(UserUpdateParams {
+system_user::partial_unchecked!(UpdateParams {
     username
     nickname
     role_id

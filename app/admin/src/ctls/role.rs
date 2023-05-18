@@ -19,11 +19,18 @@ use validator::Validate;
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
     Router::new()
         .route("/role", get(index))
+        .route("/role/all", get(all))
         .route("/role/:id", get(info))
         .route("/role", post(create))
         .route("/role/:id", put(update))
         .route("/role/:id", delete(del))
         .with_state(state)
+}
+
+/// 获取所有
+async fn all(State(state): State<AppState>) -> Result<impl IntoResponse> {
+    let data = sys_role::all(&state.db).await?;
+    Ok(Json(data))
 }
 
 /// 列表

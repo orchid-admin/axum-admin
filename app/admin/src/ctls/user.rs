@@ -8,10 +8,7 @@ use axum::{
     Extension, Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use service::{
-    sys_menu::{self, MenuType},
-    sys_user::{self, UserCreateParams, UserUpdateParams},
-};
+use service::{sys_menu, sys_user, PaginateParams};
 use validator::Validate;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
@@ -75,10 +72,10 @@ async fn get_menu(
             &sys_menu::MenuSearchParams::new(
                 None,
                 Some(vec![
-                    MenuType::Menu,
-                    MenuType::Redirect,
-                    MenuType::Iframe,
-                    MenuType::Link,
+                    sys_menu::MenuType::Menu,
+                    sys_menu::MenuType::Redirect,
+                    sys_menu::MenuType::Iframe,
+                    sys_menu::MenuType::Link,
                 ]),
             ),
         )
@@ -103,6 +100,26 @@ async fn get_user_permission(
         btn_auths: user_permission.btn_auths,
     }))
 }
+#[derive(Debug, Deserialize)]
+struct SearchRequest {
+    keyword: Option<String>,
+    role_id: Option<i32>,
+    dept_id: Option<i32>,
+    status: Option<bool>,
+    #[serde(flatten)]
+    paginate: PaginateParams,
+}
+impl From<SearchRequest> for sys_user::UserSearchParams {
+    fn from(value: SearchRequest) -> Self {
+        Self::new(
+            value.keyword,
+            value.status,
+            value.role_id,
+            value.dept_id,
+            value.paginate,
+        )
+    }
+}
 
 #[derive(Debug, Deserialize, Validate)]
 struct CreateRequest {
@@ -119,7 +136,7 @@ struct CreateRequest {
     status: bool,
 }
 
-impl From<CreateRequest> for UserCreateParams {
+impl From<CreateRequest> for sys_user::CreateParams {
     fn from(value: CreateRequest) -> Self {
         let mut data = Self {
             nickname: Some(value.nickname),
@@ -152,7 +169,7 @@ impl From<CreateRequest> for UserCreateParams {
     }
 }
 
-impl From<CreateRequest> for UserUpdateParams {
+impl From<CreateRequest> for sys_user::UpdateParams {
     fn from(value: CreateRequest) -> Self {
         let mut data = Self {
             username: Some(value.username),
