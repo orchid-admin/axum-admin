@@ -2,11 +2,12 @@ use super::Claims;
 use crate::{error::Result, extracts::ValidatorJson, password, state::AppState};
 use axum::{
     body::Empty,
-    extract::{Path, Query, State},
+    extract::{Path, State},
     response::IntoResponse,
     routing::{delete, get, post, put},
     Extension, Json, Router,
 };
+use axum_extra::extract::Query;
 use serde::{Deserialize, Serialize};
 use service::{sys_menu, sys_user, PaginateParams};
 use validator::Validate;
@@ -25,9 +26,9 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
 /// 列表
 async fn index(
     State(state): State<AppState>,
-    Query(params): Query<sys_user::UserSearchParams>,
+    Query(params): Query<SearchRequest>,
 ) -> Result<impl IntoResponse> {
-    Ok(Json(sys_user::paginate(&state.db, params).await?))
+    Ok(Json(sys_user::paginate(&state.db, params.into()).await?))
 }
 
 /// 详情
@@ -174,12 +175,8 @@ impl From<CreateRequest> for sys_user::UpdateParams {
         let mut data = Self {
             username: Some(value.username),
             nickname: Some(value.nickname),
-            role_id: value
-                .role_id
-                .and_then(|x| if x <= 0 { None } else { Some(Some(x)) }),
-            dept_id: value
-                .dept_id
-                .and_then(|x| if x <= 0 { None } else { Some(Some(x)) }),
+            role_id: value.role_id.map(|x| if x <= 0 { None } else { Some(x) }),
+            dept_id: value.dept_id.map(|x| if x <= 0 { None } else { Some(x) }),
             phone: value.phone,
             email: value.email,
             sex: Some(value.sex),

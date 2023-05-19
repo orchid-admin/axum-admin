@@ -34,8 +34,7 @@ async fn login_by_account(
     let mut captcha = state.captcha.lock().await;
     match captcha.get_item(&CaptchaUseType::AdminLogin, &params.key) {
         Some(captcha_item) => {
-            let captcha_item_text = captcha_item.get_text().to_lowercase();
-            if !captcha_item.check() || !captcha_item_text.eq(&params.code.to_lowercase()) {
+            if !captcha_item.verify_lowercase(&params.code) {
                 return Err(ErrorCode::Other("验证码错误"));
             }
             captcha.remove_item(&captcha_item);
@@ -121,7 +120,6 @@ async fn get_captcha(State(state): State<AppState>) -> Result<impl IntoResponse>
     }))
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize, Validate)]
 struct LoginByAccountRequest {
     /// 用户名
@@ -137,7 +135,7 @@ struct LoginByAccountRequest {
     #[validate(length(equal = 5, message = "输入的验证码长度错误"))]
     code: String,
 }
-#[allow(dead_code)]
+
 #[derive(Debug, Serialize, Deserialize, Validate)]
 struct LoginByMobileRequest {
     /// 手机号码

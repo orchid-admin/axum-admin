@@ -1,7 +1,8 @@
 use crate::{
     now_time,
     prisma::{system_dept, system_role, system_user, SortOrder},
-    sys_menu, to_local_string, Database, PaginateParams, PaginateResult, Result, ServiceError,
+    sys_dept, sys_menu, sys_role, to_local_string, DataPower, Database, PaginateParams,
+    PaginateResult, Result, ServiceError, ADMIN_USERNAME,
 };
 use prisma_client_rust::or;
 use serde::{Deserialize, Serialize};
@@ -129,21 +130,32 @@ pub async fn info(client: &Database, id: i32) -> Result<Info> {
 pub async fn paginate(
     client: &Database,
     params: UserSearchParams,
-) -> Result<PaginateResult<Vec<Info>>> {
+) -> Result<PaginateResult<Vec<DataPower<Info>>>> {
+    let mut query_params = params.to_params();
+    if let Some(dept_id) = params.dept_id {
+        query_params.push(system_user::dept_id::in_vec(
+            sys_dept::get_dept_children_ids(client, dept_id).await?,
+        ));
+    }
     let (data, total): (Vec<system_user::Data>, i64) = client
         ._batch((
             client
                 .system_user()
-                .find_many(params.to_params())
+                .find_many(query_params.clone())
+                .with(system_user::role::fetch())
+                .with(system_user::dept::fetch())
                 .skip(params.paginate.get_skip())
                 .take(params.paginate.limit)
                 .order_by(system_user::id::order(SortOrder::Desc)),
-            client.system_user().count(params.to_params()),
+            client.system_user().count(query_params),
         ))
         .await?;
     Ok(PaginateResult {
         total,
-        data: data.into_iter().map(|x| x.into()).collect::<Vec<Info>>(),
+        data: data
+            .into_iter()
+            .map(|x| x.into())
+            .collect::<Vec<DataPower<Info>>>(),
     })
 }
 
@@ -172,6 +184,16 @@ pub async fn upsert_system_user(
         .into())
 }
 
+impl From<system_user::Data> for DataPower<Info> {
+    fn from(value: system_user::Data) -> Self {
+        Self {
+            _can_edit: value.username.ne(ADMIN_USERNAME),
+            _can_delete: value.username.ne(ADMIN_USERNAME),
+            data: value.into(),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct UserSearchParams {
     keyword: Option<String>,
@@ -197,9 +219,6 @@ impl UserSearchParams {
         }
         if let Some(role_id) = self.role_id {
             params.push(system_user::role_id::equals(Some(role_id)));
-        }
-        if let Some(dept_id) = self.dept_id {
-            params.push(system_user::dept_id::equals(Some(dept_id)));
         }
         params
     }
@@ -239,6 +258,8 @@ pub struct Info {
     expire_time: Option<String>,
     status: bool,
     created_at: String,
+    dept: Option<sys_dept::Info>,
+    role: Option<sys_role::Info>,
 }
 
 impl Info {
@@ -258,6 +279,14 @@ impl Info {
 
 impl From<system_user::Data> for Info {
     fn from(value: system_user::Data) -> Self {
+        let dept = match value.dept() {
+            Ok(dept) => dept.map(|x| x.clone().into()),
+            Err(_) => None,
+        };
+        let role = match value.role() {
+            Ok(role) => role.map(|x| x.clone().into()),
+            Err(_) => None,
+        };
         Self {
             id: value.id,
             username: value.username,
@@ -273,6 +302,8 @@ impl From<system_user::Data> for Info {
             expire_time: value.expire_time.map(to_local_string),
             status: value.status,
             created_at: to_local_string(value.created_at),
+            dept,
+            role,
         }
     }
 }

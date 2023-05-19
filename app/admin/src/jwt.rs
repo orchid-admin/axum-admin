@@ -21,7 +21,7 @@ impl Default for Jwt {
         }
     }
 }
-#[allow(dead_code)]
+
 impl Jwt {
     /// new
     pub fn new(secret: &str, interval: u64, valid_seconds: i64) -> Self {
@@ -55,15 +55,6 @@ impl Jwt {
             true => Ok(token),
             false => Err(ErrorCode::InternalServer("生成TOKEN失败")),
         }
-    }
-
-    /// get items
-    pub fn get_items(&self, use_type: UseType) -> Vec<JwtItem> {
-        self.data
-            .clone()
-            .into_iter()
-            .filter(|x| x.use_type.eq(&use_type))
-            .collect::<Vec<JwtItem>>()
     }
 
     /// get item by key
@@ -118,7 +109,7 @@ impl Jwt {
     }
 }
 
-#[allow(dead_code)]
+#[allow(unused)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UseType {
     Admin,
