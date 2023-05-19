@@ -17,7 +17,7 @@ impl Default for Captcha {
         }
     }
 }
-#[allow(dead_code)]
+
 impl Captcha {
     /// new with interval
     pub fn new(interval: u64, valid_seconds: i64) -> Self {
@@ -62,31 +62,12 @@ impl Captcha {
         }
     }
 
-    /// get items by use_type
-    pub fn get_items(&self, use_type: UseType) -> Vec<CaptchaItem> {
-        self.data
-            .clone()
-            .into_iter()
-            .filter(|x| x.use_type.eq(&use_type))
-            .collect::<Vec<CaptchaItem>>()
-    }
-
     /// get item by key
     pub fn get_item(&self, use_type: &UseType, key: &str) -> Option<CaptchaItem> {
         self.data
             .clone()
             .into_iter()
             .find(|x| x.key.eq(&key) && x.use_type.eq(use_type))
-    }
-
-    /// remvoe captcha by key
-    pub fn remove_item_by_key(&mut self, use_type: UseType, key: &str) {
-        self.data = self
-            .data
-            .clone()
-            .into_iter()
-            .filter(|x| !x.key.eq(&key) && !x.use_type.eq(&use_type))
-            .collect::<Vec<CaptchaItem>>();
     }
 
     /// remove valid captcha cache
@@ -131,7 +112,6 @@ impl Captcha {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UseType {
     AdminLogin,
@@ -145,14 +125,20 @@ pub struct CaptchaItem {
     exp: i128,
 }
 
-#[allow(dead_code)]
+#[allow(unused)]
 impl CaptchaItem {
     /// check captcha is can use
     pub fn check(&self) -> bool {
         self.exp > OffsetDateTime::now_utc().unix_timestamp_nanos()
     }
 
-    /// verify text
+    /// verify text by lowercase
+    pub fn verify_lowercase(&self, text: &str) -> bool {
+        let origin_text = self.text.to_lowercase();
+        let input_text = text.to_lowercase();
+        self.check() && origin_text.eq(&input_text)
+    }
+
     pub fn verify(&self, text: &str) -> bool {
         self.check() && self.text.eq(text)
     }

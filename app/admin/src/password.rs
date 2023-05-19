@@ -7,7 +7,6 @@ use password_hash::{
 use crate::error::{ErrorCode, Result};
 pub struct Password;
 
-#[allow(dead_code)]
 impl Password {
     /// new Params
     fn build_params() -> Result<Params> {

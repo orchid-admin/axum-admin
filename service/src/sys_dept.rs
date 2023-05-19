@@ -58,14 +58,9 @@ pub async fn delete(client: &Database, id: i32) -> Result<system_dept::Data> {
     Ok(res)
 }
 
-pub async fn get_user_dept_ids(
-    client: &Database,
-    user_id: i32,
-    parent_dept_id: i32,
-) -> Result<Vec<i32>> {
-    let infos = get_user_dept_trees(
+pub async fn get_dept_children_ids(client: &Database, parent_dept_id: i32) -> Result<Vec<i32>> {
+    let infos = get_dept_tree(
         client,
-        user_id,
         &DeptSearchParams {
             keyword: None,
             status: None,
@@ -109,6 +104,12 @@ pub async fn info(client: &Database, id: i32) -> Result<Info> {
         .await?
         .ok_or(ServiceError::DataNotFound)?
         .into())
+}
+
+async fn get_dept_tree(client: &Database, params: &DeptSearchParams) -> Result<Vec<Dept>> {
+    let infos = get_depts(client, params).await?;
+    let parent_id = get_tree_start_parent_id::<Info>(&infos);
+    Ok(vec_to_tree_into::<Dept, Info>(&parent_id, &infos))
 }
 
 async fn get_depts(client: &Database, params: &DeptSearchParams) -> Result<Vec<Info>> {

@@ -5,6 +5,7 @@ use serde_with::{serde_as, DisplayFromStr};
 
 #[allow(unused, warnings)]
 mod prisma;
+
 pub mod sys_dept;
 pub mod sys_menu;
 pub mod sys_role;
@@ -31,11 +32,10 @@ pub async fn new_client() -> Result<Database> {
     Ok(database)
 }
 
-#[allow(dead_code)]
 pub fn now_time() -> DateTime<FixedOffset> {
     Utc::now().with_timezone(&FixedOffset::east_opt(0).unwrap())
 }
-#[allow(dead_code)]
+
 fn to_local_string(datetime: DateTime<FixedOffset>) -> String {
     datetime
         .with_timezone(&FixedOffset::east_opt(8 * 3600).unwrap())
@@ -43,7 +43,6 @@ fn to_local_string(datetime: DateTime<FixedOffset>) -> String {
         .to_string()
 }
 
-#[allow(dead_code)]
 pub fn parse_string(datetime: String) -> DateTime<FixedOffset> {
     let time = NaiveTime::from_hms_opt(00, 00, 00).unwrap();
 
