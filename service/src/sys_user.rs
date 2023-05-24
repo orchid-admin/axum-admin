@@ -2,7 +2,7 @@ use crate::{
     now_time,
     prisma::{system_dept, system_role, system_user, SortOrder},
     sys_dept, sys_menu, sys_role, to_local_string, DataPower, Database, PaginateParams,
-    PaginateResult, Result, ServiceError, ADMIN_USERNAME,
+    PaginateResult, Result, ServiceError, ADMIN_ROLE_SIGN, ADMIN_USERNAME,
 };
 use prisma_client_rust::or;
 use serde::{Deserialize, Serialize};
@@ -50,6 +50,38 @@ pub async fn get_current_user_info(client: &Database, id: i32) -> Result<UserPer
         btn_auths,
     };
     Ok(permission)
+}
+
+pub async fn check_user_permission(
+    client: &Database,
+    user_id: i32,
+    method: &str,
+    path: &str,
+) -> Result<bool> {
+    let user = client
+        .system_user()
+        .find_first(vec![system_user::id::equals(user_id)])
+        .with(system_user::role::fetch())
+        .exec()
+        .await?
+        .ok_or(ServiceError::DataNotFound)?;
+    if user.username.eq(ADMIN_USERNAME) {
+        return Ok(true);
+    }
+    let role = user.role().map(|x| x.cloned()).unwrap_or_default();
+    if let Some(role) = role.clone() {
+        if role.sign.eq(ADMIN_ROLE_SIGN) {
+            return Ok(true);
+        }
+    }
+    let auths = sys_menu::filter_menu_types(
+        Some(vec![sys_menu::MenuType::Api]),
+        sys_menu::get_menu_by_role(client, role.clone()).await?,
+    )
+    .into_iter()
+    .filter(|x| x.api_method.to_uppercase().eq(method) && x.api_url.eq(path))
+    .count();
+    Ok(auths > 0)
 }
 
 pub async fn get_users_by_dept_id(client: &Database, dept_id: i32) -> Result<Vec<Info>> {

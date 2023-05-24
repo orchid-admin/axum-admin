@@ -94,10 +94,6 @@ async fn get_user_permission(
         username: user_permission.user.get_username(),
         photo: None,
         time: 0,
-        roles: match user_permission.role {
-            Some(role) => vec![role.sign],
-            None => vec!["admin".to_owned()],
-        },
         btn_auths: user_permission.btn_auths,
     }))
 }
@@ -205,6 +201,5 @@ struct UserPermission {
     username: String,
     photo: Option<String>,
     time: i64,
-    roles: Vec<String>,
     btn_auths: Vec<String>,
 }
