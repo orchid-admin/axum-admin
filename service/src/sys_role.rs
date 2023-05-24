@@ -80,12 +80,20 @@ pub async fn update(
                         .clone()
                         .into_iter()
                         .filter(|x| !menus.contains(x))
-                        .map(|x| system_role_menu::role_id_menu_id(role.id, x.id))
-                        .collect::<Vec<system_role_menu::WhereParam>>(),
+                        .map(|x| (role.id, x.id))
+                        .collect::<Vec<(i32, i32)>>(),
                     true => vec![],
                 };
+
                 if !wait_deletes.is_empty() {
-                    sys_role_menu::delete_by_role_id_menu_id(&new_client, wait_deletes).await?;
+                    for wait_delete in wait_deletes {
+                        sys_role_menu::delete_by_role_id_menu_id(
+                            &new_client,
+                            wait_delete.0,
+                            wait_delete.1,
+                        )
+                        .await?;
+                    }
                 }
 
                 if !wait_creates.is_empty() {

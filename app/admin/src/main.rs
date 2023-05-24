@@ -9,7 +9,6 @@ mod ctls;
 mod error;
 mod extracts;
 mod jwt;
-mod middleware;
 mod password;
 mod router;
 mod state;
