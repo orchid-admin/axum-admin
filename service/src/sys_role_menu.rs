@@ -25,10 +25,7 @@ pub async fn get_role_menus(client: &Database, role_id: i32) -> Result<Vec<sys_m
 pub async fn delete_by_role_id(client: &Database, role_id: i32) -> Result<i64> {
     Ok(client
         .system_role_menu()
-        .update_many(
-            vec![system_role_menu::role_id::equals(role_id)],
-            vec![system_role_menu::deleted_at::set(Some(now_time()))],
-        )
+        .delete_many(vec![system_role_menu::role_id::equals(role_id)])
         .exec()
         .await?)
 }
@@ -40,10 +37,7 @@ pub async fn delete_by_role_id_menu_id(
 ) -> Result<system_role_menu::Data> {
     Ok(client
         .system_role_menu()
-        .update(
-            system_role_menu::role_id_menu_id(role_id, menu_id),
-            vec![system_role_menu::deleted_at::set(Some(now_time()))],
-        )
+        .delete(system_role_menu::role_id_menu_id(role_id, menu_id))
         .exec()
         .await?)
 }
