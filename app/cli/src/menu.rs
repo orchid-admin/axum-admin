@@ -14,7 +14,7 @@ pub async fn init() -> service::Result<()> {
     std::io::Read::read_to_end(&mut file, &mut contents).unwrap();
     let content = unsafe { String::from_utf8_unchecked(contents) };
     let data: Data = serde_json::from_str(&content).unwrap();
-    let client = service::new_client().await?;
+    let client = service::Database::new(service::DatabaseConfig::default()).await?;
 
     for info in data.data.into_iter() {
         let res = insert(&client, None, info).await;

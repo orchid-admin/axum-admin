@@ -1,10 +1,5 @@
-use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Json},
-};
+use axum::{http::StatusCode, response::IntoResponse};
 use custom_attrs::CustomAttrs;
-use serde::Serialize;
-use tracing::warn;
 
 pub type Result<T> = std::result::Result<T, ErrorCode>;
 
@@ -14,9 +9,6 @@ pub type Result<T> = std::result::Result<T, ErrorCode>;
 pub enum ErrorCode {
     /// 内部服务错误
     #[attr(status_code = StatusCode::INTERNAL_SERVER_ERROR,message = "服务异常")]
-    InternalServer(&'static str),
-    /// 内部服务错误
-    #[attr(status_code = StatusCode::INTERNAL_SERVER_ERROR,message = "服务异常")]
     InternalServerString(String),
     /// TOKEN无效
     #[attr(status_code = StatusCode::UNAUTHORIZED,message = "无效TOKEN")]
@@ -24,12 +16,6 @@ pub enum ErrorCode {
     /// 服务启动失败
     #[attr(status_code = StatusCode::INTERNAL_SERVER_ERROR, message = "服务启动失败")]
     ServerSteup,
-    /// 请求参数错误
-    #[attr(status_code = StatusCode::BAD_REQUEST,message = "请求参数错误")]
-    RequestParams(String),
-    /// 请求参数验证失败
-    #[attr(status_code = StatusCode::BAD_REQUEST)]
-    ParamsValidator(String),
     /// 其他错误提示
     #[attr(status_code = StatusCode::BAD_REQUEST)]
     Other(&'static str),
@@ -51,6 +37,36 @@ impl From<service::ServiceError> for ErrorCode {
     }
 }
 
+impl From<utils::password::ErrorType> for ErrorCode {
+    fn from(value: utils::password::ErrorType) -> Self {
+        let msg = match value {
+            utils::password::ErrorType::Argon2(e) => e.to_string(),
+            utils::password::ErrorType::Hash(e) => e.to_string(),
+        };
+        Self::InternalServerString(format!("生成密码错误:{}", msg))
+    }
+}
+
+impl From<utils::jwt::ErrorType> for ErrorCode {
+    fn from(value: utils::jwt::ErrorType) -> Self {
+        let msg = match value {
+            utils::jwt::ErrorType::JsonwebToken(e) => e.to_string(),
+            _ => String::new(),
+        };
+        Self::InternalServerString(format!("生成TOKEN失败:{}", msg))
+    }
+}
+
+impl From<utils::captcha::ErrorType> for ErrorCode {
+    fn from(value: utils::captcha::ErrorType) -> Self {
+        let msg = match value {
+            utils::captcha::ErrorType::JsonwebToken(e) => e.to_string(),
+            _ => String::new(),
+        };
+        Self::InternalServerString(format!("生成图片验证码失败:{}", msg))
+    }
+}
+
 impl From<axum::http::StatusCode> for ErrorCode {
     fn from(value: axum::http::StatusCode) -> Self {
         Self::InternalServerString(value.to_string())
@@ -59,32 +75,13 @@ impl From<axum::http::StatusCode> for ErrorCode {
 
 impl IntoResponse for ErrorCode {
     fn into_response(self) -> axum::response::Response {
-        (
-            self.get_status_code(),
-            Json(ErrorResponse {
-                code: 1,
-                msg: match self {
-                    Self::InternalServer(err) => {
-                        warn!(err);
-                        self.get_message()
-                    }
-                    Self::ParamsValidator(ref err_str) => Some(err_str),
-                    Self::RequestParams(ref err_str) => Some(err_str), // todo
-                    Self::Other(err_str) => Some(err_str),
-                    Self::OtherString(ref err_str) => Some(err_str),
-                    Self::InternalServerString(ref err_str) => Some(err_str),
-                    _ => self.get_message(),
-                },
-            }),
-        )
-            .into_response()
+        let response = match self {
+            Self::Other(err_str) => Some(err_str),
+            Self::OtherString(ref err_str) => Some(err_str).map(|x| x.as_str()),
+            Self::InternalServerString(ref err_str) => Some(err_str).map(|x| x.as_str()),
+            _ => self.get_message(),
+        }
+        .map(|x| x.to_string());
+        (self.get_status_code(), response.unwrap_or_default()).into_response()
     }
-}
-
-#[derive(Debug, Serialize)]
-pub struct ErrorResponse<'a> {
-    #[serde(rename = "errcode")]
-    code: i64,
-    #[serde(rename = "errmsg")]
-    msg: Option<&'a str>,
 }

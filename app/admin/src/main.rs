@@ -4,12 +4,8 @@ use std::net::SocketAddr;
 use time::{macros::format_description, UtcOffset};
 use tracing_subscriber::{fmt::time::OffsetTime, prelude::*, EnvFilter};
 
-mod captcha;
 mod ctls;
 mod error;
-mod extracts;
-mod jwt;
-mod password;
 mod router;
 mod state;
 
@@ -30,9 +26,9 @@ async fn main() -> Result<()> {
         .with(env_filter)
         .init();
 
-    let captcha = captcha::Captcha::new(2, 10 * 60);
-    let jwt = jwt::Jwt::new("secret", 2, 7 * 24 * 60);
-    let prisma_client = service::new_client().await?;
+    let captcha = utils::captcha::Captcha::new(2, 10 * 60);
+    let jwt = utils::jwt::Jwt::new("secret", 2, 7 * 24 * 60);
+    let prisma_client = service::Database::new(service::DatabaseConfig::default()).await?;
     let state = state::State::build(captcha, jwt, prisma_client);
 
     let app = router::init(state).await.layer(

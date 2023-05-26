@@ -6,6 +6,7 @@ members = [
     "app/merchant",
     "prisma/prisma_cli",
     "service",
+    "utils",
 ]
 default-members = ["app/cli"]
 resolver = "2"

@@ -1,14 +1,17 @@
 use crate::{
-    get_tree_start_parent_id, now_time,
-    prisma::{system_menu, system_role, SortOrder},
-    sys_role_menu, sys_user, to_local_string, vec_to_tree_into, Database, Result, ServiceError,
-    Tree, TreeInfo, ADMIN_ROLE_SIGN,
+    prisma::{system_menu, SortOrder},
+    sys_role, sys_role_menu, sys_user, Database, Result, ServiceError,
 };
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
+use utils::{
+    datetime::{now_time, to_local_string},
+    tree::{get_tree_start_parent_id, vec_to_tree_into, Tree, TreeInfo},
+};
 
-pub async fn create(client: &Database, title: &str, params: MenuCreateParams) -> Result<Info> {
-    Ok(client
+pub async fn create(db: &Database, title: &str, params: MenuCreateParams) -> Result<Info> {
+    Ok(db
+        .client
         .system_menu()
         .create_unchecked(title.to_owned(), params.to_params())
         .exec()
@@ -16,8 +19,9 @@ pub async fn create(client: &Database, title: &str, params: MenuCreateParams) ->
         .into())
 }
 
-pub async fn update(client: &Database, id: i32, params: MenuUpdateParams) -> Result<Info> {
-    Ok(client
+pub async fn update(db: &Database, id: i32, params: MenuUpdateParams) -> Result<Info> {
+    Ok(db
+        .client
         .system_menu()
         .update_unchecked(system_menu::id::equals(id), params.to_params())
         .exec()
@@ -25,8 +29,9 @@ pub async fn update(client: &Database, id: i32, params: MenuUpdateParams) -> Res
         .into())
 }
 
-pub async fn delete(client: &Database, id: i32) -> Result<Info> {
-    Ok(client
+pub async fn delete(db: &Database, id: i32) -> Result<Info> {
+    Ok(db
+        .client
         .system_menu()
         .update(
             system_menu::id::equals(id),
@@ -37,8 +42,9 @@ pub async fn delete(client: &Database, id: i32) -> Result<Info> {
         .into())
 }
 
-pub async fn info(client: &Database, id: i32) -> Result<Info> {
-    Ok(client
+pub async fn info(db: &Database, id: i32) -> Result<Info> {
+    Ok(db
+        .client
         .system_menu()
         .find_first(vec![
             system_menu::id::equals(id),
@@ -51,33 +57,33 @@ pub async fn info(client: &Database, id: i32) -> Result<Info> {
 }
 
 pub async fn get_user_menu_trees(
-    client: &Database,
+    db: &Database,
     user_id: i32,
     query_params: &MenuSearchParams,
 ) -> Result<Vec<Menu>> {
-    let infos = get_user_menus(client, user_id, query_params).await?;
+    let infos = get_user_menus(db, user_id, query_params).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
     Ok(vec_to_tree_into::<Menu, Info>(&parent_id, &infos))
 }
 
 pub async fn get_user_slide_menu_trees(
-    client: &Database,
+    db: &Database,
     user_id: i32,
     query_params: &MenuSearchParams,
 ) -> Result<Vec<UserMenu>> {
-    let infos = get_user_menus(client, user_id, query_params).await?;
+    let infos = get_user_menus(db, user_id, query_params).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
     Ok(vec_to_tree_into::<UserMenu, Info>(&parent_id, &infos))
 }
 
 pub async fn get_user_menus_by_menu_ids(
-    client: &Database,
+    db: &Database,
     user_id: i32,
     menu_ids: Vec<i32>,
 ) -> Result<Vec<Info>> {
     Ok(match menu_ids.is_empty() {
         true => vec![],
-        false => get_menus_by_user_id(client, user_id)
+        false => get_menus_by_user_id(db, user_id)
             .await?
             .into_iter()
             .filter(|x| menu_ids.clone().into_iter().any(|z| x.id.eq(&z)))
@@ -85,7 +91,7 @@ pub async fn get_user_menus_by_menu_ids(
     })
 }
 
-pub(crate) fn filter_menu_types(menu_type: Option<Vec<MenuType>>, x: Vec<Info>) -> Vec<Info> {
+pub fn filter_menu_types(menu_type: Option<Vec<MenuType>>, x: Vec<Info>) -> Vec<Info> {
     match menu_type {
         Some(t) => x
             .into_iter()
@@ -94,25 +100,25 @@ pub(crate) fn filter_menu_types(menu_type: Option<Vec<MenuType>>, x: Vec<Info>) 
         None => x,
     }
 }
-pub(crate) async fn get_menu_by_role(
-    client: &Database,
-    role: Option<system_role::Data>,
-) -> Result<Vec<Info>> {
+pub async fn get_menu_by_role(db: &Database, role: Option<sys_role::Info>) -> Result<Vec<Info>> {
     Ok(match role {
-        Some(role) => match role.sign.as_str() {
-            ADMIN_ROLE_SIGN => get_menus(client).await?,
-            _ => sys_role_menu::get_role_menus(client, role.id).await?,
-        },
+        Some(role) => {
+            if role.get_sign().as_str().eq(&db.config.admin_role_sign) {
+                get_menus(db).await?
+            } else {
+                sys_role_menu::get_role_menus(db, role.get_id()).await?
+            }
+        }
         None => vec![],
     })
 }
 
 async fn get_user_menus(
-    client: &Database,
+    db: &Database,
     user_id: i32,
     query_params: &MenuSearchParams,
 ) -> Result<Vec<Info>> {
-    get_menus_by_user_id(client, user_id)
+    get_menus_by_user_id(db, user_id)
         .await
         .map(|x| filter_menu_by_search(query_params, x))
 }
@@ -151,8 +157,9 @@ fn filter_menu_by_search(query_params: &MenuSearchParams, x: Vec<Info>) -> Vec<I
     }
 }
 
-async fn get_menus(client: &Database) -> Result<Vec<Info>> {
-    Ok(client
+async fn get_menus(db: &Database) -> Result<Vec<Info>> {
+    Ok(db
+        .client
         .system_menu()
         .find_many(vec![system_menu::deleted_at::equals(None)])
         .order_by(system_menu::sort::order(SortOrder::Asc))
@@ -164,9 +171,9 @@ async fn get_menus(client: &Database) -> Result<Vec<Info>> {
         .collect::<Vec<Info>>())
 }
 
-async fn get_menus_by_user_id(client: &Database, user_id: i32) -> Result<Vec<Info>> {
-    let user_permission = sys_user::get_current_user_info(client, user_id).await?;
-    get_menu_by_role(client, user_permission.role).await
+async fn get_menus_by_user_id(db: &Database, user_id: i32) -> Result<Vec<Info>> {
+    let user_permission = sys_user::get_current_user_info(db, user_id).await?;
+    get_menu_by_role(db, user_permission.get_role()).await
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize_repr, Deserialize_repr)]

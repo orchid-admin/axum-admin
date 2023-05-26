@@ -1,15 +1,16 @@
 use crate::{
-    now_time,
     prisma::{system_role, system_role_menu, SortOrder},
-    sys_menu, sys_role_menu, to_local_string, DataPower, Database, PaginateParams, PaginateResult,
-    Result, ServiceError, ADMIN_ROLE_SIGN,
+    sys_menu, sys_role_menu, DataPower, Database, Result, ServiceError,
 };
 use prisma_client_rust::or;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use utils::{
+    datetime::{now_time, to_local_string},
+    paginate::{PaginateParams, PaginateResult},
+};
 
 pub async fn create(
-    client: &Database,
+    db: &Database,
     name: &str,
     sign: &str,
     params: RoleCreateParams,
@@ -17,7 +18,8 @@ pub async fn create(
 ) -> Result<system_role::Data> {
     // todo wait PCR 0.7
     // link: https://github.com/Brendonovich/prisma-client-rust/issues/44
-    let result = client
+    let result = db
+        .client
         ._transaction()
         .run::<ServiceError, _, _, _>(|client| async move {
             let role = client
@@ -47,12 +49,13 @@ pub async fn create(
 }
 
 pub async fn update(
-    client: &Database,
+    db: &Database,
     id: i32,
     params: RoleUpdateParams,
     menus: Vec<sys_menu::Info>,
 ) -> Result<system_role::Data> {
-    let result = client
+    let result = db
+        .client
         ._transaction()
         .run::<ServiceError, _, _, _>(|client| async move {
             let role = client
@@ -61,8 +64,7 @@ pub async fn update(
                 .exec()
                 .await?;
 
-            let new_client = Arc::new(client);
-            let current_menus = sys_role_menu::get_role_menus(&new_client, role.id).await?;
+            let current_menus = sys_role_menu::get_role_menus(db, role.id).await?;
 
             if !menus.is_empty() {
                 let wait_creates = menus
@@ -87,24 +89,20 @@ pub async fn update(
 
                 if !wait_deletes.is_empty() {
                     for wait_delete in wait_deletes {
-                        sys_role_menu::delete_by_role_id_menu_id(
-                            &new_client,
-                            wait_delete.0,
-                            wait_delete.1,
-                        )
-                        .await?;
+                        sys_role_menu::delete_by_role_id_menu_id(db, wait_delete.0, wait_delete.1)
+                            .await?;
                     }
                 }
 
                 if !wait_creates.is_empty() {
-                    new_client
+                    client
                         .system_role_menu()
                         .create_many(wait_creates)
                         .exec()
                         .await?;
                 }
             } else if !current_menus.is_empty() {
-                sys_role_menu::delete_by_role_id(&new_client, id).await?;
+                sys_role_menu::delete_by_role_id(db, id).await?;
             }
 
             Ok(role)
@@ -113,8 +111,9 @@ pub async fn update(
     Ok(result)
 }
 
-pub async fn delete(client: &Database, id: i32) -> Result<system_role::Data> {
-    let result = client
+pub async fn delete(db: &Database, id: i32) -> Result<system_role::Data> {
+    let result = db
+        .client
         ._transaction()
         .run::<ServiceError, _, _, _>(|client| async move {
             let info = client
@@ -125,49 +124,60 @@ pub async fn delete(client: &Database, id: i32) -> Result<system_role::Data> {
                 )
                 .exec()
                 .await?;
-            sys_role_menu::delete_by_role_id(&Arc::new(client), id).await?;
+            sys_role_menu::delete_by_role_id(db, id).await?;
             Ok(info)
         })
         .await?;
     Ok(result)
 }
 
-pub async fn all(client: &Database) -> Result<impl Serialize> {
-    let data = client
+pub async fn all(db: &Database) -> Result<impl Serialize> {
+    let data = db
+        .client
         .system_role()
         .find_many(vec![system_role::deleted_at::equals(None)])
         .order_by(system_role::id::order(SortOrder::Desc))
         .exec()
         .await?
         .into_iter()
-        .map(|x| x.into())
+        .map(|x| DataPower {
+            _can_edit: x.sign.ne(&db.config.admin_role_sign),
+            _can_delete: x.sign.ne(&db.config.admin_role_sign),
+            data: x.into(),
+        })
         .collect::<Vec<DataPower<Info>>>();
     Ok(data)
 }
 
-pub async fn paginate(client: &Database, params: &RoleSearchParams) -> Result<impl Serialize> {
-    let (data, total) = client
+pub async fn paginate(db: &Database, params: &RoleSearchParams) -> Result<impl Serialize> {
+    let (data, total) = db
+        .client
         ._batch((
-            client
+            db.client
                 .system_role()
                 .find_many(params.to_params())
                 .skip(params.paginate.get_skip())
-                .take(params.paginate.limit)
+                .take(params.paginate.get_limit())
                 .order_by(system_role::id::order(SortOrder::Desc)),
-            client.system_role().count(params.to_params()),
+            db.client.system_role().count(params.to_params()),
         ))
         .await?;
     Ok(PaginateResult {
         total,
         data: data
             .into_iter()
-            .map(|x| x.into())
+            .map(|x| DataPower {
+                _can_edit: x.sign.ne(&db.config.admin_role_sign),
+                _can_delete: x.sign.ne(&db.config.admin_role_sign),
+                data: x.into(),
+            })
             .collect::<Vec<DataPower<Info>>>(),
     })
 }
 
-pub async fn info(client: &Database, id: i32) -> Result<Info> {
-    let data = client
+pub async fn info(db: &Database, id: i32) -> Result<Info> {
+    let data = db
+        .client
         .system_role()
         .find_first(vec![
             system_role::id::equals(id),
@@ -181,7 +191,7 @@ pub async fn info(client: &Database, id: i32) -> Result<Info> {
         .await?
         .ok_or(ServiceError::DataNotFound)?;
     let mut role: Info = data.clone().into();
-    role.menu_ids = sys_menu::get_menu_by_role(client, Some(data))
+    role.menu_ids = sys_menu::get_menu_by_role(db, Some(data.into()))
         .await?
         .into_iter()
         .map(|x| x.id)
@@ -189,20 +199,8 @@ pub async fn info(client: &Database, id: i32) -> Result<Info> {
     Ok(role)
 }
 
-pub(crate) async fn upsert(client: &Database, name: &str, sign: &str) -> Result<system_role::Data> {
-    Ok(client
-        .system_role()
-        .upsert(
-            system_role::sign::equals(sign.to_owned()),
-            system_role::create(name.to_owned(), sign.to_owned(), vec![]),
-            vec![],
-        )
-        .exec()
-        .await?)
-}
-
 pub async fn get_by_sign(
-    client: &Database,
+    db: &Database,
     sign: &str,
     id: Option<i32>,
 ) -> Result<Option<system_role::Data>> {
@@ -210,17 +208,7 @@ pub async fn get_by_sign(
     if let Some(id) = id {
         params.push(system_role::id::not(id));
     }
-    Ok(client.system_role().find_first(params).exec().await?)
-}
-
-impl From<system_role::Data> for DataPower<Info> {
-    fn from(value: system_role::Data) -> Self {
-        Self {
-            _can_edit: value.sign.ne(ADMIN_ROLE_SIGN),
-            _can_delete: value.sign.ne(ADMIN_ROLE_SIGN),
-            data: value.into(),
-        }
-    }
+    Ok(db.client.system_role().find_first(params).exec().await?)
 }
 
 #[derive(Debug, Deserialize)]
@@ -256,16 +244,24 @@ impl RoleSearchParams {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Info {
     id: i32,
     name: String,
-    pub sign: String,
+    sign: String,
     describe: String,
     status: bool,
     sort: i32,
     created_at: String,
     menu_ids: Vec<i32>,
+}
+impl Info {
+    pub fn get_id(&self) -> i32 {
+        self.id
+    }
+    pub fn get_sign(&self) -> String {
+        self.sign.clone()
+    }
 }
 impl From<system_role::Data> for Info {
     fn from(value: system_role::Data) -> Self {

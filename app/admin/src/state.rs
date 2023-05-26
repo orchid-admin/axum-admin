@@ -5,13 +5,13 @@ use tokio::sync::Mutex;
 pub type AppState = Arc<State>;
 
 pub struct State {
-    pub captcha: Mutex<crate::captcha::Captcha>,
-    pub jwt: Mutex<crate::jwt::Jwt>,
+    pub captcha: Mutex<utils::captcha::Captcha>,
+    pub jwt: Mutex<utils::jwt::Jwt>,
     pub db: Database,
 }
 
 impl State {
-    pub fn build(captcha: crate::captcha::Captcha, jwt: crate::jwt::Jwt, db: Database) -> AppState {
+    pub fn build(captcha: utils::captcha::Captcha, jwt: utils::jwt::Jwt, db: Database) -> AppState {
         use tokio::time::{interval, Duration};
         let state = Arc::new(Self {
             captcha: Mutex::new(captcha),

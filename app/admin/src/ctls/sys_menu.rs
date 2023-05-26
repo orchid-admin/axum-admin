@@ -1,5 +1,5 @@
 use super::Claims;
-use crate::{error::Result, extracts::ValidatorJson, state::AppState};
+use crate::{error::Result, state::AppState};
 use axum::{
     body::Empty,
     extract::{Path, State},
@@ -10,6 +10,7 @@ use axum::{
 use axum_extra::extract::Query;
 use serde::Deserialize;
 use service::sys_menu;
+use utils::extracts::ValidatorJson;
 use validator::Validate;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {

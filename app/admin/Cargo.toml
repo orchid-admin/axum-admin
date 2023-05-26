@@ -6,25 +6,21 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-argon2 = { workspace = true }
 axum = { workspace = true }
 axum-macros = { workspace = true }
 axum-extra = { workspace = true }
-captcha-rs = { workspace = true }
 custom_attrs = { workspace = true }
-jsonwebtoken = { workspace = true }
-password-hash = { workspace = true }
+time = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-service = { path = "../../service" }
-thiserror = { workspace = true }
-time = { workspace = true }
 tokio = { workspace = true }
 # tower = { workspace = true }
 tower-http = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 validator = { workspace = true }
+utils = { path = "../../utils", features=["captcha", "extract", "jwt", "password"] }
+service = { path = "../../service" }
 
 [build-dependencies]
 fs_extra = "1.3"

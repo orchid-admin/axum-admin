@@ -1,10 +1,6 @@
 use super::Claims;
 use crate::{
-    captcha::UseType as CaptchaUseType,
     error::{ErrorCode, Result},
-    extracts::ValidatorJson,
-    jwt::UseType as JwtUseType,
-    password::Password,
     state::AppState,
 };
 use axum::{
@@ -15,6 +11,10 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use service::sys_user;
+use utils::{
+    captcha::UseType as CaptchaUseType, extracts::ValidatorJson, jwt::UseType as JwtUseType,
+    password::Password,
+};
 use validator::Validate;
 
 pub fn routers<S>(state: AppState) -> Router<S> {
