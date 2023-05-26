@@ -1,5 +1,8 @@
-use crate::error::{ErrorCode, Result};
-use time::{Duration, OffsetDateTime};
+pub enum ErrorType {
+    JsonwebToken(jsonwebtoken::errors::Error),
+    GenerateFail,
+}
+type Result<T> = std::result::Result<T, ErrorType>;
 
 #[derive(Debug, Clone)]
 pub struct Captcha {
@@ -51,15 +54,15 @@ impl Captcha {
             .compression(40)
             .build();
 
-        let key = OffsetDateTime::now_utc().unix_timestamp_nanos().to_string();
-        match self.add(use_type, &key, &captcha.text)? {
-            true => Ok(CaptchaContent {
+        let key = time::OffsetDateTime::now_utc()
+            .unix_timestamp_nanos()
+            .to_string();
+        self.add(use_type, &key, &captcha.text)
+            .map(|_| CaptchaContent {
                 key,
                 text: captcha.text.to_owned(),
                 image: captcha.to_base64(),
-            }),
-            false => Err(ErrorCode::InternalServer("生成验证码失败")),
-        }
+            })
     }
 
     /// get item by key
@@ -81,25 +84,24 @@ impl Captcha {
     }
 
     /// add captcha cache
-    fn add(&mut self, use_type: UseType, key: &str, text: &str) -> Result<bool> {
-        Ok(match self.get_item(&use_type, key) {
-            Some(_) => false,
+    fn add(&mut self, use_type: UseType, key: &str, text: &str) -> Result<CaptchaItem> {
+        match self.get_item(&use_type, key) {
+            Some(_) => Err(ErrorType::GenerateFail),
             None => {
-                let exp = match OffsetDateTime::now_utc()
-                    .checked_add(Duration::seconds(self.valid_seconds))
-                {
-                    Some(times) => Ok(times.unix_timestamp_nanos()),
-                    None => Err(ErrorCode::InternalServer("生成验证码失败")),
-                }?;
-                self.data.push(CaptchaItem {
+                let exp = time::OffsetDateTime::now_utc()
+                    .checked_add(time::Duration::seconds(self.valid_seconds))
+                    .map(|x| x.unix_timestamp_nanos())
+                    .ok_or(ErrorType::GenerateFail)?;
+                let item = CaptchaItem {
                     use_type,
                     key: key.to_owned(),
                     text: text.to_owned(),
                     exp,
-                });
-                true
+                };
+                self.data.push(item.clone());
+                Ok(item)
             }
-        })
+        }
     }
 
     pub fn remove_item(&mut self, item: &CaptchaItem) {
@@ -129,7 +131,7 @@ pub struct CaptchaItem {
 impl CaptchaItem {
     /// check captcha is can use
     pub fn check(&self) -> bool {
-        self.exp > OffsetDateTime::now_utc().unix_timestamp_nanos()
+        self.exp > time::OffsetDateTime::now_utc().unix_timestamp_nanos()
     }
 
     /// verify text by lowercase

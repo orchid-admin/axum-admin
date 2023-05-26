@@ -1,7 +1,8 @@
-use crate::error::{ErrorCode, Result};
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
-use serde::{de::DeserializeOwned, Serialize};
-use time::{Duration, OffsetDateTime};
+pub enum ErrorType {
+    JsonwebToken(jsonwebtoken::errors::Error),
+    GenerateFail,
+}
+type Result<T> = std::result::Result<T, ErrorType>;
 
 #[derive(Debug, Clone)]
 pub struct Jwt {
@@ -41,20 +42,15 @@ impl Jwt {
     /// generate token
     pub fn generate<T>(&mut self, use_type: UseType, claims: T) -> Result<String>
     where
-        T: Serialize,
+        T: serde::Serialize,
     {
-        let token = match encode(
-            &Header::default(),
+        let token = jsonwebtoken::encode(
+            &jsonwebtoken::Header::default(),
             &claims,
-            &EncodingKey::from_secret(self.secret.as_ref()),
-        ) {
-            Ok(token) => Ok(token),
-            Err(_) => Err(ErrorCode::InternalServer("生成TOKEN失败")),
-        }?;
-        match self.add(use_type, &token)? {
-            true => Ok(token),
-            false => Err(ErrorCode::InternalServer("生成TOKEN失败")),
-        }
+            &jsonwebtoken::EncodingKey::from_secret(self.secret.as_ref()),
+        )
+        .map_err(ErrorType::JsonwebToken)?;
+        self.add(use_type, &token).map(|_| token)
     }
 
     /// get item by key
@@ -66,15 +62,17 @@ impl Jwt {
     }
 
     /// decode token
-    pub fn decode<T: DeserializeOwned>(&self, token: &str) -> Result<T> {
-        match decode::<T>(
+    pub fn decode<T>(&self, token: &str) -> Result<T>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        jsonwebtoken::decode::<T>(
             token,
-            &DecodingKey::from_secret(self.secret.as_ref()),
-            &Validation::default(),
-        ) {
-            Ok(claims) => Ok(claims.claims),
-            Err(_) => Err(ErrorCode::Unauthorized),
-        }
+            &jsonwebtoken::DecodingKey::from_secret(self.secret.as_ref()),
+            &jsonwebtoken::Validation::default(),
+        )
+        .map(|x| x.claims)
+        .map_err(ErrorType::JsonwebToken)
     }
 
     /// remove valid captcha cache
@@ -88,24 +86,23 @@ impl Jwt {
     }
 
     /// add item
-    fn add(&mut self, use_type: UseType, token: &str) -> Result<bool> {
-        Ok(match self.get_item(&use_type, token) {
-            Some(_) => false,
+    fn add(&mut self, use_type: UseType, token: &str) -> Result<JwtItem> {
+        match self.get_item(&use_type, token) {
+            Some(_) => Err(ErrorType::GenerateFail),
             None => {
-                let exp = match OffsetDateTime::now_utc()
-                    .checked_add(Duration::seconds(self.valid_seconds))
-                {
-                    Some(times) => Ok(times.unix_timestamp_nanos()),
-                    None => Err(ErrorCode::InternalServer("生成TOKEN失败")),
-                }?;
-                self.data.push(JwtItem {
+                let exp = time::OffsetDateTime::now_utc()
+                    .checked_add(time::Duration::seconds(self.valid_seconds))
+                    .map(|x| x.unix_timestamp_nanos())
+                    .ok_or(ErrorType::GenerateFail)?;
+                let item = JwtItem {
                     use_type,
                     token: token.to_owned(),
                     exp,
-                });
-                true
+                };
+                self.data.push(item.clone());
+                Ok(item)
             }
-        })
+        }
     }
 }
 
@@ -126,6 +123,6 @@ pub struct JwtItem {
 
 impl JwtItem {
     pub fn check(&self) -> bool {
-        self.exp > OffsetDateTime::now_utc().unix_timestamp_nanos()
+        self.exp > time::OffsetDateTime::now_utc().unix_timestamp_nanos()
     }
 }

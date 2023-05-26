@@ -1,11 +1,11 @@
 use crate::{
-    now_time,
     prisma::{system_menu, system_role_menu},
     sys_menu, Database, Result,
 };
 
-pub async fn get_role_menus(client: &Database, role_id: i32) -> Result<Vec<sys_menu::Info>> {
-    let role_menus = client
+pub async fn get_role_menus(db: &Database, role_id: i32) -> Result<Vec<sys_menu::Info>> {
+    let role_menus = db
+        .client
         .system_role_menu()
         .find_many(vec![
             system_role_menu::role_id::equals(role_id),
@@ -22,8 +22,9 @@ pub async fn get_role_menus(client: &Database, role_id: i32) -> Result<Vec<sys_m
         .collect::<Vec<sys_menu::Info>>())
 }
 
-pub async fn delete_by_role_id(client: &Database, role_id: i32) -> Result<i64> {
-    Ok(client
+pub async fn delete_by_role_id(db: &Database, role_id: i32) -> Result<i64> {
+    Ok(db
+        .client
         .system_role_menu()
         .delete_many(vec![system_role_menu::role_id::equals(role_id)])
         .exec()
@@ -31,11 +32,12 @@ pub async fn delete_by_role_id(client: &Database, role_id: i32) -> Result<i64> {
 }
 
 pub async fn delete_by_role_id_menu_id(
-    client: &Database,
+    db: &Database,
     role_id: i32,
     menu_id: i32,
 ) -> Result<system_role_menu::Data> {
-    Ok(client
+    Ok(db
+        .client
         .system_role_menu()
         .delete(system_role_menu::role_id_menu_id(role_id, menu_id))
         .exec()

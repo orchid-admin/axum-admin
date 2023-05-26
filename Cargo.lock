@@ -27,24 +27,20 @@ checksum = "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
 name = "admin"
 version = "0.1.0"
 dependencies = [
- "argon2",
  "axum",
  "axum-extra",
  "axum-macros",
- "captcha-rs",
  "custom_attrs",
  "fs_extra",
- "jsonwebtoken",
- "password-hash",
  "serde",
  "serde_json",
  "service",
- "thiserror",
  "time 0.3.21",
  "tokio",
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "utils",
  "validator",
 ]
 
@@ -3427,7 +3423,7 @@ dependencies = [
  "prisma-client-rust",
  "serde",
  "serde_repr",
- "serde_with",
+ "utils",
 ]
 
 [[package]]
@@ -4225,6 +4221,23 @@ name = "utf8parse"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
+
+[[package]]
+name = "utils"
+version = "0.1.0"
+dependencies = [
+ "argon2",
+ "axum",
+ "captcha-rs",
+ "chrono",
+ "jsonwebtoken",
+ "password-hash",
+ "serde",
+ "serde_with",
+ "thiserror",
+ "time 0.3.21",
+ "validator",
+]
 
 [[package]]
 name = "uuid"

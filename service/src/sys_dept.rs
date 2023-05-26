@@ -1,41 +1,42 @@
 use crate::{
-    get_tree_start_parent_id, now_time,
-    prisma::{system_dept, system_role, SortOrder},
-    sys_user, to_local_string, vec_to_tree_into, Database, Result, ServiceError, Tree, TreeInfo,
+    prisma::{system_dept, SortOrder},
+    sys_role, sys_user, Database, Result, ServiceError,
 };
 use prisma_client_rust::or;
 use serde::Serialize;
-use std::sync::Arc;
+use utils::{
+    datetime::{now_time, to_local_string},
+    tree::{get_tree_start_parent_id, vec_to_tree_into, Tree, TreeInfo},
+};
 
 pub async fn create(
-    client: &Database,
+    db: &Database,
     name: &str,
     params: DeptCreateParams,
 ) -> Result<system_dept::Data> {
-    Ok(client
+    Ok(db
+        .client
         .system_dept()
         .create_unchecked(name.to_owned(), params.to_params())
         .exec()
         .await?)
 }
 
-pub async fn update(
-    client: &Database,
-    id: i32,
-    params: DeptUpdateParams,
-) -> Result<system_dept::Data> {
-    Ok(client
+pub async fn update(db: &Database, id: i32, params: DeptUpdateParams) -> Result<system_dept::Data> {
+    Ok(db
+        .client
         .system_dept()
         .update_unchecked(system_dept::id::equals(id), params.to_params())
         .exec()
         .await?)
 }
 
-pub async fn delete(client: &Database, id: i32) -> Result<system_dept::Data> {
-    let res = client
+pub async fn delete(db: &Database, id: i32) -> Result<system_dept::Data> {
+    let res = db
+        .client
         ._transaction()
         .run::<ServiceError, _, _, _>(|client| async move {
-            let client = Arc::new(client);
+            let client = std::sync::Arc::new(client);
             let info = client
                 .system_dept()
                 .update(
@@ -44,13 +45,13 @@ pub async fn delete(client: &Database, id: i32) -> Result<system_dept::Data> {
                 )
                 .exec()
                 .await?;
-            let user_ids = sys_user::get_users_by_dept_id(&client, id)
+            let user_ids = sys_user::get_users_by_dept_id(db, id)
                 .await?
                 .into_iter()
                 .map(|x| x.get_id())
                 .collect::<Vec<i32>>();
             if !user_ids.is_empty() {
-                sys_user::batch_set_dept(&client, None, user_ids).await?;
+                sys_user::batch_set_dept(db, None, user_ids).await?;
             }
             Ok(info)
         })
@@ -58,9 +59,9 @@ pub async fn delete(client: &Database, id: i32) -> Result<system_dept::Data> {
     Ok(res)
 }
 
-pub async fn get_dept_children_ids(client: &Database, parent_dept_id: i32) -> Result<Vec<i32>> {
+pub async fn get_dept_children_ids(db: &Database, parent_dept_id: i32) -> Result<Vec<i32>> {
     let infos = get_dept_tree(
-        client,
+        db,
         &DeptSearchParams {
             keyword: None,
             status: None,
@@ -84,17 +85,18 @@ fn get_children_ids(tree: Vec<Dept>, parent_dept_ids: &mut Vec<i32>) -> &mut Vec
 }
 
 pub async fn get_user_dept_trees(
-    client: &Database,
+    db: &Database,
     user_id: i32,
     params: &DeptSearchParams,
 ) -> Result<Vec<Dept>> {
-    let infos = get_depts_by_user_id(client, user_id, params).await?;
+    let infos = get_depts_by_user_id(db, user_id, params).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
     Ok(vec_to_tree_into::<Dept, Info>(&parent_id, &infos))
 }
 
-pub async fn info(client: &Database, id: i32) -> Result<Info> {
-    Ok(client
+pub async fn info(db: &Database, id: i32) -> Result<Info> {
+    Ok(db
+        .client
         .system_dept()
         .find_first(vec![
             system_dept::id::equals(id),
@@ -106,14 +108,15 @@ pub async fn info(client: &Database, id: i32) -> Result<Info> {
         .into())
 }
 
-async fn get_dept_tree(client: &Database, params: &DeptSearchParams) -> Result<Vec<Dept>> {
-    let infos = get_depts(client, params).await?;
+async fn get_dept_tree(db: &Database, params: &DeptSearchParams) -> Result<Vec<Dept>> {
+    let infos = get_depts(db, params).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
     Ok(vec_to_tree_into::<Dept, Info>(&parent_id, &infos))
 }
 
-async fn get_depts(client: &Database, params: &DeptSearchParams) -> Result<Vec<Info>> {
-    Ok(client
+async fn get_depts(db: &Database, params: &DeptSearchParams) -> Result<Vec<Info>> {
+    Ok(db
+        .client
         .system_dept()
         .find_many(params.to_params())
         .order_by(system_dept::id::order(SortOrder::Asc))
@@ -125,36 +128,38 @@ async fn get_depts(client: &Database, params: &DeptSearchParams) -> Result<Vec<I
 }
 
 async fn get_depts_by_user_id(
-    client: &Database,
+    db: &Database,
     user_id: i32,
     params: &DeptSearchParams,
 ) -> Result<Vec<Info>> {
-    let user_permission = sys_user::get_current_user_info(client, user_id).await?;
+    let user_permission = sys_user::get_current_user_info(db, user_id).await?;
 
-    Ok(match (user_permission.role, user_permission.dept) {
-        (Some(role), Some(dept)) => {
-            let depts = get_role_dept(client, role, params).await?;
-            if !depts.is_empty() {
-                depts
-            } else {
-                get_children_dept(get_depts(client, params).await?, dept.id)
+    Ok(
+        match (user_permission.get_role(), user_permission.get_dept()) {
+            (Some(role), Some(dept)) => {
+                let depts = get_role_dept(db, role, params).await?;
+                if !depts.is_empty() {
+                    depts
+                } else {
+                    get_children_dept(get_depts(db, params).await?, dept.id)
+                }
             }
-        }
-        (None, Some(dept)) => get_children_dept(get_depts(client, params).await?, dept.id),
-        (Some(role), None) => get_role_dept(client, role, params).await?,
-        _ => vec![],
-    })
+            (None, Some(dept)) => get_children_dept(get_depts(db, params).await?, dept.id),
+            (Some(role), None) => get_role_dept(db, role, params).await?,
+            _ => vec![],
+        },
+    )
 }
 
 async fn get_role_dept(
-    client: &Database,
-    role: system_role::Data,
+    db: &Database,
+    role: sys_role::Info,
     params: &DeptSearchParams,
 ) -> Result<Vec<Info>> {
-    Ok(match role.sign.as_str() {
-        super::ADMIN_ROLE_SIGN => get_depts(client, params).await?,
-        _ => vec![],
-    })
+    if role.get_sign().as_str().eq(&db.config.admin_role_sign) {
+        return get_depts(db, params).await;
+    }
+    Ok(vec![])
 }
 
 fn get_children_dept(depts: Vec<Info>, dept_id: i32) -> Vec<Info> {

@@ -1,14 +1,17 @@
 use crate::{
-    now_time,
     prisma::{system_dept, system_role, system_user, SortOrder},
-    sys_dept, sys_menu, sys_role, to_local_string, DataPower, Database, PaginateParams,
-    PaginateResult, Result, ServiceError, ADMIN_ROLE_SIGN, ADMIN_USERNAME,
+    sys_dept, sys_menu, sys_role, DataPower, Database, Result, ServiceError,
 };
 use prisma_client_rust::or;
 use serde::{Deserialize, Serialize};
+use utils::{
+    datetime::{now_time, to_local_string},
+    paginate::{PaginateParams, PaginateResult},
+};
 
-pub async fn find_user_by_username(client: &Database, username: &str) -> Result<Option<Info>> {
-    Ok(client
+pub async fn find_user_by_username(db: &Database, username: &str) -> Result<Option<Info>> {
+    Ok(db
+        .client
         .system_user()
         .find_first(vec![system_user::username::equals(username.to_owned())])
         .exec()
@@ -16,8 +19,9 @@ pub async fn find_user_by_username(client: &Database, username: &str) -> Result<
         .map(|x| x.into()))
 }
 
-pub async fn find_user_by_phone(client: &Database, phone: &str) -> Result<Option<Info>> {
-    Ok(client
+pub async fn find_user_by_phone(db: &Database, phone: &str) -> Result<Option<Info>> {
+    Ok(db
+        .client
         .system_user()
         .find_first(vec![system_user::phone::equals(phone.to_owned())])
         .exec()
@@ -25,58 +29,45 @@ pub async fn find_user_by_phone(client: &Database, phone: &str) -> Result<Option
         .map(|x| x.into()))
 }
 
-pub async fn get_current_user_info(client: &Database, id: i32) -> Result<UserPermission> {
-    let user = client
+pub async fn get_current_user_info(db: &Database, id: i32) -> Result<Info> {
+    Ok(db
+        .client
         .system_user()
         .find_first(vec![system_user::id::equals(id)])
         .with(system_user::role::fetch())
         .with(system_user::dept::fetch())
         .exec()
         .await?
-        .ok_or(ServiceError::DataNotFound)?;
-    let role = user.role().map(|x| x.cloned()).unwrap_or_default();
-    let dept = user.dept().map(|x| x.cloned()).unwrap_or_default();
-    let btn_auths = sys_menu::filter_menu_types(
-        Some(vec![sys_menu::MenuType::BtnAuth]),
-        sys_menu::get_menu_by_role(client, role.clone()).await?,
-    )
-    .into_iter()
-    .map(|x| x.btn_auth)
-    .collect::<Vec<String>>();
-    let permission = UserPermission {
-        user: user.into(),
-        role,
-        dept,
-        btn_auths,
-    };
-    Ok(permission)
+        .ok_or(ServiceError::DataNotFound)?
+        .into())
 }
 
 pub async fn check_user_permission(
-    client: &Database,
+    db: &Database,
     user_id: i32,
     method: &str,
     path: &str,
 ) -> Result<bool> {
-    let user = client
+    let user = db
+        .client
         .system_user()
         .find_first(vec![system_user::id::equals(user_id)])
         .with(system_user::role::fetch())
         .exec()
         .await?
         .ok_or(ServiceError::DataNotFound)?;
-    if user.username.eq(ADMIN_USERNAME) {
+    if user.username.eq(&db.config.admin_username) {
         return Ok(true);
     }
     let role = user.role().map(|x| x.cloned()).unwrap_or_default();
     if let Some(role) = role.clone() {
-        if role.sign.eq(ADMIN_ROLE_SIGN) {
+        if role.sign.eq(&db.config.admin_role_sign) {
             return Ok(true);
         }
     }
     let auths = sys_menu::filter_menu_types(
         Some(vec![sys_menu::MenuType::Api]),
-        sys_menu::get_menu_by_role(client, role.clone()).await?,
+        sys_menu::get_menu_by_role(db, role.clone().map(|x| x.into())).await?,
     )
     .into_iter()
     .filter(|x| x.api_method.to_uppercase().eq(method) && x.api_url.eq(path))
@@ -84,8 +75,9 @@ pub async fn check_user_permission(
     Ok(auths > 0)
 }
 
-pub async fn get_users_by_dept_id(client: &Database, dept_id: i32) -> Result<Vec<Info>> {
-    Ok(client
+pub async fn get_users_by_dept_id(db: &Database, dept_id: i32) -> Result<Vec<Info>> {
+    Ok(db
+        .client
         .system_user()
         .find_many(vec![
             system_user::dept_id::equals(Some(dept_id)),
@@ -99,11 +91,12 @@ pub async fn get_users_by_dept_id(client: &Database, dept_id: i32) -> Result<Vec
 }
 
 pub async fn batch_set_dept(
-    client: &Database,
+    db: &Database,
     dept_id: Option<i32>,
     user_ids: Vec<i32>,
 ) -> Result<i64> {
-    Ok(client
+    Ok(db
+        .client
         .system_user()
         .update_many(
             vec![system_user::id::in_vec(user_ids)],
@@ -116,8 +109,9 @@ pub async fn batch_set_dept(
         .await?)
 }
 
-pub async fn create(client: &Database, username: &str, params: CreateParams) -> Result<Info> {
-    Ok(client
+pub async fn create(db: &Database, username: &str, params: CreateParams) -> Result<Info> {
+    Ok(db
+        .client
         .system_user()
         .create_unchecked(username.to_owned(), params.to_params())
         .exec()
@@ -125,8 +119,9 @@ pub async fn create(client: &Database, username: &str, params: CreateParams) -> 
         .into())
 }
 
-pub async fn update(client: &Database, id: i32, params: UpdateParams) -> Result<Info> {
-    Ok(client
+pub async fn update(db: &Database, id: i32, params: UpdateParams) -> Result<Info> {
+    Ok(db
+        .client
         .system_user()
         .update_unchecked(system_user::id::equals(id), params.to_params())
         .exec()
@@ -134,8 +129,9 @@ pub async fn update(client: &Database, id: i32, params: UpdateParams) -> Result<
         .into())
 }
 
-pub async fn delete(client: &Database, id: i32) -> Result<Info> {
-    Ok(client
+pub async fn delete(db: &Database, id: i32) -> Result<Info> {
+    Ok(db
+        .client
         .system_user()
         .update(
             system_user::id::equals(id),
@@ -146,8 +142,8 @@ pub async fn delete(client: &Database, id: i32) -> Result<Info> {
         .into())
 }
 
-pub async fn info(client: &Database, id: i32) -> Result<Info> {
-    client
+pub async fn info(db: &Database, id: i32) -> Result<Info> {
+    db.client
         .system_user()
         .find_first(vec![
             system_user::id::equals(id),
@@ -160,39 +156,44 @@ pub async fn info(client: &Database, id: i32) -> Result<Info> {
 }
 
 pub async fn paginate(
-    client: &Database,
+    db: &Database,
     params: UserSearchParams,
 ) -> Result<PaginateResult<Vec<DataPower<Info>>>> {
     let mut query_params = params.to_params();
     if let Some(dept_id) = params.dept_id {
         query_params.push(system_user::dept_id::in_vec(
-            sys_dept::get_dept_children_ids(client, dept_id).await?,
+            sys_dept::get_dept_children_ids(db, dept_id).await?,
         ));
     }
-    let (data, total): (Vec<system_user::Data>, i64) = client
+    let (data, total): (Vec<system_user::Data>, i64) = db
+        .client
         ._batch((
-            client
+            db.client
                 .system_user()
                 .find_many(query_params.clone())
                 .with(system_user::role::fetch())
                 .with(system_user::dept::fetch())
                 .skip(params.paginate.get_skip())
-                .take(params.paginate.limit)
+                .take(params.paginate.get_limit())
                 .order_by(system_user::id::order(SortOrder::Desc)),
-            client.system_user().count(query_params),
+            db.client.system_user().count(query_params),
         ))
         .await?;
     Ok(PaginateResult {
         total,
         data: data
             .into_iter()
-            .map(|x| x.into())
+            .map(|x| DataPower {
+                _can_edit: x.username.ne(&db.config.admin_username),
+                _can_delete: x.username.ne(&db.config.admin_username),
+                data: x.into(),
+            })
             .collect::<Vec<DataPower<Info>>>(),
     })
 }
 
 pub async fn upsert_system_user(
-    client: &Database,
+    db: &Database,
     username: &str,
     password: &str,
     salt: &str,
@@ -204,7 +205,8 @@ pub async fn upsert_system_user(
         system_user::role::connect(system_role::id::equals(role_id)),
     ];
 
-    Ok(client
+    Ok(db
+        .client
         .system_user()
         .upsert(
             system_user::username::equals(username.to_owned()),
@@ -214,16 +216,6 @@ pub async fn upsert_system_user(
         .exec()
         .await?
         .into())
-}
-
-impl From<system_user::Data> for DataPower<Info> {
-    fn from(value: system_user::Data) -> Self {
-        Self {
-            _can_edit: value.username.ne(ADMIN_USERNAME),
-            _can_delete: value.username.ne(ADMIN_USERNAME),
-            data: value.into(),
-        }
-    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -307,6 +299,12 @@ impl Info {
     pub fn get_salt(&self) -> String {
         self.salt.clone()
     }
+    pub fn get_role(&self) -> Option<sys_role::Info> {
+        self.role.clone()
+    }
+    pub fn get_dept(&self) -> Option<sys_dept::Info> {
+        self.dept.clone()
+    }
 }
 
 impl From<system_user::Data> for Info {
@@ -339,7 +337,7 @@ impl From<system_user::Data> for Info {
         }
     }
 }
-
+#[derive(Debug, Serialize)]
 pub struct UserPermission {
     pub user: Info,
     pub role: Option<system_role::Data>,

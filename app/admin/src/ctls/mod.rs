@@ -1,8 +1,8 @@
 pub mod auth;
-pub mod dept;
-pub mod menu;
-pub mod role;
-pub mod user;
+pub mod sys_dept;
+pub mod sys_menu;
+pub mod sys_role;
+pub mod sys_user;
 
 use crate::{error::ErrorCode, state::AppState};
 use axum::{
@@ -13,7 +13,6 @@ use axum::{
     response::{IntoResponse, Response},
     Extension, RequestExt,
 };
-use service::sys_user;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Claims {
@@ -83,7 +82,7 @@ pub async fn access_matched_path(
         req.extract_parts::<MatchedPath>().await;
     Ok(match matched_path {
         Ok(path) => {
-            match sys_user::check_user_permission(
+            match service::sys_user::check_user_permission(
                 &state.db,
                 claims.user_id,
                 req.method().as_str(),

@@ -1,5 +1,5 @@
 use super::Claims;
-use crate::{error::Result, extracts::ValidatorJson, password, state::AppState};
+use crate::{error::Result, state::AppState};
 use axum::{
     body::Empty,
     extract::{Path, State},
@@ -9,7 +9,8 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::{Deserialize, Serialize};
-use service::{sys_menu, sys_user, PaginateParams};
+use service::{sys_menu, sys_user};
+use utils::{extracts::ValidatorJson, paginate::PaginateParams};
 use validator::Validate;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
@@ -89,13 +90,16 @@ async fn get_user_permission(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
 ) -> Result<impl IntoResponse> {
-    let user_permission = sys_user::get_current_user_info(&state.db, claims.user_id).await?;
-    Ok(Json(UserPermission {
-        username: user_permission.user.get_username(),
-        photo: None,
-        time: 0,
-        btn_auths: user_permission.btn_auths,
-    }))
+    let info = sys_user::get_current_user_info(&state.db, claims.user_id).await?;
+    let btn_auths = sys_menu::filter_menu_types(
+        Some(vec![sys_menu::MenuType::BtnAuth]),
+        sys_menu::get_menu_by_role(&state.db, info.get_role()).await?,
+    )
+    .into_iter()
+    .map(|x| x.btn_auth)
+    .collect::<Vec<String>>();
+
+    Ok(Json(UserPermission { info, btn_auths }))
 }
 #[derive(Debug, Deserialize)]
 struct SearchRequest {
@@ -155,12 +159,12 @@ impl From<CreateRequest> for sys_user::CreateParams {
 
         if let Some(password) = value.password {
             let (encode_password, salt) =
-                password::Password::generate_hash_salt(password.as_bytes()).unwrap();
+                utils::password::Password::generate_hash_salt(password.as_bytes()).unwrap();
             data.password = Some(encode_password);
             data.salt = Some(salt);
         }
         if let Some(expire_time) = value.expire_time {
-            data.expire_time = Some(Some(service::parse_string(expire_time)))
+            data.expire_time = Some(Some(utils::datetime::parse_string(expire_time)))
         }
         data
     }
@@ -185,12 +189,12 @@ impl From<CreateRequest> for sys_user::UpdateParams {
 
         if let Some(password) = value.password {
             let (encode_password, salt) =
-                password::Password::generate_hash_salt(password.as_bytes()).unwrap();
+                utils::password::Password::generate_hash_salt(password.as_bytes()).unwrap();
             data.password = Some(encode_password);
             data.salt = Some(salt);
         }
         if let Some(expire_time) = value.expire_time {
-            data.expire_time = Some(Some(service::parse_string(expire_time)))
+            data.expire_time = Some(Some(utils::datetime::parse_string(expire_time)))
         }
         data
     }
@@ -198,8 +202,6 @@ impl From<CreateRequest> for sys_user::UpdateParams {
 
 #[derive(Debug, Serialize)]
 struct UserPermission {
-    username: String,
-    photo: Option<String>,
-    time: i64,
+    info: sys_user::Info,
     btn_auths: Vec<String>,
 }

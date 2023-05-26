@@ -1,7 +1,6 @@
 use super::Claims;
 use crate::{
     error::{ErrorCode, Result},
-    extracts::ValidatorJson,
     state::AppState,
 };
 use axum::{
@@ -13,7 +12,8 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
-use service::{sys_menu, sys_role, PaginateParams};
+use service::{sys_menu, sys_role};
+use utils::{extracts::ValidatorJson, paginate::PaginateParams};
 use validator::Validate;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
@@ -98,7 +98,7 @@ async fn update(
         }
         None => {
             let info = sys_role::info(&state.db, id).await?;
-            if info.sign.eq(service::ADMIN_ROLE_SIGN) {
+            if info.get_sign().eq(&state.db.config().get_admin_role_sign()) {
                 return Err(ErrorCode::Other("不可编辑系统管理员"));
             }
         }
@@ -116,7 +116,7 @@ async fn update(
 /// 删除
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
     let info = sys_role::info(&state.db, id).await?;
-    if info.sign.eq(service::ADMIN_ROLE_SIGN) {
+    if info.get_sign().eq(&state.db.config().get_admin_role_sign()) {
         return Err(ErrorCode::Other("不可删除系统管理员"));
     }
     sys_role::delete(&state.db, id).await?;
