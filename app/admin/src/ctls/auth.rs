@@ -4,7 +4,7 @@ use crate::{
     state::AppState,
 };
 use axum::{
-    extract::State,
+    extract::{ConnectInfo, State},
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
@@ -29,6 +29,7 @@ pub fn routers<S>(state: AppState) -> Router<S> {
 /// 账户登录
 async fn login_by_account(
     State(state): State<AppState>,
+    ConnectInfo(addr): ConnectInfo<std::net::SocketAddr>,
     ValidatorJson(params): ValidatorJson<LoginByAccountRequest>,
 ) -> Result<impl IntoResponse> {
     let mut captcha = state.captcha.lock().await;
@@ -49,6 +50,8 @@ async fn login_by_account(
                     if !verify_result {
                         return Err(ErrorCode::Other("用户名或密码错误"));
                     }
+                    println!("{:#?}", addr);
+                    sys_user::set_last_login(&state.db, user.get_id(), addr.to_string()).await?;
 
                     let token = state
                         .jwt

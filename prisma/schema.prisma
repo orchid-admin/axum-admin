@@ -14,36 +14,38 @@ datasource db {
 
 /// 用户表
 model SystemUser {
-  id          Int         @id @default(autoincrement())
+  id              Int         @id @default(autoincrement())
   /// 账户名称
-  username    String      @unique
+  username        String      @unique
   /// 用户昵称
-  nickname    String      @default("")
+  nickname        String      @default("")
   /// 角色ID
-  role_id     Int?
-  role        SystemRole? @relation(fields: [role_id], references: [id])
+  role_id         Int?
+  role            SystemRole? @relation(fields: [role_id], references: [id])
   /// 部门ID
-  dept_id     Int?
-  dept        SystemDept? @relation(fields: [dept_id], references: [id])
+  dept_id         Int?
+  dept            SystemDept? @relation(fields: [dept_id], references: [id])
   /// 手机号
-  phone       String      @default("")
+  phone           String      @default("")
   /// 邮箱
-  email       String      @default("")
+  email           String      @default("")
   /// 性别
-  sex         Int         @default(1)
+  sex             Int         @default(1)
   /// 账户密码
-  password    String      @default("")
+  password        String      @default("")
   /// 账户密码salt
-  salt        String      @default("")
+  salt            String      @default("")
   /// 用户描述
-  describe    String      @default("")
+  describe        String      @default("")
   /// 账户过期
-  expire_time DateTime?
+  expire_time     DateTime?
   /// 用户状态
-  status      Boolean     @default(true)
-  created_at  DateTime    @default(now())
-  updated_at  DateTime    @updatedAt
-  deleted_at  DateTime?
+  status          Boolean     @default(true)
+  last_login_ip   String      @default("")
+  last_login_time DateTime?
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+  deleted_at      DateTime?
 }
 
 /// 角色表
