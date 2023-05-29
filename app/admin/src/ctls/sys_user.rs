@@ -10,7 +10,7 @@ use axum::{
 use axum_extra::extract::Query;
 use serde::{Deserialize, Serialize};
 use service::{sys_menu, sys_user};
-use utils::{extracts::ValidatorJson, paginate::PaginateParams};
+use utils::{extracts::ValidatorJson, paginate::PaginateParams, password::Password};
 use validator::Validate;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
@@ -20,6 +20,7 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .route("/user", post(create))
         .route("/user/:id", put(update))
         .route("/user/:id", delete(del))
+        .route("/user/update_password", put(update_password))
         .route("/user/get_menu", get(get_menu))
         .route("/user/get_user_permission", get(get_user_permission))
         .with_state(state)
@@ -52,13 +53,41 @@ async fn update(
     Path(id): Path<i32>,
     ValidatorJson(params): ValidatorJson<CreateRequest>,
 ) -> Result<impl IntoResponse> {
-    sys_user::update(&state.db, id, params.into()).await?;
+    sys_user::update(
+        &state.db,
+        id,
+        Into::<sys_user::UpdateParams>::into(params).to_params(),
+    )
+    .await?;
     Ok(Empty::new())
 }
 
 /// 删除
 async fn del(State(state): State<AppState>, Path(id): Path<i32>) -> Result<impl IntoResponse> {
     sys_user::delete(&state.db, id).await?;
+    Ok(Empty::new())
+}
+
+/// 修改密码
+async fn update_password(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    ValidatorJson(params): ValidatorJson<UpdatePasswordRequest>,
+) -> Result<impl IntoResponse> {
+    let info = sys_user::info(&state.db, claims.user_id).await?;
+    if !Password::verify_password(
+        info.get_password(),
+        info.get_salt(),
+        params.old_password.as_bytes(),
+    )? {
+        return Err(crate::error::ErrorCode::Other("旧密码错误"));
+    }
+    sys_user::update(
+        &state.db,
+        claims.user_id,
+        Into::<sys_user::UpdatePasswordParams>::into(params).to_params(),
+    )
+    .await?;
     Ok(Empty::new())
 }
 
@@ -196,6 +225,31 @@ impl From<CreateRequest> for sys_user::UpdateParams {
         if let Some(expire_time) = value.expire_time {
             data.expire_time = Some(Some(utils::datetime::parse_string(expire_time)))
         }
+        data
+    }
+}
+
+#[derive(Debug, Deserialize, Validate)]
+struct UpdatePasswordRequest {
+    #[validate(length(min = 6, message = "旧密码最小长度不能小于6位字符"))]
+    old_password: String,
+    #[validate(length(min = 1, message = "旧密码最小长度不能小于6位字符"))]
+    new_password: String,
+    #[validate(must_match(other = "new_password", message = "确认新密码与新密码不一致"))]
+    confirm_password: String,
+}
+
+impl From<UpdatePasswordRequest> for sys_user::UpdatePasswordParams {
+    fn from(value: UpdatePasswordRequest) -> Self {
+        let mut data = Self {
+            password: None,
+            salt: None,
+        };
+
+        let (encode_password, salt) =
+            utils::password::Password::generate_hash_salt(value.new_password.as_bytes()).unwrap();
+        data.password = Some(encode_password);
+        data.salt = Some(salt);
         data
     }
 }

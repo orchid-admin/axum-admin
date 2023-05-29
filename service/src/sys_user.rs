@@ -1,5 +1,9 @@
 use crate::{
-    prisma::{system_dept, system_role, system_user, SortOrder},
+    prisma::{
+        system_dept, system_role,
+        system_user::{self, UncheckedSetParam},
+        SortOrder,
+    },
     sys_dept, sys_menu, sys_role, DataPower, Database, Result, ServiceError,
 };
 use prisma_client_rust::or;
@@ -119,11 +123,11 @@ pub async fn create(db: &Database, username: &str, params: CreateParams) -> Resu
         .into())
 }
 
-pub async fn update(db: &Database, id: i32, params: UpdateParams) -> Result<Info> {
+pub async fn update(db: &Database, id: i32, params: Vec<UncheckedSetParam>) -> Result<Info> {
     Ok(db
         .client
         .system_user()
-        .update_unchecked(system_user::id::equals(id), params.to_params())
+        .update_unchecked(system_user::id::equals(id), params)
         .exec()
         .await?
         .into())
@@ -190,6 +194,22 @@ pub async fn paginate(
             })
             .collect::<Vec<DataPower<Info>>>(),
     })
+}
+
+pub async fn set_last_login(db: &Database, user_id: i32, login_ip: String) -> Result<Info> {
+    Ok(db
+        .client
+        .system_user()
+        .update(
+            system_user::id::equals(user_id),
+            vec![
+                system_user::last_login_ip::set(login_ip),
+                system_user::last_login_time::set(Some(now_time())),
+            ],
+        )
+        .exec()
+        .await?
+        .into())
 }
 
 pub async fn upsert_system_user(
@@ -282,6 +302,8 @@ pub struct Info {
     expire_time: Option<String>,
     status: bool,
     created_at: String,
+    last_login_ip: String,
+    last_login_time: Option<String>,
     dept: Option<sys_dept::Info>,
     role: Option<sys_role::Info>,
 }
@@ -331,6 +353,8 @@ impl From<system_user::Data> for Info {
             describe: value.describe,
             expire_time: value.expire_time.map(to_local_string),
             status: value.status,
+            last_login_ip: value.last_login_ip,
+            last_login_time: value.last_login_time.map(to_local_string),
             created_at: to_local_string(value.created_at),
             dept,
             role,
@@ -373,3 +397,5 @@ system_user::partial_unchecked!(UpdateParams {
     expire_time
     status
 });
+
+system_user::partial_unchecked!(UpdatePasswordParams { password salt });
