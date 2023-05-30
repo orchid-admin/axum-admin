@@ -152,11 +152,27 @@ model SystemDict {
   /// 名称
   name       String
   /// 标识
-  field      String
-  /// 值：[{"value": "", "label": ""}]
-  value      String
+  sign       String
   /// 状态
   status     Boolean   @default(true)
+  remark     String    @default("")
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+}
+
+model SystemDictData {
+  id         Int       @id @default(autoincrement())
+  /// 字典ID
+  dict_id    Int
+  /// 名称
+  label      String
+  /// 标识
+  value      Int
+  /// 状态
+  status     Boolean   @default(true)
+  sort       Int       @default(0)
+  remark     String    @default("")
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
   deleted_at DateTime?
