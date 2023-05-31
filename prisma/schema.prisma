@@ -14,38 +14,40 @@ datasource db {
 
 /// 用户表
 model SystemUser {
-  id              Int         @id @default(autoincrement())
+  id              Int               @id @default(autoincrement())
   /// 账户名称
-  username        String      @unique
+  username        String            @unique
   /// 用户昵称
-  nickname        String      @default("")
+  nickname        String            @default("")
   /// 角色ID
   role_id         Int?
-  role            SystemRole? @relation(fields: [role_id], references: [id])
+  role            SystemRole?       @relation(fields: [role_id], references: [id])
   /// 部门ID
   dept_id         Int?
-  dept            SystemDept? @relation(fields: [dept_id], references: [id])
+  dept            SystemDept?       @relation(fields: [dept_id], references: [id])
   /// 手机号
-  phone           String      @default("")
+  phone           String            @default("")
   /// 邮箱
-  email           String      @default("")
+  email           String            @default("")
   /// 性别
-  sex             Int         @default(1)
+  sex             Int               @default(1)
   /// 账户密码
-  password        String      @default("")
+  password        String            @default("")
   /// 账户密码salt
-  salt            String      @default("")
+  salt            String            @default("")
   /// 用户描述
-  describe        String      @default("")
+  describe        String            @default("")
   /// 账户过期
   expire_time     DateTime?
   /// 用户状态
-  status          Boolean     @default(true)
-  last_login_ip   String      @default("")
+  status          Boolean           @default(true)
+  last_login_ip   String            @default("")
   last_login_time DateTime?
-  created_at      DateTime    @default(now())
-  updated_at      DateTime    @updatedAt
+  created_at      DateTime          @default(now())
+  updated_at      DateTime          @updatedAt
   deleted_at      DateTime?
+  SystemLoginLog  SystemLoginLog[]
+  SystemActionLog SystemActionLog[]
 }
 
 /// 角色表
@@ -70,45 +72,46 @@ model SystemRole {
 
 /// 菜单表
 model SystemMenu {
-  id               Int              @id @default(autoincrement())
+  id               Int               @id @default(autoincrement())
   /// 父级ID
-  parent_id        Int              @default(0)
+  parent_id        Int               @default(0)
   /// 菜单类型：1.菜单，2.重定向，3.外链，4.嵌套，5.按钮权限，6.接口权限
-  type             Int              @default(1)
+  type             Int               @default(1)
   /// 菜单名称
   title            String
   /// 菜单图标
-  icon             String           @default("")
+  icon             String            @default("")
   /// 路由名称 (菜单)
-  router_name      String           @default("")
+  router_name      String            @default("")
   ///组件路径 (菜单)
-  router_component String           @default("")
+  router_component String            @default("")
   /// 路由路径 (菜单)
-  router_path      String           @default("")
+  router_path      String            @default("")
   /// 路由重定向 (重定向)
-  redirect         String           @default("")
+  redirect         String            @default("")
   /// 外链地址 (外链)
-  link             String           @default("")
+  link             String            @default("")
   /// 内嵌地址 (嵌套)
-  iframe           String           @default("")
+  iframe           String            @default("")
   /// 权限标识 (按钮权限)
-  btn_auth         String           @default("")
+  btn_auth         String            @default("")
   /// 接口地址 (接口权限)
-  api_url          String           @default("")
+  api_url          String            @default("")
   /// 请求方法 (接口权限)
-  api_method       String           @default("")
+  api_method       String            @default("")
   /// 是否隐藏
-  is_hide          Boolean          @default(false)
+  is_hide          Boolean           @default(false)
   /// 页面缓存
-  is_keep_alive    Boolean          @default(true)
+  is_keep_alive    Boolean           @default(true)
   /// 是否固定
-  is_affix         Boolean          @default(false)
+  is_affix         Boolean           @default(false)
   /// 菜单排序
-  sort             Int              @default(0)
-  created_at       DateTime         @default(now())
-  updated_at       DateTime         @updatedAt
+  sort             Int               @default(0)
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
   deleted_at       DateTime?
   SystemRoleMenu   SystemRoleMenu[]
+  SystemActionLog  SystemActionLog[]
 }
 
 model SystemRoleMenu {
@@ -153,9 +156,9 @@ model SystemDict {
   name           String
   /// 标识
   sign           String
+  remark         String           @default("")
   /// 状态
   status         Boolean          @default(true)
-  remark         String           @default("")
   created_at     DateTime         @default(now())
   updated_at     DateTime         @updatedAt
   deleted_at     DateTime?
@@ -171,11 +174,65 @@ model SystemDictData {
   label      String
   /// 标识
   value      Int
+  remark     String     @default("")
   /// 状态
   status     Boolean    @default(true)
+  /// 排序
   sort       Int        @default(0)
-  remark     String     @default("")
   created_at DateTime   @default(now())
   updated_at DateTime   @updatedAt
+  deleted_at DateTime?
+}
+
+model SystemLoginLog {
+  id              Int        @id @default(autoincrement())
+  /// 管理员ID
+  user_id         Int
+  user            SystemUser @relation(fields: [user_id], references: [id])
+  /// 登录的IP地址
+  ip_address      String
+  /// 登录的IP地址名称
+  ip_address_name String     @default("")
+  /// 登录使用的浏览器user-agent
+  browser_agent   String     @default("")
+  /// 登录的日期时间
+  created_at      DateTime   @default(now())
+}
+
+model SystemActionLog {
+  id              Int        @id @default(autoincrement())
+  /// 管理员ID
+  user_id         Int
+  user            SystemUser @relation(fields: [user_id], references: [id])
+  /// 操作的菜单ID
+  menu_id         Int
+  menu            SystemMenu @relation(fields: [menu_id], references: [id])
+  /// 完整的菜单名称
+  menu_names      String     @default("")
+  /// 操作时的IP地址
+  ip_address      String
+  /// 操作时的IP地址名称
+  ip_address_name String     @default("")
+  /// 操作时的浏览器user-agent
+  browser_agent   String     @default("")
+  /// 操作时的日期时间
+  created_at      DateTime   @default(now())
+}
+
+model Member {
+  id         Int       @id @default(autoincrement())
+  /// 用户邮箱
+  email      String    @unique
+  /// 密码
+  password   String    @default("")
+  /// 余额
+  balance    Decimal   @default(0.00)
+  /// 备注
+  remark     String    @default("")
+  /// 状态
+  status     Boolean   @default(true)
+  /// 注册时间
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
   deleted_at DateTime?
 }

@@ -11,23 +11,22 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    MenuInit,
-    // TsExport,
+    /// 菜单导出
+    MenuExport,
+    /// 菜单导入
+    MenuImport,
 }
 
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
-
-    // You can check for the existence of subcommands, and if found use their
-    // matches just as you would the top level cmd
     match &cli.command {
-        Some(Commands::MenuInit) => {
-            menu::init().await.unwrap();
+        Some(Commands::MenuExport) => {
+            menu::export().await.unwrap();
         }
-        // Some(Commands::TsExport) => {
-        //     ts_export::init();
-        // }
+        Some(Commands::MenuImport) => {
+            menu::import().await.unwrap();
+        }
         None => {}
     };
 }

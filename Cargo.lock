@@ -570,6 +570,7 @@ dependencies = [
  "serde_json",
  "service",
  "tokio",
+ "utils",
 ]
 
 [[package]]

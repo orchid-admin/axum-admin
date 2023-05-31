@@ -157,7 +157,7 @@ fn filter_menu_by_search(query_params: &MenuSearchParams, x: Vec<Info>) -> Vec<I
     }
 }
 
-async fn get_menus(db: &Database) -> Result<Vec<Info>> {
+pub async fn get_menus(db: &Database) -> Result<Vec<Info>> {
     Ok(db
         .client
         .system_menu()
@@ -319,6 +319,10 @@ impl Menu {
 
     pub fn get_title(self) -> String {
         self.info.title
+    }
+
+    pub fn set_parent_id(&mut self, parent_id: i32) {
+        self.info.parent_id = parent_id;
     }
 }
 
