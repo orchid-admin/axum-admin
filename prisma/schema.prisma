@@ -148,32 +148,34 @@ model SystemDept {
 }
 
 model SystemDict {
-  id         Int       @id @default(autoincrement())
+  id             Int              @id @default(autoincrement())
   /// 名称
-  name       String
+  name           String
   /// 标识
-  sign       String
+  sign           String
   /// 状态
-  status     Boolean   @default(true)
-  remark     String    @default("")
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  deleted_at DateTime?
+  status         Boolean          @default(true)
+  remark         String           @default("")
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @updatedAt
+  deleted_at     DateTime?
+  SystemDictData SystemDictData[]
 }
 
 model SystemDictData {
-  id         Int       @id @default(autoincrement())
+  id         Int        @id @default(autoincrement())
   /// 字典ID
   dict_id    Int
+  dict       SystemDict @relation(fields: [dict_id], references: [id])
   /// 名称
   label      String
   /// 标识
   value      Int
   /// 状态
-  status     Boolean   @default(true)
-  sort       Int       @default(0)
-  remark     String    @default("")
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
+  status     Boolean    @default(true)
+  sort       Int        @default(0)
+  remark     String     @default("")
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
   deleted_at DateTime?
 }

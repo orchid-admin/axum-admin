@@ -2,6 +2,8 @@
 mod prisma;
 
 pub mod sys_dept;
+pub mod sys_dict;
+pub mod sys_dict_data;
 pub mod sys_menu;
 pub mod sys_role;
 pub mod sys_role_menu;
