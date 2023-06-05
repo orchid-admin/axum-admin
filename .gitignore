@@ -4,3 +4,4 @@
 /prisma/dev.*
 /service/src/prisma.rs
 /bruh.json
+/logs
