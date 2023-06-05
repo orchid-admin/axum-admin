@@ -6,6 +6,8 @@ pub mod datetime;
 pub mod extracts;
 #[cfg(feature = "jwt")]
 pub mod jwt;
+#[cfg(feature = "logger")]
+pub mod logger;
 #[cfg(feature = "paginate")]
 pub mod paginate;
 #[cfg(feature = "password")]

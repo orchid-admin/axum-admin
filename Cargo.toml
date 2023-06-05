@@ -24,7 +24,8 @@ axum-extra = { version = "0.7", features = ["query"] }
 tokio = { version = "1.17", default-features = false, features = ["macros", "rt-multi-thread"] }
 # log require
 tracing = { version = "0.1" }
-tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "time", "local-time", "fmt", "registry"] }
+tracing-appender = { version="0.2", default-features = false }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "time", "local-time", "fmt", "registry", "std"] }
 console-subscriber = { version = "0.1.8", default-features = false, features = ["env-filter"] }
 chrono = { version = "0.4" }
 time = { version = "0.3", default-features = false, features = ["macros"] }
