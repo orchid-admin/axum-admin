@@ -1,8 +1,6 @@
 use axum::{extract::MatchedPath, http::Request};
 use error::{ErrorCode, Result};
 use std::net::SocketAddr;
-use time::{macros::format_description, UtcOffset};
-use tracing_subscriber::{fmt::time::OffsetTime, prelude::*, EnvFilter};
 
 mod ctls;
 mod error;
@@ -11,20 +9,11 @@ mod state;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    //
-    let local_time = OffsetTime::new(
-        UtcOffset::from_hms(8, 0, 0).unwrap(),
-        format_description!("[year]-[month]-[day] [hour]:[minute]:[second].[subsecond digits:3]"),
-    );
-    let env_filter = EnvFilter::builder().parse_lossy(format!(
+    let env_filter = Some(format!(
         "{}=INFO,tower_http=debug,axum::rejection=trace",
         env!("CARGO_PKG_NAME")
     ));
-
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer().with_timer(local_time))
-        .with(env_filter)
-        .init();
+    utils::logger::init(env_filter);
 
     let captcha = utils::captcha::Captcha::new(2, 10 * 60);
     let jwt = utils::jwt::Jwt::new("secret", 2, 7 * 24 * 60);
