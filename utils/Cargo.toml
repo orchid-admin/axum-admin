@@ -17,6 +17,9 @@ thiserror = { workspace = true, optional = true }
 validator = { workspace = true, optional = true }
 serde_with = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+tracing-appender = { workspace = true, optional = true }
+tracing-subscriber = { workspace = true, optional = true }
 
 [features]
 captcha = ["dep:captcha-rs", "dep:time"]
@@ -26,3 +29,4 @@ password = ["dep:argon2", "dep:password-hash"]
 paginate = ["dep:serde", "dep:serde_with"]
 tree = []
 datetime = ["dep:chrono"]
+logger=["dep:time", "dep:tracing", "dep:tracing-appender", "dep:tracing-subscriber"]

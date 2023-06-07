@@ -19,7 +19,7 @@ tower-http = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 validator = { workspace = true }
-utils = { path = "../../utils", features=["captcha", "extract", "jwt", "password"] }
+utils = { path = "../../utils", features=["captcha", "extract", "jwt", "password", "logger"] }
 service = { path = "../../service" }
 
 [build-dependencies]
