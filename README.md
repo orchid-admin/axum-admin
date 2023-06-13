@@ -1,6 +1,6 @@
-# orchid
+# axum-admin
 
-`orchid` 是基于`axum` + `prisma-client-rust` 开发的后台管理系统服务端实现。
+`axum-admin` 是基于`axum` + `prisma-client-rust` 开发的后台管理系统服务端实现。
 
 ## 相关文档
 
@@ -54,13 +54,6 @@
 
 ## 前端代码及截图
 
-- [orchid_admin_ui](https://github.com/tingfeng-key/orchid_admin_ui)：基于[vue-next-admin](https://gitee.com/lyt-top/vue-next-admin) 二次开发。
+- [orchid-admin-vue3](https://github.com/orchid-admin/orchid-admin-vue3)：基于[vue-next-admin](https://gitee.com/lyt-top/vue-next-admin) 二次开发。
   - 技术栈：vue3.x + CompositionAPI setup 语法糖 + typescript + vite + element plus + vue-router-next + pinia 技术.
   - 适配：手机、平板、pc
-  - 截图
-    - ![Alt text](./asset/image.png)
-    - ![Alt text](./asset/image-1.png)
-    - ![Alt text](./asset/image-2.png)
-    - ![Alt text](./asset/image-5.png)
-    - ![Alt text](./asset/image-3.png)
-    - ![Alt text](./asset/image-4.png)
