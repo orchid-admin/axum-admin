@@ -13,14 +13,14 @@ use crate::{
 pub async fn create(
     db: &Database,
     dict_id: i32,
-    label: String,
+    label: &str,
     value: i32,
     params: DictDataCreateParams,
 ) -> Result<Info> {
     Ok(db
         .client
         .system_dict_data()
-        .create_unchecked(dict_id, label, value, params.to_params())
+        .create_unchecked(dict_id, label.to_owned(), value, params.to_params())
         .exec()
         .await?
         .into())
@@ -47,6 +47,17 @@ pub async fn delete(db: &Database, id: i32) -> Result<Info> {
         .await?
         .into())
 }
+pub async fn batch_delete(db: &Database, ids: Vec<i32>) -> Result<i64> {
+    Ok(db
+        .client
+        .system_dict_data()
+        .update_many(
+            vec![system_dict_data::id::in_vec(ids)],
+            vec![system_dict_data::deleted_at::set(Some(now_time()))],
+        )
+        .exec()
+        .await?)
+}
 pub async fn info(db: &Database, id: i32) -> Result<Info> {
     Ok(db
         .client
@@ -57,8 +68,32 @@ pub async fn info(db: &Database, id: i32) -> Result<Info> {
         .ok_or(ServiceError::DataNotFound)?
         .into())
 }
-
-pub async fn paginate(db: &Database, params: DictSearchParams) -> Result<impl Serialize> {
+pub async fn get_by_label(
+    db: &Database,
+    dict_id: i32,
+    label: &str,
+    dict_data_id: Option<i32>,
+) -> Result<Option<Info>> {
+    let mut params = vec![
+        system_dict_data::dict_id::equals(dict_id),
+        system_dict_data::label::equals(label.to_owned()),
+        system_dict_data::deleted_at::equals(None),
+    ];
+    if let Some(id) = dict_data_id {
+        params.push(system_dict_data::id::not(id))
+    }
+    Ok(db
+        .client
+        .system_dict_data()
+        .find_first(params)
+        .exec()
+        .await?
+        .map(|x| x.into()))
+}
+pub async fn paginate(
+    db: &Database,
+    params: &DictDataSearchParams,
+) -> Result<PaginateResult<Vec<Info>>> {
     let (data, total) = db
         .client
         ._batch((
@@ -77,13 +112,13 @@ pub async fn paginate(db: &Database, params: DictSearchParams) -> Result<impl Se
     })
 }
 
-pub struct DictSearchParams {
+pub struct DictDataSearchParams {
     dict_id: Option<i32>,
     keyword: Option<String>,
     status: Option<bool>,
     paginate: PaginateParams,
 }
-impl DictSearchParams {
+impl DictDataSearchParams {
     fn to_params(&self) -> Vec<system_dict_data::WhereParam> {
         let mut params = vec![system_dict_data::deleted_at::equals(None)];
         if let Some(dict_id) = self.dict_id {

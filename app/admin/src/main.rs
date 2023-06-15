@@ -4,7 +4,6 @@ use std::net::SocketAddr;
 
 mod ctls;
 mod error;
-mod router;
 mod state;
 
 #[tokio::main]
@@ -20,7 +19,7 @@ async fn main() -> Result<()> {
     let prisma_client = service::Database::new(service::DatabaseConfig::default()).await?;
     let state = state::State::build(captcha, jwt, prisma_client);
 
-    let app = router::init(state).await.layer(
+    let app = ctls::router::init(state).await.layer(
         tower_http::trace::TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {
             let matched_path = request
                 .extensions()

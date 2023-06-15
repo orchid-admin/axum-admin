@@ -7,19 +7,19 @@ use utils::{
 
 use crate::{
     prisma::{system_dict, SortOrder},
-    Database, Result, ServiceError,
+    sys_dict_data, Database, Result, ServiceError,
 };
 
 pub async fn create(
     db: &Database,
-    name: String,
-    sign: String,
+    name: &str,
+    sign: &str,
     params: DictCreateParams,
 ) -> Result<Info> {
     Ok(db
         .client
         .system_dict()
-        .create_unchecked(name, sign, params.to_params())
+        .create_unchecked(name.to_owned(), sign.to_owned(), params.to_params())
         .exec()
         .await?
         .into())
@@ -56,8 +56,39 @@ pub async fn info(db: &Database, id: i32) -> Result<Info> {
         .ok_or(ServiceError::DataNotFound)?
         .into())
 }
+pub async fn get_by_sign(db: &Database, sign: &str, dict_id: Option<i32>) -> Result<Option<Info>> {
+    let mut params = vec![
+        system_dict::sign::equals(sign.to_owned()),
+        system_dict::deleted_at::equals(None),
+    ];
+    if let Some(id) = dict_id {
+        params.push(system_dict::id::not(id));
+    }
+    Ok(db
+        .client
+        .system_dict()
+        .find_first(params)
+        .exec()
+        .await?
+        .map(|x| x.into()))
+}
+pub async fn all(db: &Database) -> Result<Vec<Info>> {
+    Ok(db
+        .client
+        .system_dict()
+        .find_many(vec![system_dict::deleted_at::equals(None)])
+        .order_by(system_dict::id::order(SortOrder::Asc))
+        .exec()
+        .await?
+        .into_iter()
+        .map(|x| x.into())
+        .collect::<Vec<Info>>())
+}
 
-pub async fn paginate(db: &Database, params: DictSearchParams) -> Result<impl Serialize> {
+pub async fn paginate(
+    db: &Database,
+    params: &DictSearchParams,
+) -> Result<PaginateResult<Vec<Info>>> {
     let (data, total) = db
         .client
         ._batch((
@@ -112,10 +143,25 @@ pub struct Info {
     status: bool,
     remark: String,
     created_at: String,
+    data: Vec<sys_dict_data::Info>,
+}
+
+impl Info {
+    pub fn data_is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
 }
 
 impl From<system_dict::Data> for Info {
     fn from(value: system_dict::Data) -> Self {
+        let data = match value.system_dict_data() {
+            Ok(data) => data
+                .iter()
+                .filter(|x| x.deleted_at.eq(&None))
+                .map(|x| x.clone().into())
+                .collect::<Vec<sys_dict_data::Info>>(),
+            _ => vec![],
+        };
         Self {
             id: value.id,
             name: value.name,
@@ -123,6 +169,7 @@ impl From<system_dict::Data> for Info {
             status: value.status,
             remark: value.remark,
             created_at: to_local_string(value.created_at),
+            data,
         }
     }
 }
