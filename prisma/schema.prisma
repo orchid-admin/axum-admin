@@ -9,7 +9,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:dev.db"
+  url      = "file:dev1.db"
 }
 
 /// 用户表
@@ -150,6 +150,7 @@ model SystemDept {
   SystemUser   SystemUser[]
 }
 
+/// 字典表
 model SystemDict {
   id             Int              @id @default(autoincrement())
   /// 名称
@@ -165,6 +166,7 @@ model SystemDict {
   SystemDictData SystemDictData[]
 }
 
+/// 字典数据表
 model SystemDictData {
   id         Int        @id @default(autoincrement())
   /// 字典ID
@@ -184,6 +186,7 @@ model SystemDictData {
   deleted_at DateTime?
 }
 
+/// 登录记录表
 model SystemLoginLog {
   id              Int        @id @default(autoincrement())
   /// 管理员ID
@@ -199,6 +202,7 @@ model SystemLoginLog {
   created_at      DateTime   @default(now())
 }
 
+/// 操作记录表
 model SystemActionLog {
   id              Int        @id @default(autoincrement())
   /// 管理员ID
@@ -219,6 +223,7 @@ model SystemActionLog {
   created_at      DateTime   @default(now())
 }
 
+/// 用户表
 model Member {
   id         Int       @id @default(autoincrement())
   /// 用户邮箱
