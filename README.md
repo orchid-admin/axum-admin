@@ -26,7 +26,11 @@
    cargo prisma db push
    ```
 
-3. 运行
+3. 创建超级管理员角色、账号和菜单数据
+   ```rust
+   cargo run init
+   ```
+4. 运行
    ```rust
    cargo run -p admin
    ```
