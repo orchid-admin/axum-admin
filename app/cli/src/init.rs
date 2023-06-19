@@ -39,7 +39,7 @@ pub async fn exec() -> service::Result<()> {
                 &db,
                 "超级管理员",
                 &role_sign_input,
-                sys_role::RoleCreateParams {
+                sys_role::CreateParams {
                     sort: Some(0),
                     describe: Some(String::new()),
                     status: Some(true),
