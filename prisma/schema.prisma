@@ -225,20 +225,64 @@ model SystemActionLog {
   created_at      DateTime   @default(now())
 }
 
+/// 验证码存活表
+model SystemCodeValid {
+  id         Int       @id @default(autoincrement())
+  /// 发送类型
+  type       Int       @default(0)
+  /// code
+  code       String
+  /// 附加字符
+  attach     String    @default("")
+  /// 到期时间
+  valid_time DateTime  @default(now())
+  /// 创建时间
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+}
+
 /// 用户表
 model Member {
-  id         Int       @id @default(autoincrement())
+  id                 Int          @id @default(autoincrement())
+  /// 唯一标识编号（可用作邀请码）
+  unique_code        String
   /// 用户邮箱
-  email      String    @unique
+  email              String       @unique
   /// 密码
-  password   String    @default("")
+  password           String       @default("")
   /// 余额
-  balance    Decimal   @default(0.00)
+  balance            Decimal      @default(0.00)
+  /// 积分
+  integral           Int          @default(0)
   /// 备注
-  remark     String    @default("")
+  remark             String       @default("")
   /// 状态
-  status     Boolean   @default(true)
+  status             Boolean      @default(true)
   /// 注册时间
+  created_at         DateTime     @default(now())
+  updated_at         DateTime     @updatedAt
+  deleted_at         DateTime?
+  member_team_owner  MemberTeam[] @relation("owner")
+  member_team_parent MemberTeam[] @relation("parent")
+  member_team_user   MemberTeam[] @relation("user")
+}
+
+/// 用户推广表
+model MemberTeam {
+  id         Int       @id @default(autoincrement())
+  /// 团队所属用户ID
+  owner_uid  Int
+  owner      Member    @relation(name: "owner", fields: [owner_uid], references: [id])
+  /// 推广用户ID
+  parent_id  Int
+  parent     Member    @relation(name: "parent", fields: [parent_id], references: [id])
+  /// 被推广用户ID
+  uid        Int
+  user       Member    @relation(name: "user", fields: [uid], references: [id])
+  /// 被推广用户在团队的级别
+  level      Int
+  /// 推广时间
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
   deleted_at DateTime?
