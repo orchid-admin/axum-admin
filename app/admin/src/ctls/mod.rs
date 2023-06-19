@@ -1,7 +1,9 @@
 mod auth;
+mod sys_action_log;
 mod sys_dept;
 mod sys_dict;
 mod sys_dict_data;
+mod sys_login_log;
 mod sys_menu;
 mod sys_role;
 mod sys_user;
@@ -42,6 +44,8 @@ pub mod router {
             .merge(sys_dept::routers(state.clone()))
             .merge(sys_dict::routers(state.clone()))
             .merge(sys_dict_data::routers(state.clone()))
+            .merge(sys_login_log::routers(state.clone()))
+            .merge(sys_action_log::routers(state.clone()))
             .layer(middleware::from_fn_with_state(
                 state.clone(),
                 middlewares::access_matched_path,
@@ -62,13 +66,39 @@ pub mod router {
 mod middlewares {
     use crate::{error::ErrorCode, state::AppState};
     use axum::{
+        async_trait,
         body::Body,
-        extract::{rejection::MatchedPathRejection, MatchedPath, State},
-        http::{header::AUTHORIZATION, Request, StatusCode},
+        extract::{rejection::MatchedPathRejection, FromRequestParts, MatchedPath, State},
+        http::{
+            header::{AUTHORIZATION, USER_AGENT},
+            request::Parts,
+            HeaderValue, Request, StatusCode,
+        },
         middleware::Next,
         response::{IntoResponse, Response},
         Extension, RequestExt,
     };
+
+    pub struct ExtractUserAgent(pub HeaderValue);
+
+    #[async_trait]
+    impl<S> FromRequestParts<S> for ExtractUserAgent
+    where
+        S: Send + Sync,
+    {
+        type Rejection = Response;
+
+        async fn from_request_parts(
+            parts: &mut Parts,
+            _state: &S,
+        ) -> Result<Self, Self::Rejection> {
+            if let Some(user_agent) = parts.headers.get(USER_AGENT) {
+                Ok(ExtractUserAgent(user_agent.clone()))
+            } else {
+                Err(ErrorCode::Other("请求错误").into_response())
+            }
+        }
+    }
 
     /// TOKEN检查
     pub async fn token_check<B>(

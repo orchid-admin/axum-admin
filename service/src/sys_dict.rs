@@ -10,12 +10,7 @@ use crate::{
     sys_dict_data, Database, Result, ServiceError,
 };
 
-pub async fn create(
-    db: &Database,
-    name: &str,
-    sign: &str,
-    params: DictCreateParams,
-) -> Result<Info> {
+pub async fn create(db: &Database, name: &str, sign: &str, params: CreateParams) -> Result<Info> {
     Ok(db
         .client
         .system_dict()
@@ -25,7 +20,7 @@ pub async fn create(
         .into())
 }
 
-pub async fn update(db: &Database, id: i32, params: DictUpdateParams) -> Result<Info> {
+pub async fn update(db: &Database, id: i32, params: UpdateParams) -> Result<Info> {
     Ok(db
         .client
         .system_dict()
@@ -85,10 +80,7 @@ pub async fn all(db: &Database) -> Result<Vec<Info>> {
         .collect::<Vec<Info>>())
 }
 
-pub async fn paginate(
-    db: &Database,
-    params: &DictSearchParams,
-) -> Result<PaginateResult<Vec<Info>>> {
+pub async fn paginate(db: &Database, params: &SearchParams) -> Result<PaginateResult<Vec<Info>>> {
     let (data, total) = db
         .client
         ._batch((
@@ -107,12 +99,12 @@ pub async fn paginate(
     })
 }
 
-pub struct DictSearchParams {
+pub struct SearchParams {
     keyword: Option<String>,
     status: Option<bool>,
     paginate: PaginateParams,
 }
-impl DictSearchParams {
+impl SearchParams {
     fn to_params(&self) -> Vec<system_dict::WhereParam> {
         let mut params = vec![system_dict::deleted_at::equals(None)];
         if let Some(keyword) = &self.keyword {
@@ -173,11 +165,11 @@ impl From<system_dict::Data> for Info {
         }
     }
 }
-system_dict::partial_unchecked!(DictCreateParams {
+system_dict::partial_unchecked!(CreateParams {
     status
     remark
 });
-system_dict::partial_unchecked!(DictUpdateParams {
+system_dict::partial_unchecked!(UpdateParams {
     name
     sign
     status

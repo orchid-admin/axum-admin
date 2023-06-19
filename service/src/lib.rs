@@ -1,9 +1,11 @@
 #[allow(unused, warnings)]
 mod prisma;
 
+pub mod sys_action_log;
 pub mod sys_dept;
 pub mod sys_dict;
 pub mod sys_dict_data;
+pub mod sys_login_log;
 pub mod sys_menu;
 pub mod sys_role;
 pub mod sys_role_menu;
@@ -44,24 +46,6 @@ pub struct DataPower<T: serde::Serialize> {
     #[serde(flatten)]
     data: T,
 }
-
-// pub const ADMIN_USERNAME: &str = "admin";
-// pub const ADMIN_ROLE_SIGN: &str = "admin";
-
-// pub type Database = std::sync::Arc<prisma::PrismaClient>;
-// pub async fn new_client() -> Result<Database> {
-//     let database = std::sync::Arc::new(prisma::PrismaClient::_builder().build().await?);
-//     let role = sys_role::upsert(&database, "超级管理员", ADMIN_ROLE_SIGN).await?;
-//     sys_user::upsert_system_user(
-//         &database,
-//         ADMIN_USERNAME,
-//         "sfWTwt9NxLNapTmoIdzfUbbRODMk266kc7ArZcF2EsQ",
-//         "nodiZ0cU0ER5Vg3n+rOsoQ",
-//         role.id,
-//     )
-//     .await?;
-//     Ok(database)
-// }
 
 #[derive(Debug, Clone)]
 pub struct DatabaseConfig {

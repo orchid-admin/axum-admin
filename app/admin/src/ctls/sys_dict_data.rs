@@ -116,7 +116,7 @@ struct SearchRequest {
     #[serde(flatten)]
     paginate: PaginateParams,
 }
-impl From<SearchRequest> for sys_dict_data::DictDataSearchParams {
+impl From<SearchRequest> for sys_dict_data::SearchParams {
     fn from(value: SearchRequest) -> Self {
         Self::new(value.dict_id, value.keyword, value.status, value.paginate)
     }
@@ -132,7 +132,7 @@ struct CreateRequest {
     sort: i32,
 }
 
-impl From<CreateRequest> for sys_dict_data::DictDataCreateParams {
+impl From<CreateRequest> for sys_dict_data::CreateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             remark: value.remark,
@@ -141,7 +141,7 @@ impl From<CreateRequest> for sys_dict_data::DictDataCreateParams {
     }
 }
 
-impl From<CreateRequest> for sys_dict_data::DictDataUpdateParams {
+impl From<CreateRequest> for sys_dict_data::UpdateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             label: Some(value.label),

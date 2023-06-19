@@ -100,7 +100,7 @@ async fn get_menu(
         sys_menu::get_user_slide_menu_trees(
             &state.db,
             claims.user_id,
-            &sys_menu::MenuSearchParams::new(
+            &sys_menu::SearchParams::new(
                 None,
                 Some(vec![
                     sys_menu::MenuType::Menu,
@@ -139,7 +139,7 @@ struct SearchRequest {
     #[serde(flatten)]
     paginate: PaginateParams,
 }
-impl From<SearchRequest> for sys_user::UserSearchParams {
+impl From<SearchRequest> for sys_user::SearchParams {
     fn from(value: SearchRequest) -> Self {
         Self::new(
             value.keyword,

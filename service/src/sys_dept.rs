@@ -9,11 +9,7 @@ use utils::{
     tree::{get_tree_start_parent_id, vec_to_tree_into, Tree, TreeInfo},
 };
 
-pub async fn create(
-    db: &Database,
-    name: &str,
-    params: DeptCreateParams,
-) -> Result<system_dept::Data> {
+pub async fn create(db: &Database, name: &str, params: CreateParams) -> Result<system_dept::Data> {
     Ok(db
         .client
         .system_dept()
@@ -22,7 +18,7 @@ pub async fn create(
         .await?)
 }
 
-pub async fn update(db: &Database, id: i32, params: DeptUpdateParams) -> Result<system_dept::Data> {
+pub async fn update(db: &Database, id: i32, params: UpdateParams) -> Result<system_dept::Data> {
     Ok(db
         .client
         .system_dept()
@@ -62,7 +58,7 @@ pub async fn delete(db: &Database, id: i32) -> Result<system_dept::Data> {
 pub async fn get_dept_children_ids(db: &Database, parent_dept_id: i32) -> Result<Vec<i32>> {
     let infos = get_dept_tree(
         db,
-        &DeptSearchParams {
+        &SearchParams {
             keyword: None,
             status: None,
         },
@@ -87,7 +83,7 @@ fn get_children_ids(tree: Vec<Dept>, parent_dept_ids: &mut Vec<i32>) -> &mut Vec
 pub async fn get_user_dept_trees(
     db: &Database,
     user_id: i32,
-    params: &DeptSearchParams,
+    params: &SearchParams,
 ) -> Result<Vec<Dept>> {
     let infos = get_depts_by_user_id(db, user_id, params).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
@@ -108,13 +104,13 @@ pub async fn info(db: &Database, id: i32) -> Result<Info> {
         .into())
 }
 
-async fn get_dept_tree(db: &Database, params: &DeptSearchParams) -> Result<Vec<Dept>> {
+async fn get_dept_tree(db: &Database, params: &SearchParams) -> Result<Vec<Dept>> {
     let infos = get_depts(db, params).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
     Ok(vec_to_tree_into::<Dept, Info>(&parent_id, &infos))
 }
 
-async fn get_depts(db: &Database, params: &DeptSearchParams) -> Result<Vec<Info>> {
+async fn get_depts(db: &Database, params: &SearchParams) -> Result<Vec<Info>> {
     Ok(db
         .client
         .system_dept()
@@ -130,7 +126,7 @@ async fn get_depts(db: &Database, params: &DeptSearchParams) -> Result<Vec<Info>
 async fn get_depts_by_user_id(
     db: &Database,
     user_id: i32,
-    params: &DeptSearchParams,
+    params: &SearchParams,
 ) -> Result<Vec<Info>> {
     let user_permission = sys_user::get_current_user_info(db, user_id).await?;
 
@@ -154,7 +150,7 @@ async fn get_depts_by_user_id(
 async fn get_role_dept(
     db: &Database,
     role: sys_role::Info,
-    params: &DeptSearchParams,
+    params: &SearchParams,
 ) -> Result<Vec<Info>> {
     if role.get_sign().as_str().eq(&db.config.admin_role_sign) {
         return get_depts(db, params).await;
@@ -237,11 +233,11 @@ impl From<system_dept::Data> for Info {
 }
 
 #[derive(Debug)]
-pub struct DeptSearchParams {
+pub struct SearchParams {
     keyword: Option<String>,
     status: Option<bool>,
 }
-impl DeptSearchParams {
+impl SearchParams {
     fn to_params(&self) -> Vec<system_dept::WhereParam> {
         let mut params = vec![system_dept::deleted_at::equals(None)];
         if let Some(keyword) = &self.keyword {
@@ -263,7 +259,7 @@ impl DeptSearchParams {
     }
 }
 
-system_dept::partial_unchecked!(DeptCreateParams {
+system_dept::partial_unchecked!(CreateParams {
     parent_id
     person_name
     person_phone
@@ -273,7 +269,7 @@ system_dept::partial_unchecked!(DeptCreateParams {
     sort
 });
 
-system_dept::partial_unchecked!(DeptUpdateParams {
+system_dept::partial_unchecked!(UpdateParams {
     parent_id
     name
     person_name

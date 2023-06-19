@@ -161,7 +161,7 @@ pub async fn info(db: &Database, id: i32) -> Result<Info> {
 
 pub async fn paginate(
     db: &Database,
-    params: UserSearchParams,
+    params: SearchParams,
 ) -> Result<PaginateResult<Vec<DataPower<Info>>>> {
     let mut query_params = params.to_params();
     if let Some(dept_id) = params.dept_id {
@@ -196,14 +196,14 @@ pub async fn paginate(
     })
 }
 
-pub async fn set_last_login(db: &Database, user_id: i32, login_ip: String) -> Result<Info> {
+pub async fn set_last_login(db: &Database, user_id: i32, login_ip: &str) -> Result<Info> {
     Ok(db
         .client
         .system_user()
         .update(
             system_user::id::equals(user_id),
             vec![
-                system_user::last_login_ip::set(login_ip),
+                system_user::last_login_ip::set(login_ip.to_owned()),
                 system_user::last_login_time::set(Some(now_time())),
             ],
         )
@@ -239,7 +239,7 @@ pub async fn upsert_system_user(
 }
 
 #[derive(Debug, Deserialize)]
-pub struct UserSearchParams {
+pub struct SearchParams {
     keyword: Option<String>,
     status: Option<bool>,
     role_id: Option<i32>,
@@ -247,7 +247,7 @@ pub struct UserSearchParams {
     #[serde(flatten)]
     paginate: PaginateParams,
 }
-impl UserSearchParams {
+impl SearchParams {
     fn to_params(&self) -> Vec<system_user::WhereParam> {
         let mut params = vec![system_user::deleted_at::equals(None)];
         if let Some(k) = &self.keyword {
@@ -362,7 +362,7 @@ impl From<system_user::Data> for Info {
     }
 }
 #[derive(Debug, Serialize)]
-pub struct UserPermission {
+pub struct Permission {
     pub user: Info,
     pub role: Option<system_role::Data>,
     pub dept: Option<system_dept::Data>,

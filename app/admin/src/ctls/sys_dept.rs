@@ -9,7 +9,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
-use service::sys_dept::{self, DeptCreateParams, DeptUpdateParams};
+use service::sys_dept;
 use utils::extracts::ValidatorJson;
 use validator::Validate;
 
@@ -67,7 +67,7 @@ struct SearchRequest {
     keyword: Option<String>,
     status: Option<bool>,
 }
-impl From<SearchRequest> for sys_dept::DeptSearchParams {
+impl From<SearchRequest> for sys_dept::SearchParams {
     fn from(value: SearchRequest) -> Self {
         Self::new(value.keyword, value.status)
     }
@@ -84,7 +84,7 @@ struct CreateRequest {
     sort: i32,
 }
 
-impl From<CreateRequest> for DeptCreateParams {
+impl From<CreateRequest> for sys_dept::CreateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             parent_id: Some(value.parent_id),
@@ -97,7 +97,7 @@ impl From<CreateRequest> for DeptCreateParams {
         }
     }
 }
-impl From<CreateRequest> for DeptUpdateParams {
+impl From<CreateRequest> for sys_dept::UpdateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             parent_id: Some(value.parent_id),

@@ -71,7 +71,7 @@ struct SearchRequest {
     menu_types: Option<Vec<i32>>,
 }
 
-impl From<SearchRequest> for sys_menu::MenuSearchParams {
+impl From<SearchRequest> for sys_menu::SearchParams {
     fn from(value: SearchRequest) -> Self {
         Self::new(
             value.keyword,
@@ -103,7 +103,7 @@ struct CreateRequest {
     sort: i32,
 }
 
-impl From<CreateRequest> for sys_menu::MenuCreateParams {
+impl From<CreateRequest> for sys_menu::CreateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             parent_id: Some(value.parent_id),
@@ -126,7 +126,7 @@ impl From<CreateRequest> for sys_menu::MenuCreateParams {
     }
 }
 
-impl From<CreateRequest> for sys_menu::MenuUpdateParams {
+impl From<CreateRequest> for sys_menu::UpdateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             parent_id: Some(value.parent_id),

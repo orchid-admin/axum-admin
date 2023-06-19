@@ -9,7 +9,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:dev1.db"
+  url      = "file:dev.db"
 }
 
 /// 用户表
@@ -189,6 +189,8 @@ model SystemDictData {
 /// 登录记录表
 model SystemLoginLog {
   id              Int        @id @default(autoincrement())
+  /// 登录类型
+  type            Int        @default(1)
   /// 管理员ID
   user_id         Int
   user            SystemUser @relation(fields: [user_id], references: [id])

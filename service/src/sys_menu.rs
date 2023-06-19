@@ -9,7 +9,7 @@ use utils::{
     tree::{get_tree_start_parent_id, vec_to_tree_into, Tree, TreeInfo},
 };
 
-pub async fn create(db: &Database, title: &str, params: MenuCreateParams) -> Result<Info> {
+pub async fn create(db: &Database, title: &str, params: CreateParams) -> Result<Info> {
     Ok(db
         .client
         .system_menu()
@@ -19,7 +19,7 @@ pub async fn create(db: &Database, title: &str, params: MenuCreateParams) -> Res
         .into())
 }
 
-pub async fn update(db: &Database, id: i32, params: MenuUpdateParams) -> Result<Info> {
+pub async fn update(db: &Database, id: i32, params: UpdateParams) -> Result<Info> {
     Ok(db
         .client
         .system_menu()
@@ -59,7 +59,7 @@ pub async fn info(db: &Database, id: i32) -> Result<Info> {
 pub async fn get_user_menu_trees(
     db: &Database,
     user_id: i32,
-    query_params: &MenuSearchParams,
+    query_params: &SearchParams,
 ) -> Result<Vec<Menu>> {
     let infos = get_user_menus(db, user_id, query_params).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
@@ -69,7 +69,7 @@ pub async fn get_user_menu_trees(
 pub async fn get_user_slide_menu_trees(
     db: &Database,
     user_id: i32,
-    query_params: &MenuSearchParams,
+    query_params: &SearchParams,
 ) -> Result<Vec<UserMenu>> {
     let infos = get_user_menus(db, user_id, query_params).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
@@ -116,14 +116,14 @@ pub async fn get_menu_by_role(db: &Database, role: Option<sys_role::Info>) -> Re
 async fn get_user_menus(
     db: &Database,
     user_id: i32,
-    query_params: &MenuSearchParams,
+    query_params: &SearchParams,
 ) -> Result<Vec<Info>> {
     get_menus_by_user_id(db, user_id)
         .await
         .map(|x| filter_menu_by_search(query_params, x))
 }
 
-fn filter_menu_by_search(query_params: &MenuSearchParams, x: Vec<Info>) -> Vec<Info> {
+fn filter_menu_by_search(query_params: &SearchParams, x: Vec<Info>) -> Vec<Info> {
     let type_filters = match &query_params.menu_types {
         Some(t) => x
             .into_iter()
@@ -420,12 +420,12 @@ impl TreeInfo for Info {
     }
 }
 
-pub struct MenuSearchParams {
+pub struct SearchParams {
     keyword: Option<String>,
     menu_types: Option<Vec<MenuType>>,
 }
 
-impl MenuSearchParams {
+impl SearchParams {
     pub fn new(keyword: Option<String>, menu_types: Option<Vec<MenuType>>) -> Self {
         Self {
             keyword,
@@ -434,7 +434,7 @@ impl MenuSearchParams {
     }
 }
 
-system_menu::partial_unchecked!(MenuCreateParams {
+system_menu::partial_unchecked!(CreateParams {
     parent_id
     r#type
     icon
@@ -453,7 +453,7 @@ system_menu::partial_unchecked!(MenuCreateParams {
     sort
 });
 
-impl From<Menu> for MenuCreateParams {
+impl From<Menu> for CreateParams {
     fn from(value: Menu) -> Self {
         Self {
             parent_id: Some(value.info.parent_id),
@@ -476,7 +476,7 @@ impl From<Menu> for MenuCreateParams {
     }
 }
 
-system_menu::partial_unchecked!(MenuUpdateParams {
+system_menu::partial_unchecked!(UpdateParams {
     parent_id
     r#type
     title

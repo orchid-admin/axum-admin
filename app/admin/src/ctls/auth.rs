@@ -1,16 +1,19 @@
-use super::Claims;
+use std::net::SocketAddr;
+
+use super::{middlewares::ExtractUserAgent, Claims};
 use crate::{
     error::{ErrorCode, Result},
     state::AppState,
 };
 use axum::{
     extract::{ConnectInfo, State},
+    http::HeaderValue,
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use service::sys_user;
+use service::{sys_login_log, sys_user};
 use utils::{
     captcha::UseType as CaptchaUseType, extracts::ValidatorJson, jwt::UseType as JwtUseType,
     password::Password,
@@ -29,6 +32,7 @@ pub fn routers<S>(state: AppState) -> Router<S> {
 /// 账户登录
 async fn login_by_account(
     State(state): State<AppState>,
+    ExtractUserAgent(user_agent): ExtractUserAgent,
     ConnectInfo(addr): ConnectInfo<std::net::SocketAddr>,
     ValidatorJson(params): ValidatorJson<LoginByAccountRequest>,
 ) -> Result<impl IntoResponse> {
@@ -50,14 +54,22 @@ async fn login_by_account(
                     if !verify_result {
                         return Err(ErrorCode::Other("用户名或密码错误"));
                     }
-                    println!("{:#?}", addr);
-                    sys_user::set_last_login(&state.db, user.get_id(), addr.to_string()).await?;
 
                     let token = state
                         .jwt
                         .lock()
                         .await
                         .generate(JwtUseType::Admin, Claims::build(user.get_id()))?;
+
+                    login_after(
+                        sys_login_log::LoginType::Account,
+                        addr,
+                        state.clone(),
+                        user.get_id(),
+                        user_agent,
+                    )
+                    .await?;
+
                     Ok(Json(LoginReponse {
                         token,
                         username: Some(user.get_username()),
@@ -70,11 +82,40 @@ async fn login_by_account(
     }
 }
 
+/// 登录成功之后操作
+async fn login_after(
+    login_type: sys_login_log::LoginType,
+    addr: SocketAddr,
+    state: AppState,
+    user_id: i32,
+    user_agent: HeaderValue,
+) -> Result<()> {
+    let ip_address = addr.to_string();
+    sys_user::set_last_login(&state.db, user_id, &ip_address).await?;
+    sys_login_log::create(
+        &state.db,
+        user_id,
+        &ip_address,
+        sys_login_log::CreateParams {
+            r#type: Some(login_type.into()),
+            ip_address_name: None,
+            browser_agent: match user_agent.to_str() {
+                Ok(x) => Some(x.to_owned()),
+                Err(_) => None,
+            },
+        },
+    )
+    .await?;
+    Ok(())
+}
 /// 手机号登录
 async fn login_by_mobile(
     State(state): State<AppState>,
+    ExtractUserAgent(user_agent): ExtractUserAgent,
+    ConnectInfo(addr): ConnectInfo<std::net::SocketAddr>,
     ValidatorJson(params): ValidatorJson<LoginByMobileRequest>,
 ) -> Result<impl IntoResponse> {
+    // todo
     match sys_user::find_user_by_phone(&state.db, &params.mobile).await? {
         Some(user) => {
             let token = state
@@ -82,6 +123,16 @@ async fn login_by_mobile(
                 .lock()
                 .await
                 .generate(JwtUseType::Admin, Claims::build(user.get_id()))?;
+
+            login_after(
+                sys_login_log::LoginType::Mobile,
+                addr,
+                state.clone(),
+                user.get_id(),
+                user_agent,
+            )
+            .await?;
+
             Ok(Json(LoginReponse {
                 token,
                 username: Some(user.get_username()),
@@ -94,13 +145,25 @@ async fn login_by_mobile(
 /// 扫码登录
 async fn login_by_qrcode(
     State(state): State<AppState>,
+    // ExtractUserAgent(user_agent): ExtractUserAgent,
+    // ConnectInfo(addr): ConnectInfo<std::net::SocketAddr>,
     ValidatorJson(_params): ValidatorJson<LoginByAccountRequest>,
 ) -> Result<impl IntoResponse> {
+    // todo
     let token = state
         .jwt
         .lock()
         .await
         .generate(JwtUseType::Admin, Claims::build(1))?;
+
+    // login_after(
+    //     sys_login_log::LoginType::QrCode,
+    //     addr,
+    //     state.clone(),
+    //     user.get_id(),
+    //     user_agent,
+    // )
+    // .await?;
     Ok(Json(LoginReponse {
         token,
         username: None,
