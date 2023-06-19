@@ -35,11 +35,9 @@
    cargo run -p admin
    ```
 
-## todo list
+## 功能列表
 
 - [x] 用户名 + 密码登录
-- [ ] 手机号码 + 验证码登录
-- [ ] APP 二维码登录
 - [x] 菜单管理
 - [x] 角色管理
 - [x] 部门管理
@@ -47,14 +45,10 @@
 - [x] 字典管理
 - [x] 登录日志管理
 - [x] 操作日志管理
-- [ ] 用户管理
-- [ ] 商户管理
-- [ ] CURD 代码生成
 - [x] cli-数据初始化
 - [x] cli-菜单数据导入导出
-- [ ] 系统设置（formily）
 
-## 前端代码及截图
+## 前端实现列表
 
 - [orchid-admin-vue3](https://github.com/orchid-admin/orchid-admin-vue3)：基于[vue-next-admin](https://gitee.com/lyt-top/vue-next-admin) 二次开发。
   - 技术栈：vue3.x + CompositionAPI setup 语法糖 + typescript + vite + element plus + vue-router-next + pinia 技术.
