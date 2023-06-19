@@ -15,7 +15,7 @@ pub async fn create(
     dict_id: i32,
     label: &str,
     value: i32,
-    params: DictDataCreateParams,
+    params: CreateParams,
 ) -> Result<Info> {
     Ok(db
         .client
@@ -26,7 +26,7 @@ pub async fn create(
         .into())
 }
 
-pub async fn update(db: &Database, id: i32, params: DictDataUpdateParams) -> Result<Info> {
+pub async fn update(db: &Database, id: i32, params: UpdateParams) -> Result<Info> {
     Ok(db
         .client
         .system_dict_data()
@@ -90,10 +90,7 @@ pub async fn get_by_label(
         .await?
         .map(|x| x.into()))
 }
-pub async fn paginate(
-    db: &Database,
-    params: &DictDataSearchParams,
-) -> Result<PaginateResult<Vec<Info>>> {
+pub async fn paginate(db: &Database, params: &SearchParams) -> Result<PaginateResult<Vec<Info>>> {
     let (data, total) = db
         .client
         ._batch((
@@ -112,13 +109,13 @@ pub async fn paginate(
     })
 }
 
-pub struct DictDataSearchParams {
+pub struct SearchParams {
     dict_id: Option<i32>,
     keyword: Option<String>,
     status: Option<bool>,
     paginate: PaginateParams,
 }
-impl DictDataSearchParams {
+impl SearchParams {
     fn to_params(&self) -> Vec<system_dict_data::WhereParam> {
         let mut params = vec![system_dict_data::deleted_at::equals(None)];
         if let Some(dict_id) = self.dict_id {
@@ -178,11 +175,11 @@ impl From<system_dict_data::Data> for Info {
         }
     }
 }
-system_dict_data::partial_unchecked!(DictDataCreateParams {
+system_dict_data::partial_unchecked!(CreateParams {
     status
     remark
 });
-system_dict_data::partial_unchecked!(DictDataUpdateParams {
+system_dict_data::partial_unchecked!(UpdateParams {
     label
     value
     status

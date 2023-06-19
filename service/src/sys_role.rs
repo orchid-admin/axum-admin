@@ -13,7 +13,7 @@ pub async fn create(
     db: &Database,
     name: &str,
     sign: &str,
-    params: RoleCreateParams,
+    params: CreateParams,
     menus: Vec<sys_menu::Info>,
 ) -> Result<system_role::Data> {
     // todo wait PCR 0.7
@@ -51,7 +51,7 @@ pub async fn create(
 pub async fn update(
     db: &Database,
     id: i32,
-    params: RoleUpdateParams,
+    params: UpdateParams,
     menus: Vec<sys_menu::Info>,
 ) -> Result<system_role::Data> {
     let result = db
@@ -149,7 +149,7 @@ pub async fn all(db: &Database) -> Result<impl Serialize> {
     Ok(data)
 }
 
-pub async fn paginate(db: &Database, params: &RoleSearchParams) -> Result<impl Serialize> {
+pub async fn paginate(db: &Database, params: &SearchParams) -> Result<impl Serialize> {
     let (data, total) = db
         .client
         ._batch((
@@ -212,14 +212,14 @@ pub async fn get_by_sign(
 }
 
 #[derive(Debug, Deserialize)]
-pub struct RoleSearchParams {
+pub struct SearchParams {
     keyword: Option<String>,
     status: Option<bool>,
     #[serde(flatten)]
     paginate: PaginateParams,
 }
 
-impl RoleSearchParams {
+impl SearchParams {
     fn to_params(&self) -> Vec<system_role::WhereParam> {
         let mut params = vec![system_role::deleted_at::equals(None)];
         if let Some(keyword) = &self.keyword {
@@ -278,13 +278,13 @@ impl From<system_role::Data> for Info {
     }
 }
 
-system_role::partial_unchecked!(RoleCreateParams {
+system_role::partial_unchecked!(CreateParams {
     sort
     describe
     status
 });
 
-system_role::partial_unchecked!(RoleUpdateParams {
+system_role::partial_unchecked!(UpdateParams {
     name
     sign
     sort

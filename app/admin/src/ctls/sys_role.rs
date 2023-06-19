@@ -130,7 +130,7 @@ struct SearchRequest {
     #[serde(flatten)]
     paginate: PaginateParams,
 }
-impl From<SearchRequest> for sys_role::RoleSearchParams {
+impl From<SearchRequest> for sys_role::SearchParams {
     fn from(value: SearchRequest) -> Self {
         Self::new(value.keyword, value.status, value.paginate)
     }
@@ -148,7 +148,7 @@ struct CreateRequest {
     menu_ids: Option<Vec<i32>>,
 }
 
-impl From<CreateRequest> for sys_role::RoleCreateParams {
+impl From<CreateRequest> for sys_role::CreateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             sort: Some(value.sort),
@@ -158,7 +158,7 @@ impl From<CreateRequest> for sys_role::RoleCreateParams {
     }
 }
 
-impl From<CreateRequest> for sys_role::RoleUpdateParams {
+impl From<CreateRequest> for sys_role::UpdateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             name: Some(value.name),
