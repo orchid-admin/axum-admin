@@ -68,7 +68,9 @@ mod middlewares {
     use axum::{
         async_trait,
         body::Body,
-        extract::{rejection::MatchedPathRejection, FromRequestParts, MatchedPath, State},
+        extract::{
+            rejection::MatchedPathRejection, ConnectInfo, FromRequestParts, MatchedPath, State,
+        },
         http::{
             header::{AUTHORIZATION, USER_AGENT},
             request::Parts,
@@ -79,8 +81,8 @@ mod middlewares {
         Extension, RequestExt,
     };
 
+    /// 获取请求的User-Agent
     pub struct ExtractUserAgent(pub HeaderValue);
-
     #[async_trait]
     impl<S> FromRequestParts<S> for ExtractUserAgent
     where
@@ -150,6 +152,8 @@ mod middlewares {
     /// 权限检查
     pub async fn access_matched_path(
         Extension(claims): Extension<super::Claims>,
+        ExtractUserAgent(user_agent): ExtractUserAgent,
+        ConnectInfo(addr): ConnectInfo<std::net::SocketAddr>,
         State(state): State<AppState>,
         mut req: Request<Body>,
         next: Next<Body>,
@@ -166,7 +170,34 @@ mod middlewares {
                 )
                 .await
                 {
-                    Ok(true) => next.run(req).await,
+                    Ok(true) => {
+                        if let Ok(Some(menu_info)) = service::sys_menu::get_menu_id_by_api_request(
+                            &state.db,
+                            req.method().as_str(),
+                            path.as_str(),
+                        )
+                        .await
+                        {
+                            service::sys_action_log::create(
+                                &state.db,
+                                claims.user_id,
+                                menu_info.0,
+                                &addr.to_string(),
+                                service::sys_action_log::CreateParams {
+                                    menu_names: Some(menu_info.1),
+                                    ip_address_name: None,
+                                    browser_agent: match user_agent.to_str() {
+                                        Ok(x) => Some(x.to_owned()),
+                                        Err(_) => None,
+                                    },
+                                },
+                            )
+                            .await
+                            .unwrap();
+                        }
+
+                        next.run(req).await
+                    }
                     _ => ErrorCode::Other("权限不足").into_response(),
                 }
             }
