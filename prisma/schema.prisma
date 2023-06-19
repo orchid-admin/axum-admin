@@ -259,6 +259,8 @@ model Member {
   remark             String       @default("")
   /// 状态
   status             Boolean      @default(true)
+  last_login_ip      String       @default("")
+  last_login_time    DateTime?
   /// 注册时间
   created_at         DateTime     @default(now())
   updated_at         DateTime     @updatedAt
@@ -283,6 +285,22 @@ model MemberTeam {
   /// 被推广用户在团队的级别
   level      Int
   /// 推广时间
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+}
+
+/// 用户资金账单表
+model MemberBill {
+  id         Int       @id @default(autoincrement())
+  /// 用户ID
+  uid        Int
+  /// 种类
+  type       Int
+  /// 类型：0.减少，1.增加
+  pm         Int       @default(1)
+  /// 额度
+  number     Decimal   @default(0.00)
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
   deleted_at DateTime?
