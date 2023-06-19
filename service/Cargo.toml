@@ -10,3 +10,4 @@ prisma-client-rust = { workspace = true }
 serde = { workspace = true }
 serde_repr = { workspace = true }
 utils = { path = "../utils", features=["paginate", "tree", "datetime"] }
+async-recursion = { workspace = true }

@@ -113,6 +113,29 @@ pub async fn get_menu_by_role(db: &Database, role: Option<sys_role::Info>) -> Re
     })
 }
 
+pub async fn get_menu_id_by_api_request(
+    db: &Database,
+    method: &str,
+    path: &str,
+) -> Result<Option<(i32, String)>> {
+    let info: Option<Info> = db
+        .client
+        .system_menu()
+        .find_first(vec![
+            system_menu::api_method::equals(method.to_owned()),
+            system_menu::api_url::equals(path.to_owned()),
+        ])
+        .exec()
+        .await?
+        .map(|x| x.into());
+    if let Some(x) = info {
+        let mut parent_names = get_parent_names(db, x.parent_id).await?;
+        parent_names.push(x.title);
+        return Ok(Some((x.id, parent_names.join("/"))));
+    }
+    Ok(None)
+}
+
 async fn get_user_menus(
     db: &Database,
     user_id: i32,
@@ -174,6 +197,22 @@ pub async fn get_menus(db: &Database) -> Result<Vec<Info>> {
 async fn get_menus_by_user_id(db: &Database, user_id: i32) -> Result<Vec<Info>> {
     let user_permission = sys_user::get_current_user_info(db, user_id).await?;
     get_menu_by_role(db, user_permission.get_role()).await
+}
+
+#[async_recursion::async_recursion]
+async fn get_parent_names(db: &Database, menu_id: i32) -> Result<Vec<String>> {
+    let mut parent_names = vec![];
+    let menu = db
+        .client
+        .system_menu()
+        .find_unique(system_menu::id::equals(menu_id))
+        .exec()
+        .await?;
+    if let Some(x) = menu {
+        parent_names = get_parent_names(db, x.parent_id).await?;
+        parent_names.push(x.title);
+    }
+    Ok(parent_names)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
