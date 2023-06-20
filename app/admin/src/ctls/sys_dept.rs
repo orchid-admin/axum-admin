@@ -9,7 +9,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
-use service::sys_dept;
+use service::system_dept_service;
 use utils::extracts::ValidatorJson;
 use validator::Validate;
 
@@ -29,13 +29,13 @@ async fn index(
     Query(params): Query<SearchRequest>,
 ) -> Result<impl IntoResponse> {
     Ok(Json(
-        sys_dept::get_user_dept_trees(&state.db, claims.user_id, &params.into()).await?,
+        system_dept_service::get_user_dept_trees(&state.db, claims.user_id, &params.into()).await?,
     ))
 }
 
 /// 获取菜单详情
 async fn info(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
-    Ok(Json(sys_dept::info(&state.db, id).await?))
+    Ok(Json(system_dept_service::info(&state.db, id).await?))
 }
 
 /// 新增
@@ -43,7 +43,7 @@ async fn create(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<CreateRequest>,
 ) -> Result<impl IntoResponse> {
-    sys_dept::create(&state.db, &params.name.clone(), params.into()).await?;
+    system_dept_service::create(&state.db, &params.name.clone(), params.into()).await?;
     Ok(Empty::new())
 }
 
@@ -53,12 +53,12 @@ async fn update(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<CreateRequest>,
 ) -> Result<impl IntoResponse> {
-    sys_dept::update(&state.db, id, params.into()).await?;
+    system_dept_service::update(&state.db, id, params.into()).await?;
     Ok(Empty::new())
 }
 
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
-    sys_dept::delete(&state.db, id).await?;
+    system_dept_service::delete(&state.db, id).await?;
     Ok(Empty::new())
 }
 
@@ -67,7 +67,7 @@ struct SearchRequest {
     keyword: Option<String>,
     status: Option<bool>,
 }
-impl From<SearchRequest> for sys_dept::SearchParams {
+impl From<SearchRequest> for system_dept_service::SearchParams {
     fn from(value: SearchRequest) -> Self {
         Self::new(value.keyword, value.status)
     }
@@ -84,7 +84,7 @@ struct CreateRequest {
     sort: i32,
 }
 
-impl From<CreateRequest> for sys_dept::CreateParams {
+impl From<CreateRequest> for system_dept_service::CreateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             parent_id: Some(value.parent_id),
@@ -97,7 +97,7 @@ impl From<CreateRequest> for sys_dept::CreateParams {
         }
     }
 }
-impl From<CreateRequest> for sys_dept::UpdateParams {
+impl From<CreateRequest> for system_dept_service::UpdateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             parent_id: Some(value.parent_id),

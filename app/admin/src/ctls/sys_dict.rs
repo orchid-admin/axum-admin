@@ -11,7 +11,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
-use service::sys_dict;
+use service::system_dict_service;
 use utils::{extracts::ValidatorJson, paginate::PaginateParams};
 use validator::Validate;
 
@@ -28,7 +28,7 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
 
 /// 获取所有
 async fn all(State(state): State<AppState>) -> Result<impl IntoResponse> {
-    let data = sys_dict::all(&state.db).await?;
+    let data = system_dict_service::all(&state.db).await?;
     Ok(Json(data))
 }
 
@@ -37,7 +37,7 @@ async fn index(
     State(state): State<AppState>,
     Query(params): Query<SearchRequest>,
 ) -> Result<impl IntoResponse> {
-    let data = sys_dict::paginate(&state.db, &params.into()).await?;
+    let data = system_dict_service::paginate(&state.db, &params.into()).await?;
     Ok(Json(data))
 }
 
@@ -46,7 +46,7 @@ async fn info(
     State(state): State<AppState>,
     extract::Path(id): extract::Path<i32>,
 ) -> Result<impl IntoResponse> {
-    Ok(Json(sys_dict::info(&state.db, id).await?))
+    Ok(Json(system_dict_service::info(&state.db, id).await?))
 }
 
 /// 创建
@@ -54,7 +54,7 @@ async fn create(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<CreateRequest>,
 ) -> Result<impl IntoResponse> {
-    if sys_dict::get_by_sign(&state.db, &params.sign, None)
+    if system_dict_service::get_by_sign(&state.db, &params.sign, None)
         .await?
         .is_some()
     {
@@ -63,7 +63,7 @@ async fn create(
             params.sign
         )));
     }
-    sys_dict::create(
+    system_dict_service::create(
         &state.db,
         &params.name.clone(),
         &params.sign.clone(),
@@ -79,7 +79,7 @@ async fn update(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<CreateRequest>,
 ) -> Result<impl IntoResponse> {
-    if sys_dict::get_by_sign(&state.db, &params.sign, Some(id))
+    if system_dict_service::get_by_sign(&state.db, &params.sign, Some(id))
         .await?
         .is_some()
     {
@@ -88,17 +88,17 @@ async fn update(
             params.sign
         )));
     }
-    sys_dict::update(&state.db, id, params.into()).await?;
+    system_dict_service::update(&state.db, id, params.into()).await?;
     Ok(Empty::new())
 }
 
 /// 删除
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
-    let info = sys_dict::info(&state.db, id).await?;
+    let info = system_dict_service::info(&state.db, id).await?;
     if !info.data_is_empty() {
         return Err(ErrorCode::Other("该字典存在数据，不可删除"));
     }
-    sys_dict::delete(&state.db, id).await?;
+    system_dict_service::delete(&state.db, id).await?;
     Ok(Empty::new())
 }
 
@@ -109,7 +109,7 @@ struct SearchRequest {
     #[serde(flatten)]
     paginate: PaginateParams,
 }
-impl From<SearchRequest> for sys_dict::SearchParams {
+impl From<SearchRequest> for system_dict_service::SearchParams {
     fn from(value: SearchRequest) -> Self {
         Self::new(value.keyword, value.status, value.paginate)
     }
@@ -123,7 +123,7 @@ struct CreateRequest {
     status: bool,
 }
 
-impl From<CreateRequest> for sys_dict::CreateParams {
+impl From<CreateRequest> for system_dict_service::CreateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             remark: value.remark,
@@ -132,7 +132,7 @@ impl From<CreateRequest> for sys_dict::CreateParams {
     }
 }
 
-impl From<CreateRequest> for sys_dict::UpdateParams {
+impl From<CreateRequest> for system_dict_service::UpdateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             name: Some(value.name),

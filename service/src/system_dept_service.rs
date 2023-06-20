@@ -1,6 +1,6 @@
 use crate::{
     prisma::{system_dept, SortOrder},
-    sys_role, sys_user, Database, Result, ServiceError,
+    system_role_service, system_user_service, Database, Result, ServiceError,
 };
 use prisma_client_rust::or;
 use serde::Serialize;
@@ -41,13 +41,13 @@ pub async fn delete(db: &Database, id: i32) -> Result<system_dept::Data> {
                 )
                 .exec()
                 .await?;
-            let user_ids = sys_user::get_users_by_dept_id(db, id)
+            let user_ids = system_user_service::get_users_by_dept_id(db, id)
                 .await?
                 .into_iter()
                 .map(|x| x.get_id())
                 .collect::<Vec<i32>>();
             if !user_ids.is_empty() {
-                sys_user::batch_set_dept(db, None, user_ids).await?;
+                system_user_service::batch_set_dept(db, None, user_ids).await?;
             }
             Ok(info)
         })
@@ -128,7 +128,7 @@ async fn get_depts_by_user_id(
     user_id: i32,
     params: &SearchParams,
 ) -> Result<Vec<Info>> {
-    let user_permission = sys_user::get_current_user_info(db, user_id).await?;
+    let user_permission = system_user_service::get_current_user_info(db, user_id).await?;
 
     Ok(
         match (user_permission.get_role(), user_permission.get_dept()) {
@@ -149,7 +149,7 @@ async fn get_depts_by_user_id(
 
 async fn get_role_dept(
     db: &Database,
-    role: sys_role::Info,
+    role: system_role_service::Info,
     params: &SearchParams,
 ) -> Result<Vec<Info>> {
     if role.get_sign().as_str().eq(&db.config.admin_role_sign) {

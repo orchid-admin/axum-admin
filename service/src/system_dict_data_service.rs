@@ -1,13 +1,12 @@
+use crate::{
+    prisma::{system_dict_data, SortOrder},
+    system_dict_service, Database, Result, ServiceError,
+};
 use prisma_client_rust::or;
 use serde::Serialize;
 use utils::{
     datetime::{now_time, to_local_string},
     paginate::{PaginateParams, PaginateResult},
-};
-
-use crate::{
-    prisma::{system_dict_data, SortOrder},
-    sys_dict, Database, Result, ServiceError,
 };
 
 pub async fn create(
@@ -72,14 +71,14 @@ pub async fn get_by_label(
     db: &Database,
     dict_id: i32,
     label: &str,
-    dict_data_id: Option<i32>,
+    filter_id: Option<i32>,
 ) -> Result<Option<Info>> {
     let mut params = vec![
         system_dict_data::dict_id::equals(dict_id),
         system_dict_data::label::equals(label.to_owned()),
         system_dict_data::deleted_at::equals(None),
     ];
-    if let Some(id) = dict_data_id {
+    if let Some(id) = filter_id {
         params.push(system_dict_data::id::not(id))
     }
     Ok(db
@@ -148,7 +147,7 @@ impl SearchParams {
 pub struct Info {
     id: i32,
     dict_id: i32,
-    dict: Option<sys_dict::Info>,
+    dict: Option<system_dict_service::Info>,
     label: String,
     value: i32,
     status: bool,

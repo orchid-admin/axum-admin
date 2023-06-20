@@ -162,7 +162,7 @@ mod middlewares {
             req.extract_parts::<MatchedPath>().await;
         Ok(match matched_path {
             Ok(path) => {
-                match service::sys_user::check_user_permission(
+                match service::system_user_service::check_user_permission(
                     &state.db,
                     claims.user_id,
                     req.method().as_str(),
@@ -171,19 +171,20 @@ mod middlewares {
                 .await
                 {
                     Ok(true) => {
-                        if let Ok(Some(menu_info)) = service::sys_menu::get_menu_id_by_api_request(
-                            &state.db,
-                            req.method().as_str(),
-                            path.as_str(),
-                        )
-                        .await
+                        if let Ok(Some(menu_info)) =
+                            service::system_menu_service::get_menu_id_by_api_request(
+                                &state.db,
+                                req.method().as_str(),
+                                path.as_str(),
+                            )
+                            .await
                         {
-                            service::sys_action_log::create(
+                            service::system_action_log_service::create(
                                 &state.db,
                                 claims.user_id,
                                 menu_info.0,
                                 &addr.to_string(),
-                                service::sys_action_log::CreateParams {
+                                service::system_action_log_service::CreateParams {
                                     menu_names: Some(menu_info.1),
                                     ip_address_name: None,
                                     browser_agent: match user_agent.to_str() {

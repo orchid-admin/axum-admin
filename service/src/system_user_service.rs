@@ -4,7 +4,8 @@ use crate::{
         system_user::{self, UncheckedSetParam},
         SortOrder,
     },
-    sys_dept, sys_menu, sys_role, DataPower, Database, Result, ServiceError,
+    system_dept_service, system_menu_service, system_role_service, DataPower, Database, Result,
+    ServiceError,
 };
 use prisma_client_rust::or;
 use serde::{Deserialize, Serialize};
@@ -69,9 +70,9 @@ pub async fn check_user_permission(
             return Ok(true);
         }
     }
-    let auths = sys_menu::filter_menu_types(
-        Some(vec![sys_menu::MenuType::Api]),
-        sys_menu::get_menu_by_role(db, role.clone().map(|x| x.into())).await?,
+    let auths = system_menu_service::filter_menu_types(
+        Some(vec![system_menu_service::MenuType::Api]),
+        system_menu_service::get_menu_by_role(db, role.clone().map(|x| x.into())).await?,
     )
     .into_iter()
     .filter(|x| x.api_method.to_uppercase().eq(method) && x.api_url.eq(path))
@@ -166,7 +167,7 @@ pub async fn paginate(
     let mut query_params = params.to_params();
     if let Some(dept_id) = params.dept_id {
         query_params.push(system_user::dept_id::in_vec(
-            sys_dept::get_dept_children_ids(db, dept_id).await?,
+            system_dept_service::get_dept_children_ids(db, dept_id).await?,
         ));
     }
     let (data, total): (Vec<system_user::Data>, i64) = db
@@ -304,8 +305,8 @@ pub struct Info {
     created_at: String,
     last_login_ip: String,
     last_login_time: Option<String>,
-    dept: Option<sys_dept::Info>,
-    role: Option<sys_role::Info>,
+    dept: Option<system_dept_service::Info>,
+    role: Option<system_role_service::Info>,
 }
 
 impl Info {
@@ -321,10 +322,10 @@ impl Info {
     pub fn get_salt(&self) -> String {
         self.salt.clone()
     }
-    pub fn get_role(&self) -> Option<sys_role::Info> {
+    pub fn get_role(&self) -> Option<system_role_service::Info> {
         self.role.clone()
     }
-    pub fn get_dept(&self) -> Option<sys_dept::Info> {
+    pub fn get_dept(&self) -> Option<system_dept_service::Info> {
         self.dept.clone()
     }
 }

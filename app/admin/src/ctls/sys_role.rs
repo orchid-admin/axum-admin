@@ -12,7 +12,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
-use service::{sys_menu, sys_role};
+use service::{system_menu_service, system_role_service};
 use utils::{extracts::ValidatorJson, paginate::PaginateParams};
 use validator::Validate;
 
@@ -29,7 +29,7 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
 
 /// 获取所有
 async fn all(State(state): State<AppState>) -> Result<impl IntoResponse> {
-    let data = sys_role::all(&state.db).await?;
+    let data = system_role_service::all(&state.db).await?;
     Ok(Json(data))
 }
 
@@ -38,7 +38,7 @@ async fn index(
     State(state): State<AppState>,
     Query(params): Query<SearchRequest>,
 ) -> Result<impl IntoResponse> {
-    let data = sys_role::paginate(&state.db, &params.into()).await?;
+    let data = system_role_service::paginate(&state.db, &params.into()).await?;
     Ok(Json(data))
 }
 
@@ -47,7 +47,7 @@ async fn info(
     State(state): State<AppState>,
     extract::Path(id): extract::Path<i32>,
 ) -> Result<impl IntoResponse> {
-    Ok(Json(sys_role::info(&state.db, id).await?))
+    Ok(Json(system_role_service::info(&state.db, id).await?))
 }
 
 /// 创建
@@ -56,7 +56,7 @@ async fn create(
     Extension(claims): Extension<Claims>,
     ValidatorJson(params): ValidatorJson<CreateRequest>,
 ) -> Result<impl IntoResponse> {
-    if sys_role::get_by_sign(&state.db, &params.sign, None)
+    if system_role_service::get_by_sign(&state.db, &params.sign, None)
         .await?
         .is_some()
     {
@@ -65,13 +65,13 @@ async fn create(
             params.sign
         )));
     }
-    let user_menus = sys_menu::get_user_menus_by_menu_ids(
+    let user_menus = system_menu_service::get_user_menus_by_menu_ids(
         &state.db,
         claims.user_id,
         params.menu_ids.clone().unwrap_or_default(),
     )
     .await?;
-    sys_role::create(
+    system_role_service::create(
         &state.db,
         &params.name.clone(),
         &params.sign.clone(),
@@ -89,7 +89,7 @@ async fn update(
     Extension(claims): Extension<Claims>,
     ValidatorJson(params): ValidatorJson<CreateRequest>,
 ) -> Result<impl IntoResponse> {
-    match sys_role::get_by_sign(&state.db, &params.sign, Some(id)).await? {
+    match system_role_service::get_by_sign(&state.db, &params.sign, Some(id)).await? {
         Some(_) => {
             return Err(ErrorCode::OtherString(format!(
                 "标识为{}的角色已存在",
@@ -97,29 +97,29 @@ async fn update(
             )));
         }
         None => {
-            let info = sys_role::info(&state.db, id).await?;
+            let info = system_role_service::info(&state.db, id).await?;
             if info.get_sign().eq(&state.db.config().get_admin_role_sign()) {
                 return Err(ErrorCode::Other("不可编辑系统管理员"));
             }
         }
     }
-    let user_menus = sys_menu::get_user_menus_by_menu_ids(
+    let user_menus = system_menu_service::get_user_menus_by_menu_ids(
         &state.db,
         claims.user_id,
         params.menu_ids.clone().unwrap_or_default(),
     )
     .await?;
-    sys_role::update(&state.db, id, params.into(), user_menus).await?;
+    system_role_service::update(&state.db, id, params.into(), user_menus).await?;
     Ok(Empty::new())
 }
 
 /// 删除
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
-    let info = sys_role::info(&state.db, id).await?;
+    let info = system_role_service::info(&state.db, id).await?;
     if info.get_sign().eq(&state.db.config().get_admin_role_sign()) {
         return Err(ErrorCode::Other("不可删除系统管理员"));
     }
-    sys_role::delete(&state.db, id).await?;
+    system_role_service::delete(&state.db, id).await?;
     Ok(Empty::new())
 }
 
@@ -130,7 +130,7 @@ struct SearchRequest {
     #[serde(flatten)]
     paginate: PaginateParams,
 }
-impl From<SearchRequest> for sys_role::SearchParams {
+impl From<SearchRequest> for system_role_service::SearchParams {
     fn from(value: SearchRequest) -> Self {
         Self::new(value.keyword, value.status, value.paginate)
     }
@@ -148,7 +148,7 @@ struct CreateRequest {
     menu_ids: Option<Vec<i32>>,
 }
 
-impl From<CreateRequest> for sys_role::CreateParams {
+impl From<CreateRequest> for system_role_service::CreateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             sort: Some(value.sort),
@@ -158,7 +158,7 @@ impl From<CreateRequest> for sys_role::CreateParams {
     }
 }
 
-impl From<CreateRequest> for sys_role::UpdateParams {
+impl From<CreateRequest> for system_role_service::UpdateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             name: Some(value.name),

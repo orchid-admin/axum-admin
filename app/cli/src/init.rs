@@ -1,4 +1,4 @@
-use service::{sys_menu, sys_role, sys_user, Database};
+use service::{system_menu_service, system_role_service, system_user_service, Database};
 use utils::password::Password;
 
 pub async fn exec() -> service::Result<()> {
@@ -6,7 +6,7 @@ pub async fn exec() -> service::Result<()> {
     let role_sign = db_config.get_admin_role_sign();
     let user_sign = db_config.get_admin_username();
     let db = service::Database::new(db_config).await?;
-    let mut role = sys_role::get_by_sign(&db, &role_sign, None).await?;
+    let mut role = system_role_service::get_by_sign(&db, &role_sign, None).await?;
     let mut role_sign_input = String::new();
     if role.is_none() {
         role_sign_input = get_input_role_sign(&db, role_sign_input, &role_sign).await?;
@@ -15,7 +15,7 @@ pub async fn exec() -> service::Result<()> {
     let mut username_sign_input = String::new();
     let mut username_password_input = String::new();
 
-    let user = sys_user::find_user_by_username(&db, &user_sign).await?;
+    let user = system_user_service::find_user_by_username(&db, &user_sign).await?;
 
     if user.is_none() {
         username_sign_input = get_input_username_sign(&db, username_sign_input, &user_sign).await?;
@@ -35,11 +35,11 @@ pub async fn exec() -> service::Result<()> {
     if !role_sign_input.is_empty() {
         println!("正在创建角色...");
         role = Some(
-            sys_role::create(
+            system_role_service::create(
                 &db,
                 "超级管理员",
                 &role_sign_input,
-                sys_role::CreateParams {
+                system_role_service::CreateParams {
                     sort: Some(0),
                     describe: Some(String::new()),
                     status: Some(true),
@@ -55,10 +55,10 @@ pub async fn exec() -> service::Result<()> {
         println!("正在创建登录账户...");
         let (password, slat) =
             Password::generate_hash_salt(username_password_input.as_bytes()).unwrap();
-        sys_user::create(
+        system_user_service::create(
             &db,
             &username_sign_input,
-            sys_user::CreateParams {
+            system_user_service::CreateParams {
                 nickname: Some("超级管理员".to_owned()),
                 role_id: Some(role.map(|x| x.id)),
                 dept_id: None,
@@ -77,7 +77,7 @@ pub async fn exec() -> service::Result<()> {
     }
 
     println!("正在检测菜单...");
-    let menus = sys_menu::get_menus(&db).await?;
+    let menus = system_menu_service::get_menus(&db).await?;
     if menus.is_empty() {
         println!("正在创建菜单数据...");
         crate::menu::import().await?;
@@ -100,7 +100,7 @@ async fn get_input_role_sign(
     if role_sign_input.is_empty() {
         role_sign_input = default_role_sign.to_owned();
     }
-    let role = sys_role::get_by_sign(&db, &role_sign_input, None).await?;
+    let role = system_role_service::get_by_sign(&db, &role_sign_input, None).await?;
     if role.is_some() {
         println!("数据已存在，请重新输入");
         return get_input_role_sign(db, role_sign_input, default_role_sign).await;
@@ -119,7 +119,7 @@ async fn get_input_username_sign(
     if username_input.is_empty() {
         username_input = default_role_sign.to_owned();
     }
-    let role = sys_user::find_user_by_username(db, &username_input).await?;
+    let role = system_user_service::find_user_by_username(db, &username_input).await?;
     if role.is_some() {
         println!("用户名已存在，请重新输入");
         return get_input_role_sign(db, username_input, default_role_sign).await;
