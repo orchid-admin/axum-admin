@@ -1,16 +1,20 @@
 #[allow(unused, warnings)]
-mod prisma;
+mod generate_prisma;
 
-pub mod sys_action_log;
-pub mod sys_dept;
-pub mod sys_dict;
-pub mod sys_dict_data;
-pub mod sys_login_log;
-pub mod sys_menu;
-pub mod sys_role;
-pub mod sys_role_menu;
-pub mod sys_user;
+pub mod member_bill_service;
+pub mod member_service;
+pub mod member_team_service;
+pub mod system_action_log_service;
+pub mod system_dept_service;
+pub mod system_dict_data_service;
+pub mod system_dict_service;
+pub mod system_login_log_server;
+pub mod system_menu_service;
+pub mod system_role_menu_service;
+pub mod system_role_service;
+pub mod system_user_service;
 
+use generate_prisma as prisma;
 pub type Result<T> = std::result::Result<T, ServiceError>;
 
 #[derive(Debug)]
@@ -47,6 +51,7 @@ pub struct DataPower<T: serde::Serialize> {
     data: T,
 }
 
+/// 数据库配置
 #[derive(Debug, Clone)]
 pub struct DatabaseConfig {
     database_url: Option<String>,
@@ -70,6 +75,7 @@ impl DatabaseConfig {
         self.admin_role_sign.clone()
     }
 }
+/// 外部使用的数据库链接结构
 pub struct Database {
     config: DatabaseConfig,
     client: prisma::PrismaClient,

@@ -1,6 +1,6 @@
 use crate::{
     prisma::{system_role, system_role_menu, SortOrder},
-    sys_menu, sys_role_menu, DataPower, Database, Result, ServiceError,
+    system_menu_service, system_role_menu_service, DataPower, Database, Result, ServiceError,
 };
 use prisma_client_rust::or;
 use serde::{Deserialize, Serialize};
@@ -14,7 +14,7 @@ pub async fn create(
     name: &str,
     sign: &str,
     params: CreateParams,
-    menus: Vec<sys_menu::Info>,
+    menus: Vec<system_menu_service::Info>,
 ) -> Result<system_role::Data> {
     // todo wait PCR 0.7
     // link: https://github.com/Brendonovich/prisma-client-rust/issues/44
@@ -52,7 +52,7 @@ pub async fn update(
     db: &Database,
     id: i32,
     params: UpdateParams,
-    menus: Vec<sys_menu::Info>,
+    menus: Vec<system_menu_service::Info>,
 ) -> Result<system_role::Data> {
     let result = db
         .client
@@ -64,7 +64,7 @@ pub async fn update(
                 .exec()
                 .await?;
 
-            let current_menus = sys_role_menu::get_role_menus(db, role.id).await?;
+            let current_menus = system_role_menu_service::get_role_menus(db, role.id).await?;
 
             if !menus.is_empty() {
                 let wait_creates = menus
@@ -89,8 +89,12 @@ pub async fn update(
 
                 if !wait_deletes.is_empty() {
                     for wait_delete in wait_deletes {
-                        sys_role_menu::delete_by_role_id_menu_id(db, wait_delete.0, wait_delete.1)
-                            .await?;
+                        system_role_menu_service::delete_by_role_id_menu_id(
+                            db,
+                            wait_delete.0,
+                            wait_delete.1,
+                        )
+                        .await?;
                     }
                 }
 
@@ -102,7 +106,7 @@ pub async fn update(
                         .await?;
                 }
             } else if !current_menus.is_empty() {
-                sys_role_menu::delete_by_role_id(db, id).await?;
+                system_role_menu_service::delete_by_role_id(db, id).await?;
             }
 
             Ok(role)
@@ -124,7 +128,7 @@ pub async fn delete(db: &Database, id: i32) -> Result<system_role::Data> {
                 )
                 .exec()
                 .await?;
-            sys_role_menu::delete_by_role_id(db, id).await?;
+            system_role_menu_service::delete_by_role_id(db, id).await?;
             Ok(info)
         })
         .await?;
@@ -191,7 +195,7 @@ pub async fn info(db: &Database, id: i32) -> Result<Info> {
         .await?
         .ok_or(ServiceError::DataNotFound)?;
     let mut role: Info = data.clone().into();
-    role.menu_ids = sys_menu::get_menu_by_role(db, Some(data.into()))
+    role.menu_ids = system_menu_service::get_menu_by_role(db, Some(data.into()))
         .await?
         .into_iter()
         .map(|x| x.id)

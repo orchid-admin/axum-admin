@@ -1,6 +1,7 @@
 use crate::{
     prisma::{system_menu, SortOrder},
-    sys_role, sys_role_menu, sys_user, Database, Result, ServiceError,
+    system_role_menu_service, system_role_service, system_user_service, Database, Result,
+    ServiceError,
 };
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
@@ -100,13 +101,16 @@ pub fn filter_menu_types(menu_type: Option<Vec<MenuType>>, x: Vec<Info>) -> Vec<
         None => x,
     }
 }
-pub async fn get_menu_by_role(db: &Database, role: Option<sys_role::Info>) -> Result<Vec<Info>> {
+pub async fn get_menu_by_role(
+    db: &Database,
+    role: Option<system_role_service::Info>,
+) -> Result<Vec<Info>> {
     Ok(match role {
         Some(role) => {
             if role.get_sign().as_str().eq(&db.config.admin_role_sign) {
                 get_menus(db).await?
             } else {
-                sys_role_menu::get_role_menus(db, role.get_id()).await?
+                system_role_menu_service::get_role_menus(db, role.get_id()).await?
             }
         }
         None => vec![],
@@ -195,7 +199,7 @@ pub async fn get_menus(db: &Database) -> Result<Vec<Info>> {
 }
 
 async fn get_menus_by_user_id(db: &Database, user_id: i32) -> Result<Vec<Info>> {
-    let user_permission = sys_user::get_current_user_info(db, user_id).await?;
+    let user_permission = system_user_service::get_current_user_info(db, user_id).await?;
     get_menu_by_role(db, user_permission.get_role()).await
 }
 

@@ -9,7 +9,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::{Deserialize, Serialize};
-use service::{sys_menu, sys_user};
+use service::{system_menu_service, system_user_service};
 use utils::{extracts::ValidatorJson, paginate::PaginateParams, password::Password};
 use validator::Validate;
 
@@ -30,12 +30,14 @@ async fn index(
     State(state): State<AppState>,
     Query(params): Query<SearchRequest>,
 ) -> Result<impl IntoResponse> {
-    Ok(Json(sys_user::paginate(&state.db, params.into()).await?))
+    Ok(Json(
+        system_user_service::paginate(&state.db, params.into()).await?,
+    ))
 }
 
 /// 详情
 async fn info(State(state): State<AppState>, Path(id): Path<i32>) -> Result<impl IntoResponse> {
-    Ok(Json(sys_user::info(&state.db, id).await?))
+    Ok(Json(system_user_service::info(&state.db, id).await?))
 }
 
 /// 新增
@@ -43,7 +45,7 @@ async fn create(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<CreateRequest>,
 ) -> Result<impl IntoResponse> {
-    sys_user::create(&state.db, &params.username.clone(), params.into()).await?;
+    system_user_service::create(&state.db, &params.username.clone(), params.into()).await?;
     Ok(Empty::new())
 }
 
@@ -53,10 +55,10 @@ async fn update(
     Path(id): Path<i32>,
     ValidatorJson(params): ValidatorJson<CreateRequest>,
 ) -> Result<impl IntoResponse> {
-    sys_user::update(
+    system_user_service::update(
         &state.db,
         id,
-        Into::<sys_user::UpdateParams>::into(params).to_params(),
+        Into::<system_user_service::UpdateParams>::into(params).to_params(),
     )
     .await?;
     Ok(Empty::new())
@@ -64,7 +66,7 @@ async fn update(
 
 /// 删除
 async fn del(State(state): State<AppState>, Path(id): Path<i32>) -> Result<impl IntoResponse> {
-    sys_user::delete(&state.db, id).await?;
+    system_user_service::delete(&state.db, id).await?;
     Ok(Empty::new())
 }
 
@@ -74,7 +76,7 @@ async fn update_password(
     Extension(claims): Extension<Claims>,
     ValidatorJson(params): ValidatorJson<UpdatePasswordRequest>,
 ) -> Result<impl IntoResponse> {
-    let info = sys_user::info(&state.db, claims.user_id).await?;
+    let info = system_user_service::info(&state.db, claims.user_id).await?;
     if !Password::verify_password(
         info.get_password(),
         info.get_salt(),
@@ -82,10 +84,10 @@ async fn update_password(
     )? {
         return Err(crate::error::ErrorCode::Other("旧密码错误"));
     }
-    sys_user::update(
+    system_user_service::update(
         &state.db,
         claims.user_id,
-        Into::<sys_user::UpdatePasswordParams>::into(params).to_params(),
+        Into::<system_user_service::UpdatePasswordParams>::into(params).to_params(),
     )
     .await?;
     Ok(Empty::new())
@@ -97,16 +99,16 @@ async fn get_menu(
     Extension(claims): Extension<Claims>,
 ) -> Result<impl IntoResponse> {
     Ok(Json(
-        sys_menu::get_user_slide_menu_trees(
+        system_menu_service::get_user_slide_menu_trees(
             &state.db,
             claims.user_id,
-            &sys_menu::SearchParams::new(
+            &system_menu_service::SearchParams::new(
                 None,
                 Some(vec![
-                    sys_menu::MenuType::Menu,
-                    sys_menu::MenuType::Redirect,
-                    sys_menu::MenuType::Iframe,
-                    sys_menu::MenuType::Link,
+                    system_menu_service::MenuType::Menu,
+                    system_menu_service::MenuType::Redirect,
+                    system_menu_service::MenuType::Iframe,
+                    system_menu_service::MenuType::Link,
                 ]),
             ),
         )
@@ -119,10 +121,10 @@ async fn get_user_permission(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
 ) -> Result<impl IntoResponse> {
-    let info = sys_user::get_current_user_info(&state.db, claims.user_id).await?;
-    let btn_auths = sys_menu::filter_menu_types(
-        Some(vec![sys_menu::MenuType::BtnAuth]),
-        sys_menu::get_menu_by_role(&state.db, info.get_role()).await?,
+    let info = system_user_service::get_current_user_info(&state.db, claims.user_id).await?;
+    let btn_auths = system_menu_service::filter_menu_types(
+        Some(vec![system_menu_service::MenuType::BtnAuth]),
+        system_menu_service::get_menu_by_role(&state.db, info.get_role()).await?,
     )
     .into_iter()
     .map(|x| x.btn_auth)
@@ -139,7 +141,7 @@ struct SearchRequest {
     #[serde(flatten)]
     paginate: PaginateParams,
 }
-impl From<SearchRequest> for sys_user::SearchParams {
+impl From<SearchRequest> for system_user_service::SearchParams {
     fn from(value: SearchRequest) -> Self {
         Self::new(
             value.keyword,
@@ -166,7 +168,7 @@ struct CreateRequest {
     status: bool,
 }
 
-impl From<CreateRequest> for sys_user::CreateParams {
+impl From<CreateRequest> for system_user_service::CreateParams {
     fn from(value: CreateRequest) -> Self {
         let mut data = Self {
             nickname: Some(value.nickname),
@@ -199,7 +201,7 @@ impl From<CreateRequest> for sys_user::CreateParams {
     }
 }
 
-impl From<CreateRequest> for sys_user::UpdateParams {
+impl From<CreateRequest> for system_user_service::UpdateParams {
     fn from(value: CreateRequest) -> Self {
         let mut data = Self {
             username: Some(value.username),
@@ -239,7 +241,7 @@ struct UpdatePasswordRequest {
     confirm_password: String,
 }
 
-impl From<UpdatePasswordRequest> for sys_user::UpdatePasswordParams {
+impl From<UpdatePasswordRequest> for system_user_service::UpdatePasswordParams {
     fn from(value: UpdatePasswordRequest) -> Self {
         let mut data = Self {
             password: None,
@@ -256,6 +258,6 @@ impl From<UpdatePasswordRequest> for sys_user::UpdatePasswordParams {
 
 #[derive(Debug, Serialize)]
 struct UserPermission {
-    info: sys_user::Info,
+    info: system_user_service::Info,
     btn_auths: Vec<String>,
 }

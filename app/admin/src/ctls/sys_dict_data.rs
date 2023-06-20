@@ -11,7 +11,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
-use service::sys_dict_data;
+use service::system_dict_data_service;
 use utils::{extracts::ValidatorJson, paginate::PaginateParams};
 use validator::Validate;
 
@@ -31,7 +31,7 @@ async fn index(
     State(state): State<AppState>,
     Query(params): Query<SearchRequest>,
 ) -> Result<impl IntoResponse> {
-    let data = sys_dict_data::paginate(&state.db, &params.into()).await?;
+    let data = system_dict_data_service::paginate(&state.db, &params.into()).await?;
     Ok(Json(data))
 }
 
@@ -40,7 +40,7 @@ async fn info(
     State(state): State<AppState>,
     extract::Path(id): extract::Path<i32>,
 ) -> Result<impl IntoResponse> {
-    Ok(Json(sys_dict_data::info(&state.db, id).await?))
+    Ok(Json(system_dict_data_service::info(&state.db, id).await?))
 }
 
 /// 创建
@@ -48,7 +48,7 @@ async fn create(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<CreateRequest>,
 ) -> Result<impl IntoResponse> {
-    if sys_dict_data::get_by_label(&state.db, params.dict_id, &params.label, None)
+    if system_dict_data_service::get_by_label(&state.db, params.dict_id, &params.label, None)
         .await?
         .is_some()
     {
@@ -57,7 +57,7 @@ async fn create(
             params.label
         )));
     }
-    sys_dict_data::create(
+    system_dict_data_service::create(
         &state.db,
         params.dict_id,
         &params.label.clone(),
@@ -74,7 +74,7 @@ async fn update(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<CreateRequest>,
 ) -> Result<impl IntoResponse> {
-    if sys_dict_data::get_by_label(&state.db, params.dict_id, &params.label, Some(id))
+    if system_dict_data_service::get_by_label(&state.db, params.dict_id, &params.label, Some(id))
         .await?
         .is_some()
     {
@@ -83,14 +83,14 @@ async fn update(
             params.label
         )));
     }
-    sys_dict_data::update(&state.db, id, params.into()).await?;
+    system_dict_data_service::update(&state.db, id, params.into()).await?;
     Ok(Empty::new())
 }
 
 /// 删除
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
-    sys_dict_data::info(&state.db, id).await?;
-    sys_dict_data::delete(&state.db, id).await?;
+    system_dict_data_service::info(&state.db, id).await?;
+    system_dict_data_service::delete(&state.db, id).await?;
     Ok(Empty::new())
 }
 
@@ -99,7 +99,7 @@ async fn batch_del(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<BatchAction>,
 ) -> Result<impl IntoResponse> {
-    sys_dict_data::batch_delete(&state.db, params.ids).await?;
+    system_dict_data_service::batch_delete(&state.db, params.ids).await?;
     Ok(Empty::new())
 }
 
@@ -116,7 +116,7 @@ struct SearchRequest {
     #[serde(flatten)]
     paginate: PaginateParams,
 }
-impl From<SearchRequest> for sys_dict_data::SearchParams {
+impl From<SearchRequest> for system_dict_data_service::SearchParams {
     fn from(value: SearchRequest) -> Self {
         Self::new(value.dict_id, value.keyword, value.status, value.paginate)
     }
@@ -132,7 +132,7 @@ struct CreateRequest {
     sort: i32,
 }
 
-impl From<CreateRequest> for sys_dict_data::CreateParams {
+impl From<CreateRequest> for system_dict_data_service::CreateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             remark: value.remark,
@@ -141,7 +141,7 @@ impl From<CreateRequest> for sys_dict_data::CreateParams {
     }
 }
 
-impl From<CreateRequest> for sys_dict_data::UpdateParams {
+impl From<CreateRequest> for system_dict_data_service::UpdateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             label: Some(value.label),

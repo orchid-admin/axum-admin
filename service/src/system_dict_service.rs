@@ -1,13 +1,12 @@
+use crate::{
+    prisma::{system_dict, SortOrder},
+    system_dict_data_service, Database, Result, ServiceError,
+};
 use prisma_client_rust::or;
 use serde::Serialize;
 use utils::{
     datetime::{now_time, to_local_string},
     paginate::{PaginateParams, PaginateResult},
-};
-
-use crate::{
-    prisma::{system_dict, SortOrder},
-    sys_dict_data, Database, Result, ServiceError,
 };
 
 pub async fn create(db: &Database, name: &str, sign: &str, params: CreateParams) -> Result<Info> {
@@ -51,12 +50,16 @@ pub async fn info(db: &Database, id: i32) -> Result<Info> {
         .ok_or(ServiceError::DataNotFound)?
         .into())
 }
-pub async fn get_by_sign(db: &Database, sign: &str, dict_id: Option<i32>) -> Result<Option<Info>> {
+pub async fn get_by_sign(
+    db: &Database,
+    sign: &str,
+    filter_id: Option<i32>,
+) -> Result<Option<Info>> {
     let mut params = vec![
         system_dict::sign::equals(sign.to_owned()),
         system_dict::deleted_at::equals(None),
     ];
-    if let Some(id) = dict_id {
+    if let Some(id) = filter_id {
         params.push(system_dict::id::not(id));
     }
     Ok(db
@@ -135,7 +138,7 @@ pub struct Info {
     status: bool,
     remark: String,
     created_at: String,
-    data: Vec<sys_dict_data::Info>,
+    data: Vec<system_dict_data_service::Info>,
 }
 
 impl Info {
@@ -151,7 +154,7 @@ impl From<system_dict::Data> for Info {
                 .iter()
                 .filter(|x| x.deleted_at.eq(&None))
                 .map(|x| x.clone().into())
-                .collect::<Vec<sys_dict_data::Info>>(),
+                .collect::<Vec<system_dict_data_service::Info>>(),
             _ => vec![],
         };
         Self {

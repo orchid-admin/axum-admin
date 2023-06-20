@@ -5,7 +5,7 @@ use std::{
 };
 
 use async_recursion::async_recursion;
-use service::sys_menu;
+use service::system_menu_service;
 
 async fn init_database() -> service::Result<service::Database> {
     service::Database::new(service::DatabaseConfig::default()).await
@@ -19,10 +19,12 @@ fn get_file_path() -> PathBuf {
 }
 pub async fn export() -> service::Result<()> {
     let client = init_database().await?;
-    let menus = sys_menu::get_menus(&client).await?;
-    let parent_id = utils::tree::get_tree_start_parent_id::<sys_menu::Info>(&menus);
-    let menu_tree =
-        utils::tree::vec_to_tree_into::<sys_menu::Menu, sys_menu::Info>(&parent_id, &menus);
+    let menus = system_menu_service::get_menus(&client).await?;
+    let parent_id = utils::tree::get_tree_start_parent_id::<system_menu_service::Info>(&menus);
+    let menu_tree = utils::tree::vec_to_tree_into::<
+        system_menu_service::Menu,
+        system_menu_service::Info,
+    >(&parent_id, &menus);
 
     let content = serde_json::to_string(&menu_tree).expect("数据序列化错误");
     let file_path = get_file_path();
@@ -38,7 +40,8 @@ pub async fn import() -> service::Result<()> {
     let mut menu_string = String::new();
     file.read_to_string(&mut menu_string)
         .expect("读取文件数据失败");
-    let menus: Vec<sys_menu::Menu> = serde_json::from_str(&menu_string).expect("数据反序列化错误");
+    let menus: Vec<system_menu_service::Menu> =
+        serde_json::from_str(&menu_string).expect("数据反序列化错误");
     insert(&client, menus, None).await?;
     Ok(())
 }
@@ -46,8 +49,8 @@ pub async fn import() -> service::Result<()> {
 #[async_recursion]
 async fn insert(
     client: &service::Database,
-    mut menus: Vec<sys_menu::Menu>,
-    parent_info: Option<sys_menu::Info>,
+    mut menus: Vec<system_menu_service::Menu>,
+    parent_info: Option<system_menu_service::Info>,
 ) -> service::Result<()> {
     if let Some(parent) = parent_info {
         menus = menus
@@ -56,11 +59,12 @@ async fn insert(
                 x.set_parent_id(parent.id);
                 x.clone()
             })
-            .collect::<Vec<sys_menu::Menu>>();
+            .collect::<Vec<system_menu_service::Menu>>();
     }
     for menu in menus {
         let children = menu.clone().get_children();
-        let info = sys_menu::create(client, &menu.clone().get_title(), menu.into()).await?;
+        let info =
+            system_menu_service::create(client, &menu.clone().get_title(), menu.into()).await?;
 
         if !children.is_empty() {
             insert(client, children, Some(info)).await?

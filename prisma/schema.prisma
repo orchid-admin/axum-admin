@@ -3,8 +3,8 @@
 
 generator client {
   provider    = "cargo prisma"
-  output      = "../service/src/prisma.rs"
-  module_path = "crate::prisma"
+  output      = "../service/src/generate_prisma.rs"
+  module_path = "crate::generate_prisma"
 }
 
 datasource db {
@@ -246,11 +246,19 @@ model SystemCodeValid {
 model Member {
   id                 Int          @id @default(autoincrement())
   /// 唯一标识编号（可用作邀请码）
-  unique_code        String
+  unique_code        String       @unique
   /// 用户邮箱
   email              String       @unique
+  /// 手机号码
+  mobile             String       @default("")
+  /// 昵称
+  nickname           String       @default("")
+  /// 头像
+  avatar             String       @default("")
   /// 密码
   password           String       @default("")
+  /// 性别
+  sex                Int          @default(1)
   /// 余额
   balance            Decimal      @default(0.00)
   /// 积分
@@ -259,7 +267,11 @@ model Member {
   remark             String       @default("")
   /// 状态
   status             Boolean      @default(true)
+  /// 推广权限
+  is_promoter        Boolean      @default(true)
+  /// 最后登录IP
   last_login_ip      String       @default("")
+  /// 最后登录时间
   last_login_time    DateTime?
   /// 注册时间
   created_at         DateTime     @default(now())
@@ -268,6 +280,7 @@ model Member {
   member_team_owner  MemberTeam[] @relation("owner")
   member_team_parent MemberTeam[] @relation("parent")
   member_team_user   MemberTeam[] @relation("user")
+  MemberBill         MemberBill[]
 }
 
 /// 用户推广表
@@ -277,13 +290,13 @@ model MemberTeam {
   owner_uid  Int
   owner      Member    @relation(name: "owner", fields: [owner_uid], references: [id])
   /// 推广用户ID
-  parent_id  Int
-  parent     Member    @relation(name: "parent", fields: [parent_id], references: [id])
+  parent_uid Int
+  parent     Member    @relation(name: "parent", fields: [parent_uid], references: [id])
   /// 被推广用户ID
   uid        Int
   user       Member    @relation(name: "user", fields: [uid], references: [id])
   /// 被推广用户在团队的级别
-  level      Int
+  level      Int       @default(0)
   /// 推广时间
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
@@ -295,6 +308,7 @@ model MemberBill {
   id         Int       @id @default(autoincrement())
   /// 用户ID
   uid        Int
+  user       Member    @relation(fields: [uid], references: [id])
   /// 种类
   type       Int
   /// 类型：0.减少，1.增加

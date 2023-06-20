@@ -1,5 +1,3 @@
-use std::net::SocketAddr;
-
 use super::{middlewares::ExtractUserAgent, Claims};
 use crate::{
     error::{ErrorCode, Result},
@@ -13,7 +11,8 @@ use axum::{
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use service::{sys_login_log, sys_user};
+use service::{system_login_log_server, system_user_service};
+use std::net::SocketAddr;
 use utils::{
     captcha::UseType as CaptchaUseType, extracts::ValidatorJson, jwt::UseType as JwtUseType,
     password::Password,
@@ -43,7 +42,7 @@ async fn login_by_account(
                 return Err(ErrorCode::Other("验证码错误"));
             }
             captcha.remove_item(&captcha_item);
-            match sys_user::find_user_by_username(&state.db, &params.username).await? {
+            match system_user_service::find_user_by_username(&state.db, &params.username).await? {
                 Some(user) => {
                     let verify_result = Password::verify_password(
                         user.get_password(),
@@ -62,7 +61,7 @@ async fn login_by_account(
                         .generate(JwtUseType::Admin, Claims::build(user.get_id()))?;
 
                     login_after(
-                        sys_login_log::LoginType::Account,
+                        system_login_log_server::LoginType::Account,
                         addr,
                         state.clone(),
                         user.get_id(),
@@ -84,19 +83,19 @@ async fn login_by_account(
 
 /// 登录成功之后操作
 async fn login_after(
-    login_type: sys_login_log::LoginType,
+    login_type: system_login_log_server::LoginType,
     addr: SocketAddr,
     state: AppState,
     user_id: i32,
     user_agent: HeaderValue,
 ) -> Result<()> {
     let ip_address = addr.to_string();
-    sys_user::set_last_login(&state.db, user_id, &ip_address).await?;
-    sys_login_log::create(
+    system_user_service::set_last_login(&state.db, user_id, &ip_address).await?;
+    system_login_log_server::create(
         &state.db,
         user_id,
         &ip_address,
-        sys_login_log::CreateParams {
+        system_login_log_server::CreateParams {
             r#type: Some(login_type.into()),
             ip_address_name: None,
             browser_agent: match user_agent.to_str() {
@@ -116,7 +115,7 @@ async fn login_by_mobile(
     ValidatorJson(params): ValidatorJson<LoginByMobileRequest>,
 ) -> Result<impl IntoResponse> {
     // todo
-    match sys_user::find_user_by_phone(&state.db, &params.mobile).await? {
+    match system_user_service::find_user_by_phone(&state.db, &params.mobile).await? {
         Some(user) => {
             let token = state
                 .jwt
@@ -125,7 +124,7 @@ async fn login_by_mobile(
                 .generate(JwtUseType::Admin, Claims::build(user.get_id()))?;
 
             login_after(
-                sys_login_log::LoginType::Mobile,
+                system_login_log_server::LoginType::Mobile,
                 addr,
                 state.clone(),
                 user.get_id(),

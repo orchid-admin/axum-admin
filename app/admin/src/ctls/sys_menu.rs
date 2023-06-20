@@ -9,7 +9,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
-use service::sys_menu;
+use service::system_menu_service;
 use utils::extracts::ValidatorJson;
 use validator::Validate;
 
@@ -30,13 +30,13 @@ async fn index(
     Query(query): Query<SearchRequest>,
 ) -> Result<impl IntoResponse> {
     Ok(Json(
-        sys_menu::get_user_menu_trees(&state.db, claims.user_id, &query.into()).await?,
+        system_menu_service::get_user_menu_trees(&state.db, claims.user_id, &query.into()).await?,
     ))
 }
 
 /// 获取菜单详情
 async fn info(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
-    Ok(Json(sys_menu::info(&state.db, id).await?))
+    Ok(Json(system_menu_service::info(&state.db, id).await?))
 }
 
 /// 新增
@@ -44,7 +44,7 @@ async fn create(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<CreateRequest>,
 ) -> Result<impl IntoResponse> {
-    sys_menu::create(&state.db, &params.title.clone(), params.into()).await?;
+    system_menu_service::create(&state.db, &params.title.clone(), params.into()).await?;
     Ok(Empty::new())
 }
 
@@ -54,13 +54,13 @@ async fn update(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<CreateRequest>,
 ) -> Result<impl IntoResponse> {
-    sys_menu::update(&state.db, id, params.into()).await?;
+    system_menu_service::update(&state.db, id, params.into()).await?;
     Ok(Empty::new())
 }
 
 /// 删除
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
-    sys_menu::delete(&state.db, id).await?;
+    system_menu_service::delete(&state.db, id).await?;
     Ok(Empty::new())
 }
 
@@ -71,7 +71,7 @@ struct SearchRequest {
     menu_types: Option<Vec<i32>>,
 }
 
-impl From<SearchRequest> for sys_menu::SearchParams {
+impl From<SearchRequest> for system_menu_service::SearchParams {
     fn from(value: SearchRequest) -> Self {
         Self::new(
             value.keyword,
@@ -103,7 +103,7 @@ struct CreateRequest {
     sort: i32,
 }
 
-impl From<CreateRequest> for sys_menu::CreateParams {
+impl From<CreateRequest> for system_menu_service::CreateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             parent_id: Some(value.parent_id),
@@ -126,7 +126,7 @@ impl From<CreateRequest> for sys_menu::CreateParams {
     }
 }
 
-impl From<CreateRequest> for sys_menu::UpdateParams {
+impl From<CreateRequest> for system_menu_service::UpdateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             parent_id: Some(value.parent_id),

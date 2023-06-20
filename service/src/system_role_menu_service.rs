@@ -1,9 +1,9 @@
 use crate::{
     prisma::{system_menu, system_role_menu},
-    sys_menu, Database, Result,
+    system_menu_service, Database, Result,
 };
 
-pub async fn get_role_menus(db: &Database, role_id: i32) -> Result<Vec<sys_menu::Info>> {
+pub async fn get_role_menus(db: &Database, role_id: i32) -> Result<Vec<system_menu_service::Info>> {
     let role_menus = db
         .client
         .system_role_menu()
@@ -19,7 +19,7 @@ pub async fn get_role_menus(db: &Database, role_id: i32) -> Result<Vec<sys_menu:
     Ok(role_menus
         .into_iter()
         .map(|x| x.menu().unwrap().clone().into())
-        .collect::<Vec<sys_menu::Info>>())
+        .collect::<Vec<system_menu_service::Info>>())
 }
 
 pub async fn delete_by_role_id(db: &Database, role_id: i32) -> Result<i64> {
