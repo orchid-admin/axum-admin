@@ -133,49 +133,46 @@ impl From<member_bill::Data> for Info {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
 #[repr(i32)]
 pub enum BillType {
-    Account = 1,
-    Mobile = 2,
-    QrCode = 3,
+    Balance = 1,
+    Integral = 2,
 }
 impl From<i32> for BillType {
     fn from(value: i32) -> Self {
         match value {
-            1 => Self::Account,
-            2 => Self::Mobile,
-            3 => Self::QrCode,
-            _ => Self::Account,
+            1 => Self::Balance,
+            2 => Self::Integral,
+            _ => Self::Balance,
         }
     }
 }
 impl From<BillType> for i32 {
     fn from(value: BillType) -> Self {
         match value {
-            BillType::Account => 1,
-            BillType::Mobile => 2,
-            BillType::QrCode => 3,
+            BillType::Balance => 1,
+            BillType::Integral => 2,
         }
     }
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
 #[repr(i32)]
 pub enum BillPm {
-    Inc = 1,
-    Dec = 0,
+    Increment = 1,
+    Decrement = 0,
 }
 impl From<i32> for BillPm {
     fn from(value: i32) -> Self {
         match value {
-            1 => Self::Inc,
-            0 => Self::Dec,
-            _ => Self::Inc,
+            1 => Self::Increment,
+            0 => Self::Decrement,
+            _ => Self::Increment,
         }
     }
 }
 impl From<BillPm> for i32 {
     fn from(value: BillPm) -> Self {
         match value {
-            BillPm::Inc => 1,
-            BillPm::Dec => 0,
+            BillPm::Increment => 1,
+            BillPm::Decrement => 0,
         }
     }
 }
