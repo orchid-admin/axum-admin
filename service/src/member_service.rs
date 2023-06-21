@@ -127,6 +127,8 @@ pub async fn paginate(db: &Database, params: &SearchParams) -> Result<PaginateRe
     })
 }
 
+pub async fn inc_user_balance(db: &Database, user_id: i32, number: f64) -> Result<Info> {}
+
 pub struct SearchParams {
     keyword: Option<String>,
     sex: Option<i32>,
