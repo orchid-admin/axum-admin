@@ -1,4 +1,5 @@
 use crate::{
+    member_bill_service,
     prisma::{member, SortOrder},
     Database, Result, ServiceError,
 };
@@ -127,7 +128,119 @@ pub async fn paginate(db: &Database, params: &SearchParams) -> Result<PaginateRe
     })
 }
 
-pub async fn inc_user_balance(db: &Database, user_id: i32, number: f64) -> Result<Info> {}
+pub async fn increment(
+    db: &Database,
+    user_id: i32,
+    balance: Option<f64>,
+    integral: Option<i32>,
+) -> Result<Info> {
+    let result = db
+        .client
+        ._transaction()
+        .run::<ServiceError, _, _, _>(|_| async move {
+            let user = info(db, user_id).await?;
+            let mut params = UpdateParams {
+                email: None,
+                mobile: None,
+                nickname: None,
+                avatar: None,
+                password: None,
+                sex: None,
+                balance: None,
+                integral: None,
+                remark: None,
+                status: None,
+                is_promoter: None,
+            };
+            if let Some(balance_num) = balance {
+                params.balance = Some(user.balance + balance_num);
+                member_bill_service::create(
+                    db,
+                    user_id,
+                    member_bill_service::BillType::Balance,
+                    member_bill_service::CreateParams {
+                        pm: Some(member_bill_service::BillPm::Increment.into()),
+                        number: Some(balance_num),
+                    },
+                )
+                .await?;
+            }
+            if let Some(integral_num) = integral {
+                params.integral = Some(user.integral + integral_num);
+                member_bill_service::create(
+                    db,
+                    user_id,
+                    member_bill_service::BillType::Integral,
+                    member_bill_service::CreateParams {
+                        pm: Some(member_bill_service::BillPm::Increment.into()),
+                        number: Some(integral_num as f64),
+                    },
+                )
+                .await?;
+            }
+            let result = update(db, user_id, params).await?;
+            Ok(result)
+        })
+        .await?;
+    Ok(result)
+}
+
+pub async fn decrement(
+    db: &Database,
+    user_id: i32,
+    balance: Option<f64>,
+    integral: Option<i32>,
+) -> Result<Info> {
+    let result = db
+        .client
+        ._transaction()
+        .run::<ServiceError, _, _, _>(|_| async move {
+            let user = info(db, user_id).await?;
+            let mut params = UpdateParams {
+                email: None,
+                mobile: None,
+                nickname: None,
+                avatar: None,
+                password: None,
+                sex: None,
+                balance: None,
+                integral: None,
+                remark: None,
+                status: None,
+                is_promoter: None,
+            };
+            if let Some(balance_num) = balance {
+                params.balance = Some(user.balance - balance_num);
+                member_bill_service::create(
+                    db,
+                    user_id,
+                    member_bill_service::BillType::Integral,
+                    member_bill_service::CreateParams {
+                        pm: Some(member_bill_service::BillPm::Decrement.into()),
+                        number: Some(balance_num),
+                    },
+                )
+                .await?;
+            }
+            if let Some(integral_num) = integral {
+                params.integral = Some(user.integral - integral_num);
+                member_bill_service::create(
+                    db,
+                    user_id,
+                    member_bill_service::BillType::Integral,
+                    member_bill_service::CreateParams {
+                        pm: Some(member_bill_service::BillPm::Decrement.into()),
+                        number: Some(integral_num as f64),
+                    },
+                )
+                .await?;
+            }
+            let result = update(db, user_id, params).await?;
+            Ok(result)
+        })
+        .await?;
+    Ok(result)
+}
 
 pub struct SearchParams {
     keyword: Option<String>,
@@ -186,7 +299,7 @@ pub struct Info {
     avatar: String,
     sex: i32,
     balance: f64,
-    integral: f64,
+    integral: i32,
     remark: String,
     status: bool,
     is_promoter: bool,
@@ -206,7 +319,7 @@ impl From<member::Data> for Info {
             avatar: value.avatar,
             sex: value.sex,
             balance: value.balance,
-            integral: value.balance,
+            integral: value.integral,
             remark: value.remark,
             status: value.status,
             is_promoter: value.is_promoter,
@@ -222,6 +335,8 @@ member::partial_unchecked!(CreateParams {
     avatar
     password
     sex
+    balance
+    integral
     remark
     status
     is_promoter
@@ -233,6 +348,8 @@ member::partial_unchecked!(UpdateParams {
     avatar
     password
     sex
+    balance
+    integral
     remark
     status
     is_promoter
