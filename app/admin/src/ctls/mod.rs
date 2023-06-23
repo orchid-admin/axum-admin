@@ -1,4 +1,7 @@
 mod auth;
+mod member;
+mod member_bill;
+mod member_team;
 mod sys_action_log;
 mod sys_dept;
 mod sys_dict;
@@ -46,6 +49,9 @@ pub mod router {
             .merge(sys_dict_data::routers(state.clone()))
             .merge(sys_login_log::routers(state.clone()))
             .merge(sys_action_log::routers(state.clone()))
+            .merge(member::routers(state.clone()))
+            .merge(member_team::routers(state.clone()))
+            .merge(member_bill::routers(state.clone()))
             .layer(middleware::from_fn_with_state(
                 state.clone(),
                 middlewares::access_matched_path,

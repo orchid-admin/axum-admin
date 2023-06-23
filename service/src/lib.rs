@@ -5,6 +5,7 @@ pub mod member_bill_service;
 pub mod member_service;
 pub mod member_team_service;
 pub mod system_action_log_service;
+pub mod system_code_valid_service;
 pub mod system_dept_service;
 pub mod system_dict_data_service;
 pub mod system_dict_service;

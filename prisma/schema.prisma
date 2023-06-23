@@ -225,10 +225,10 @@ model SystemActionLog {
   created_at      DateTime   @default(now())
 }
 
-/// 验证码存活表
+/// 存活码表
 model SystemCodeValid {
   id         Int       @id @default(autoincrement())
-  /// 发送类型
+  /// 类型
   type       Int       @default(0)
   /// code
   code       String
