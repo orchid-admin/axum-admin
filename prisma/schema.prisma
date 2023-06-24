@@ -226,18 +226,18 @@ model SystemActionLog {
 }
 
 /// 存活码表
-model SystemCodeValid {
+model SystemCache {
   id         Int       @id @default(autoincrement())
   /// 唯一键
   key        String    @unique
   /// 类型
   type       Int       @default(0)
-  /// code
-  code       String
+  /// value
+  value      String
   /// 附加字符
   attach     String    @default("")
   /// 到期时间
-  valid_time DateTime  @default(now())
+  valid_time DateTime?
   /// 创建时间
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt

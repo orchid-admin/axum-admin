@@ -11,7 +11,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
-use service::system_code_valid_service;
+use service::cache_service;
 use utils::{extracts::ValidatorJson, paginate::PaginateParams};
 use validator::Validate;
 
@@ -31,7 +31,7 @@ async fn index(
     State(state): State<AppState>,
     Query(params): Query<SearchRequest>,
 ) -> Result<impl IntoResponse> {
-    let data = system_code_valid_service::paginate(&state.db, &params.into()).await?;
+    let data = cache_service::paginate(&state.db, &params.into()).await?;
     Ok(Json(data))
 }
 
@@ -40,7 +40,7 @@ async fn info(
     State(state): State<AppState>,
     extract::Path(id): extract::Path<i32>,
 ) -> Result<impl IntoResponse> {
-    Ok(Json(system_code_valid_service::info(&state.db, id).await?))
+    Ok(Json(cache_service::info(&state.db, id).await?))
 }
 
 /// 创建
@@ -48,7 +48,7 @@ async fn create(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<CreateRequest>,
 ) -> Result<impl IntoResponse> {
-    if system_code_valid_service::get_by_type_code(&state.db, &params.r#type, &params.code, None)
+    if cache_service::get_by_type_code(&state.db, &params.r#type, &params.code, None)
         .await?
         .is_some()
     {
@@ -57,7 +57,7 @@ async fn create(
             params.code
         )));
     }
-    system_code_valid_service::create(
+    cache_service::create(
         &state.db,
         &utils::datetime::timestamp_nanos_string(None),
         &params.code.clone(),
@@ -73,28 +73,23 @@ async fn update(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<CreateRequest>,
 ) -> Result<impl IntoResponse> {
-    if system_code_valid_service::get_by_type_code(
-        &state.db,
-        &params.r#type,
-        &params.code,
-        Some(id),
-    )
-    .await?
-    .is_some()
+    if cache_service::get_by_type_code(&state.db, &params.r#type, &params.code, Some(id))
+        .await?
+        .is_some()
     {
         return Err(ErrorCode::OtherString(format!(
             "该类型的编号为{}已存在",
             params.code
         )));
     }
-    system_code_valid_service::update(&state.db, id, params.into()).await?;
+    cache_service::update(&state.db, id, params.into()).await?;
     Ok(Empty::new())
 }
 
 /// 删除
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
-    system_code_valid_service::info(&state.db, id).await?;
-    system_code_valid_service::delete(&state.db, id).await?;
+    cache_service::info(&state.db, id).await?;
+    cache_service::delete(&state.db, id).await?;
     Ok(Empty::new())
 }
 
@@ -103,7 +98,7 @@ async fn batch_del(
     State(state): State<AppState>,
     ValidatorJson(params): ValidatorJson<BatchAction>,
 ) -> Result<impl IntoResponse> {
-    system_code_valid_service::batch_delete(&state.db, params.ids).await?;
+    cache_service::batch_delete(&state.db, params.ids).await?;
     Ok(Empty::new())
 }
 
@@ -115,24 +110,24 @@ struct BatchAction {
 #[derive(Debug, Deserialize)]
 struct SearchRequest {
     keyword: Option<String>,
-    r#type: Option<system_code_valid_service::CodeType>,
+    r#type: Option<cache_service::CodeType>,
     #[serde(flatten)]
     paginate: PaginateParams,
 }
-impl From<SearchRequest> for system_code_valid_service::SearchParams {
+impl From<SearchRequest> for cache_service::SearchParams {
     fn from(value: SearchRequest) -> Self {
         Self::new(value.keyword, value.r#type, value.paginate)
     }
 }
 #[derive(Debug, Deserialize, Validate)]
 struct CreateRequest {
-    r#type: system_code_valid_service::CodeType,
+    r#type: cache_service::CodeType,
     code: String,
     attach: String,
     valid_time: String,
 }
 
-impl From<CreateRequest> for system_code_valid_service::CreateParams {
+impl From<CreateRequest> for cache_service::CreateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             r#type: Some(value.r#type.into()),
@@ -142,7 +137,7 @@ impl From<CreateRequest> for system_code_valid_service::CreateParams {
     }
 }
 
-impl From<CreateRequest> for system_code_valid_service::UpdateParams {
+impl From<CreateRequest> for cache_service::UpdateParams {
     fn from(value: CreateRequest) -> Self {
         Self {
             r#type: Some(value.r#type.into()),

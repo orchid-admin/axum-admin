@@ -8,7 +8,9 @@ edition = "2021"
 [dependencies]
 prisma-client-rust = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 serde_repr = { workspace = true }
 utils = { path = "../utils", features=["paginate", "tree", "datetime"] }
 async-recursion = { workspace = true }
 fastrand = { workspace = true }
+async-trait = { workspace = true }

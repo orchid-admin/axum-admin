@@ -1,11 +1,11 @@
 #[allow(unused, warnings)]
 mod generate_prisma;
 
+pub mod cache_service;
 pub mod member_bill_service;
 pub mod member_service;
 pub mod member_team_service;
 pub mod system_action_log_service;
-pub mod system_code_valid_service;
 pub mod system_dept_service;
 pub mod system_dict_data_service;
 pub mod system_dict_service;
@@ -24,6 +24,7 @@ pub enum ServiceError {
     QueryError(String),
     RelationNotFetchedError(String),
     DataNotFound,
+    SerializeJson(serde_json::Error),
 }
 
 impl From<prisma_client_rust::NewClientError> for ServiceError {
@@ -41,6 +42,11 @@ impl From<prisma_client_rust::QueryError> for ServiceError {
 impl From<prisma_client_rust::RelationNotFetchedError> for ServiceError {
     fn from(value: prisma_client_rust::RelationNotFetchedError) -> Self {
         Self::RelationNotFetchedError(value.to_string())
+    }
+}
+impl From<serde_json::Error> for ServiceError {
+    fn from(value: serde_json::Error) -> Self {
+        Self::Serialize(value)
     }
 }
 

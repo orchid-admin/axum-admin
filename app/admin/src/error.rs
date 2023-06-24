@@ -31,6 +31,7 @@ impl From<service::ServiceError> for ErrorCode {
             service::ServiceError::RelationNotFetchedError(err) => {
                 format!("RelationNotFetchedError: {}", err)
             }
+            service::ServiceError::SerializeJson(err) => err.to_string(),
             service::ServiceError::DataNotFound => "数据不存在".to_owned(),
         };
         Self::InternalServerString(err_string)
