@@ -3,6 +3,7 @@ mod member;
 mod member_bill;
 mod member_team;
 mod sys_action_log;
+mod sys_code_valid;
 mod sys_dept;
 mod sys_dict;
 mod sys_dict_data;
@@ -49,6 +50,7 @@ pub mod router {
             .merge(sys_dict_data::routers(state.clone()))
             .merge(sys_login_log::routers(state.clone()))
             .merge(sys_action_log::routers(state.clone()))
+            .merge(sys_code_valid::routers(state.clone()))
             .merge(member::routers(state.clone()))
             .merge(member_team::routers(state.clone()))
             .merge(member_bill::routers(state.clone()))

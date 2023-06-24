@@ -54,9 +54,7 @@ impl Captcha {
             .compression(40)
             .build();
 
-        let key = time::OffsetDateTime::now_utc()
-            .unix_timestamp_nanos()
-            .to_string();
+        let key = crate::datetime::timestamp_nanos_string(None);
         self.add(use_type, &key, &captcha.text)
             .map(|_| CaptchaContent {
                 key,
@@ -88,10 +86,7 @@ impl Captcha {
         match self.get_item(&use_type, key) {
             Some(_) => Err(ErrorType::GenerateFail),
             None => {
-                let exp = time::OffsetDateTime::now_utc()
-                    .checked_add(time::Duration::seconds(self.valid_seconds))
-                    .map(|x| x.unix_timestamp_nanos())
-                    .ok_or(ErrorType::GenerateFail)?;
+                let exp = crate::datetime::timestamp_nanos(Some(self.valid_seconds));
                 let item = CaptchaItem {
                     use_type,
                     key: key.to_owned(),
@@ -124,14 +119,14 @@ pub struct CaptchaItem {
     use_type: UseType,
     key: String,
     text: String,
-    exp: i128,
+    exp: i64,
 }
 
 #[allow(unused)]
 impl CaptchaItem {
     /// check captcha is can use
     pub fn check(&self) -> bool {
-        self.exp > time::OffsetDateTime::now_utc().unix_timestamp_nanos()
+        self.exp > crate::datetime::timestamp_nanos(None)
     }
 
     /// verify text by lowercase

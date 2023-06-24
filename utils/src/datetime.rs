@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 pub fn now_time() -> chrono::DateTime<chrono::FixedOffset> {
     chrono::Utc::now().with_timezone(&chrono::FixedOffset::east_opt(0).unwrap())
 }
@@ -21,4 +23,16 @@ pub fn parse_string(datetime: String) -> chrono::DateTime<chrono::FixedOffset> {
         }
         Err(_) => now_datetime,
     }
+}
+
+pub fn timestamp_nanos(checked_add: Option<i64>) -> i64 {
+    let nanos = chrono::Local::now().timestamp_nanos();
+    if let Some(time) = checked_add {
+        return nanos.add(time);
+    }
+    nanos
+}
+
+pub fn timestamp_nanos_string(checked_add: Option<i64>) -> String {
+    timestamp_nanos(checked_add).to_string()
 }

@@ -90,10 +90,7 @@ impl Jwt {
         match self.get_item(&use_type, token) {
             Some(_) => Err(ErrorType::GenerateFail),
             None => {
-                let exp = time::OffsetDateTime::now_utc()
-                    .checked_add(time::Duration::seconds(self.valid_seconds))
-                    .map(|x| x.unix_timestamp_nanos())
-                    .ok_or(ErrorType::GenerateFail)?;
+                let exp = crate::datetime::timestamp_nanos(Some(self.valid_seconds));
                 let item = JwtItem {
                     use_type,
                     token: token.to_owned(),
@@ -118,11 +115,11 @@ pub enum UseType {
 pub struct JwtItem {
     use_type: UseType,
     token: String,
-    exp: i128,
+    exp: i64,
 }
 
 impl JwtItem {
     pub fn check(&self) -> bool {
-        self.exp > time::OffsetDateTime::now_utc().unix_timestamp_nanos()
+        self.exp > crate::datetime::timestamp_nanos(None)
     }
 }
