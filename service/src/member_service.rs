@@ -242,6 +242,16 @@ pub async fn decrement(
     Ok(result)
 }
 
+#[async_recursion::async_recursion]
+pub async fn generate_code(db: &Database, code_length: usize) -> Result<String> {
+    let unique_code: String = std::iter::repeat_with(fastrand::alphanumeric)
+        .take(code_length)
+        .collect();
+    match get_by_unique_code(db, &unique_code, None).await? {
+        Some(_) => generate_code(db, code_length).await,
+        None => Ok(unique_code),
+    }
+}
 pub struct SearchParams {
     keyword: Option<String>,
     sex: Option<i32>,

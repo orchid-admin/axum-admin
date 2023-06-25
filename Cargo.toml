@@ -56,6 +56,10 @@ password-hash = { version = "0.5", default-features = false, features = ["alloc"
 clap = { version = "4.2", features = ["derive"] }
 # async function recursion require
 async-recursion = "1.0"
+# generate rand number require
+fastrand = "2.0"
+# async trait require
+async-trait = "0.1"
 
 [profile.release]
 codegen-units = 1

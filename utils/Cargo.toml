@@ -22,9 +22,9 @@ tracing-appender = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true }
 
 [features]
-captcha = ["dep:captcha-rs", "dep:time"]
+captcha = ["dep:captcha-rs", "datetime"]
 extract = ["dep:axum", "dep:serde", "dep:thiserror", "dep:validator"]
-jwt = ["dep:jsonwebtoken", "dep:serde", "dep:time"]
+jwt = ["dep:jsonwebtoken", "dep:serde", "datetime"]
 password = ["dep:argon2", "dep:password-hash"]
 paginate = ["dep:serde", "dep:serde_with"]
 tree = []
