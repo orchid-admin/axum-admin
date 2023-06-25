@@ -1,11 +1,7 @@
-#[cfg(feature = "captcha")]
-pub mod captcha;
 #[cfg(feature = "datetime")]
 pub mod datetime;
 #[cfg(feature = "extract")]
 pub mod extracts;
-#[cfg(feature = "jwt")]
-pub mod jwt;
 #[cfg(feature = "logger")]
 pub mod logger;
 #[cfg(feature = "paginate")]

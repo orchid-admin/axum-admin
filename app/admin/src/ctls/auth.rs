@@ -11,12 +11,9 @@ use axum::{
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use service::{system_login_log_server, system_user_service};
+use service::{cache_service::Driver, system_login_log_server, system_user_service};
 use std::net::SocketAddr;
-use utils::{
-    captcha::UseType as CaptchaUseType, extracts::ValidatorJson, jwt::UseType as JwtUseType,
-    password::Password,
-};
+use utils::{extracts::ValidatorJson, password::Password};
 use validator::Validate;
 
 pub fn routers<S>(state: AppState) -> Router<S> {
@@ -35,50 +32,58 @@ async fn login_by_account(
     ConnectInfo(addr): ConnectInfo<std::net::SocketAddr>,
     ValidatorJson(params): ValidatorJson<LoginByAccountRequest>,
 ) -> Result<impl IntoResponse> {
-    let mut captcha = state.captcha.lock().await;
-    match captcha.get_item(&CaptchaUseType::AdminLogin, &params.key) {
-        Some(captcha_item) => {
-            if !captcha_item.verify_lowercase(&params.code) {
-                return Err(ErrorCode::Other("验证码错误"));
-            }
-            captcha.remove_item(&captcha_item);
-            match system_user_service::find_user_by_username(&state.db, &params.username).await? {
-                Some(user) => {
-                    let verify_result = Password::verify_password(
-                        user.get_password(),
-                        user.get_salt(),
-                        params.password.as_bytes(),
-                    )?;
+    let captcha_cache_type = service::cache_service::CacheType::SystemAuthLoginCaptcha;
+    let mut cache = state.cache.lock().await;
+    let cache_info = cache
+        .first(captcha_cache_type.clone(), &params.key, None)
+        .await?
+        .ok_or(ErrorCode::Other("验证码错误"))?;
 
-                    if !verify_result {
-                        return Err(ErrorCode::Other("用户名或密码错误"));
-                    }
-
-                    let token = state
-                        .jwt
-                        .lock()
-                        .await
-                        .generate(JwtUseType::Admin, Claims::build(user.get_id()))?;
-
-                    login_after(
-                        system_login_log_server::LoginType::Account,
-                        addr,
-                        state.clone(),
-                        user.get_id(),
-                        user_agent,
-                    )
-                    .await?;
-
-                    Ok(Json(LoginReponse {
-                        token,
-                        username: Some(user.get_username()),
-                    }))
-                }
-                None => Err(ErrorCode::Other("用户名或密码错误")),
-            }
-        }
-        None => Err(ErrorCode::Other("验证码错误")),
+    let captcha_code = cache_info.get_value();
+    if captcha_code.to_lowercase().ne(&params.code.to_lowercase()) {
+        return Err(ErrorCode::Other("验证码错误"));
     }
+    cache.pull(captcha_cache_type, &params.key).await?;
+
+    let user = system_user_service::find_user_by_username(&state.db, &params.username)
+        .await?
+        .ok_or(ErrorCode::Other("用户名或密码错误"))?;
+    let verify_result = Password::verify_password(
+        user.get_password(),
+        user.get_salt(),
+        params.password.as_bytes(),
+    )?;
+
+    if !verify_result {
+        return Err(ErrorCode::Other("用户名或密码错误"));
+    }
+
+    let token_cache_type = service::cache_service::CacheType::SystemAuthJwt;
+
+    let token = generate_token(Claims::build(user.get_id()), "secret");
+    cache
+        .put(
+            token_cache_type,
+            &token,
+            user.get_id(),
+            Some(24 * 3600),
+            None,
+        )
+        .await?;
+
+    login_after(
+        system_login_log_server::LoginType::Account,
+        addr,
+        state.clone(),
+        user.get_id(),
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(LoginReponse {
+        token,
+        username: Some(user.get_username()),
+    }))
 }
 
 /// 登录成功之后操作
@@ -115,30 +120,35 @@ async fn login_by_mobile(
     ValidatorJson(params): ValidatorJson<LoginByMobileRequest>,
 ) -> Result<impl IntoResponse> {
     // todo
-    match system_user_service::find_user_by_phone(&state.db, &params.mobile).await? {
-        Some(user) => {
-            let token = state
-                .jwt
-                .lock()
-                .await
-                .generate(JwtUseType::Admin, Claims::build(user.get_id()))?;
+    let user = system_user_service::find_user_by_phone(&state.db, &params.mobile)
+        .await?
+        .ok_or(ErrorCode::Other("用户名或密码错误"))?;
+    let token_cache_type = service::cache_service::CacheType::SystemAuthJwt;
+    let mut cache = state.cache.lock().await;
+    let token = generate_token(Claims::build(user.get_id()), "secret");
+    cache
+        .put(
+            token_cache_type,
+            &token,
+            user.get_id(),
+            Some(24 * 3600),
+            None,
+        )
+        .await?;
 
-            login_after(
-                system_login_log_server::LoginType::Mobile,
-                addr,
-                state.clone(),
-                user.get_id(),
-                user_agent,
-            )
-            .await?;
+    login_after(
+        system_login_log_server::LoginType::Mobile,
+        addr,
+        state.clone(),
+        user.get_id(),
+        user_agent,
+    )
+    .await?;
 
-            Ok(Json(LoginReponse {
-                token,
-                username: Some(user.get_username()),
-            }))
-        }
-        None => Err(ErrorCode::Other("用户名或密码错误")),
-    }
+    Ok(Json(LoginReponse {
+        token,
+        username: Some(user.get_username()),
+    }))
 }
 
 /// 扫码登录
@@ -149,11 +159,12 @@ async fn login_by_qrcode(
     ValidatorJson(_params): ValidatorJson<LoginByAccountRequest>,
 ) -> Result<impl IntoResponse> {
     // todo
-    let token = state
-        .jwt
-        .lock()
-        .await
-        .generate(JwtUseType::Admin, Claims::build(1))?;
+    let token_cache_type = service::cache_service::CacheType::SystemAuthJwt;
+    let mut cache = state.cache.lock().await;
+    let token = generate_token(Claims::build(1), "secret");
+    cache
+        .put(token_cache_type, &token, 1, Some(24 * 3600), None)
+        .await?;
 
     // login_after(
     //     sys_login_log::LoginType::QrCode,
@@ -171,18 +182,43 @@ async fn login_by_qrcode(
 
 /// 获取登录验证码
 async fn get_captcha(State(state): State<AppState>) -> Result<impl IntoResponse> {
-    let content =
-        state
-            .captcha
-            .lock()
-            .await
-            .generate(CaptchaUseType::AdminLogin, 5, 130, 40, false, 1)?;
+    let captcha = captcha_rs::CaptchaBuilder::new()
+        .length(5)
+        .width(130)
+        .height(40)
+        .dark_mode(false)
+        .complexity(1)
+        .compression(40)
+        .build();
+
+    let key = utils::datetime::timestamp_nanos_string(None);
+    state
+        .cache
+        .lock()
+        .await
+        .put(
+            service::cache_service::CacheType::SystemAuthLoginCaptcha,
+            &key,
+            captcha.text.to_owned(),
+            Some(10 * 60),
+            None,
+        )
+        .await?;
 
     Ok(Json(GetCaptchaReponse {
-        key: content.key,
-        image: content.image,
-        value: content.text,
+        key,
+        image: captcha.to_base64(),
+        value: captcha.text.to_owned(),
     }))
+}
+
+fn generate_token(claims: Claims, secret: &str) -> String {
+    jsonwebtoken::encode(
+        &jsonwebtoken::Header::default(),
+        &claims,
+        &jsonwebtoken::EncodingKey::from_secret(secret.as_bytes()),
+    )
+    .unwrap()
 }
 
 #[derive(Debug, Serialize, Deserialize, Validate)]

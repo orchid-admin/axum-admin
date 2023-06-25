@@ -144,14 +144,18 @@ mod middlewares {
                 Some((name, token))
             })
             .ok_or(ErrorCode::Unauthorized)?;
-        let jwt = state.jwt.lock().await;
-        let claims = jwt.decode::<super::Claims>(token)?;
-        // let jwt_item = jwt
-        //     .get_item(&jwt::UseType::Admin, &token)
-        //     .ok_or(ErrorCode::Unauthorized)?;
-        // if !jwt_item.check() {
-        //     return Err(ErrorCode::Unauthorized);
-        // }
+        let token_cache_type = service::cache_service::CacheType::SystemAuthJwt;
+        let cache = state.cache.lock().await;
+        let claims = super::decode_token(token, "secret");
+        let jwt_item = cache
+            .get(token_cache_type, token, None)
+            .await
+            .map_err(|_| ErrorCode::Unauthorized)
+            .unwrap();
+        if !jwt_item.is_valid() {
+            return Err(ErrorCode::Unauthorized);
+        }
+
         Ok(claims)
     }
 
@@ -211,4 +215,14 @@ mod middlewares {
             Err(_) => ErrorCode::Other("权限不足").into_response(),
         })
     }
+}
+
+fn decode_token(token: &str, secret: &str) -> Claims {
+    jsonwebtoken::decode::<Claims>(
+        token,
+        &jsonwebtoken::DecodingKey::from_secret(secret.as_bytes()),
+        &jsonwebtoken::Validation::default(),
+    )
+    .map(|x| x.claims)
+    .unwrap()
 }

@@ -48,26 +48,6 @@ impl From<utils::password::ErrorType> for ErrorCode {
     }
 }
 
-impl From<utils::jwt::ErrorType> for ErrorCode {
-    fn from(value: utils::jwt::ErrorType) -> Self {
-        let msg = match value {
-            utils::jwt::ErrorType::JsonwebToken(e) => e.to_string(),
-            _ => String::new(),
-        };
-        Self::InternalServerString(format!("生成TOKEN失败:{}", msg))
-    }
-}
-
-impl From<utils::captcha::ErrorType> for ErrorCode {
-    fn from(value: utils::captcha::ErrorType) -> Self {
-        let msg = match value {
-            utils::captcha::ErrorType::JsonwebToken(e) => e.to_string(),
-            _ => String::new(),
-        };
-        Self::InternalServerString(format!("生成图片验证码失败:{}", msg))
-    }
-}
-
 impl From<axum::http::StatusCode> for ErrorCode {
     fn from(value: axum::http::StatusCode) -> Self {
         Self::InternalServerString(value.to_string())
