@@ -2,6 +2,6 @@
 /.idea
 /.vscode
 /prisma/*.db
-/service/src/generate_prisma.rs
+# /service/src/generate_prisma.rs
 bruh.json
 /logs
