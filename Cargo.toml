@@ -60,6 +60,8 @@ async-recursion = "1.0"
 fastrand = "2.0"
 # async trait require
 async-trait = "0.1"
+# smtp client require
+lettre = { version = "0.10", default-features = false, features = ["smtp-transport", "tokio1", "tokio1-native-tls", "builder"] }
 
 [profile.release]
 codegen-units = 1
