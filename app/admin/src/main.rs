@@ -13,11 +13,8 @@ async fn main() -> Result<()> {
         env!("CARGO_PKG_NAME")
     ));
     utils::logger::init(env_filter);
-
-    let captcha = utils::captcha::Captcha::new(2, 10 * 60);
-    let jwt = utils::jwt::Jwt::new("secret", 2, 7 * 24 * 60);
     let prisma_client = service::Database::new(service::DatabaseConfig::default()).await?;
-    let state = state::State::build(captcha, jwt, prisma_client);
+    let state = state::State::build(prisma_client);
 
     let app = ctls::router::init(state).await.layer(
         tower_http::trace::TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {

@@ -40,7 +40,7 @@ impl From<CacheType> for i32 {
 }
 
 #[async_trait::async_trait]
-trait Driver {
+pub trait Driver {
     /// Storing Items In The Cache
     async fn put<T: Serialize + std::marker::Send + std::marker::Sync>(
         &mut self,
@@ -73,7 +73,7 @@ pub enum CacheDriverType {
     // File,
 }
 
-struct Cache<D: Driver>(D);
+pub struct Cache<D: Driver>(D);
 
 #[allow(dead_code)]
 impl<D> Cache<D>
@@ -129,13 +129,13 @@ impl<D> Cache<D>
 where
     D: Driver,
 {
-    async fn has(&self, r#type: &CacheType, key: &str) -> Result<bool> {
+    pub async fn has(&self, r#type: &CacheType, key: &str) -> Result<bool> {
         Ok(self.0.first(r#type.clone(), key, None).await?.is_some())
     }
-    async fn get(&self, r#type: CacheType, key: &str, default: Option<Info>) -> Result<Info> {
+    pub async fn get(&self, r#type: CacheType, key: &str, default: Option<Info>) -> Result<Info> {
         Ok(self.0.first(r#type, key, default).await?.unwrap())
     }
-    async fn add<T>(
+    pub async fn add<T>(
         &mut self,
         r#type: CacheType,
         key: &str,
@@ -155,7 +155,7 @@ where
         self.get(r#type, key, None).await
     }
     /// Storing Items Forever
-    async fn forever<T: Serialize + std::marker::Send + std::marker::Sync>(
+    pub async fn forever<T: Serialize + std::marker::Send + std::marker::Sync>(
         &mut self,
         r#type: CacheType,
         key: &str,
@@ -166,7 +166,7 @@ where
     }
 
     /// increment value
-    async fn increment(
+    pub async fn increment(
         &mut self,
         r#type: CacheType,
         key: &str,
@@ -188,7 +188,7 @@ where
     }
 
     /// decrement value
-    async fn decrement(
+    pub async fn decrement(
         &mut self,
         r#type: CacheType,
         key: &str,
@@ -210,7 +210,7 @@ where
     }
 
     /// remember
-    async fn remember<F>(
+    pub async fn remember<F>(
         &mut self,
         r#type: CacheType,
         key: &str,
@@ -232,7 +232,7 @@ where
     }
 
     /// remember_forever
-    async fn remember_forever<F>(
+    pub async fn remember_forever<F>(
         &mut self,
         r#type: CacheType,
         key: &str,
@@ -250,7 +250,8 @@ where
     }
 }
 
-struct CacheDriverMemory {
+#[derive(Default)]
+pub struct CacheDriverMemory {
     data: Vec<Info>,
 }
 
@@ -326,7 +327,7 @@ impl Driver for CacheDriverMemory {
     }
 }
 
-struct CacheDriverDatabase(Database);
+pub struct CacheDriverDatabase(Database);
 
 #[async_trait::async_trait]
 impl Driver for CacheDriverDatabase {
@@ -427,6 +428,18 @@ pub struct Info {
     create_time: prisma_client_rust::chrono::DateTime<prisma_client_rust::chrono::FixedOffset>,
 }
 
+impl Info {
+    pub fn get_value(self) -> String {
+        self.value
+    }
+
+    pub fn is_valid(self) -> bool {
+        if let Some(valid_time) = self.valid_time {
+            return valid_time.timestamp_nanos() > now_time().timestamp_nanos();
+        }
+        false
+    }
+}
 impl From<system_cache::Data> for Info {
     fn from(value: system_cache::Data) -> Self {
         Self {
