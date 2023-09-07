@@ -2,9 +2,10 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider    = "cargo prisma"
-  output      = "../service/src/generate_prisma.rs"
-  module_path = "crate::generate_prisma"
+  provider      = "cargo prisma"
+  output        = "../service/src/generate_prisma"
+  module_path   = "generate_prisma"
+  client_format = "folder"
 }
 
 datasource db {

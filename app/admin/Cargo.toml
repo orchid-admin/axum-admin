@@ -21,6 +21,7 @@ tracing-subscriber = { workspace = true }
 validator = { workspace = true }
 captcha-rs = { workspace = true }
 jsonwebtoken = { workspace = true }
+bigdecimal = { workspace = true }
 utils = { path = "../../utils", features=["extract", "password", "logger", "datetime"] }
 service = { path = "../../service" }
 

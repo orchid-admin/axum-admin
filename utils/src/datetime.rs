@@ -28,7 +28,7 @@ pub fn parse_string(datetime: String) -> chrono::DateTime<chrono::FixedOffset> {
 pub fn offset_from_timestamp(timestamp: i64) -> chrono::DateTime<chrono::FixedOffset> {
     let naive = chrono::NaiveDateTime::from_timestamp_opt(timestamp, 0).unwrap();
 
-    chrono::DateTime::<chrono::Utc>::from_utc(naive, chrono::Utc)
+    chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(naive, chrono::Utc)
         .with_timezone(&chrono::FixedOffset::east_opt(0).unwrap())
 }
 pub fn timestamp_nanos(checked_add: Option<i64>) -> i64 {

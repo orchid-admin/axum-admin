@@ -110,7 +110,7 @@ pub struct Info {
     user: Option<member_service::Info>,
     r#type: BillType,
     pm: BillPm,
-    number: f64,
+    number: prisma_client_rust::bigdecimal::BigDecimal,
     created_at: String,
 }
 

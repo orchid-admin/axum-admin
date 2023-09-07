@@ -1,9 +1,11 @@
+use std::ops::{Add, Sub};
+
 use crate::{
     member_bill_service,
     prisma::{member, SortOrder},
     Database, Result, ServiceError,
 };
-use prisma_client_rust::or;
+use prisma_client_rust::{bigdecimal::BigDecimal, or};
 use serde::Serialize;
 use utils::{
     datetime::{now_time, to_local_string},
@@ -131,7 +133,7 @@ pub async fn paginate(db: &Database, params: &SearchParams) -> Result<PaginateRe
 pub async fn increment(
     db: &Database,
     user_id: i32,
-    balance: Option<f64>,
+    balance: Option<BigDecimal>,
     integral: Option<i32>,
 ) -> Result<Info> {
     let result = db
@@ -153,7 +155,7 @@ pub async fn increment(
                 is_promoter: None,
             };
             if let Some(balance_num) = balance {
-                params.balance = Some(user.balance + balance_num);
+                params.balance = Some(user.balance.add(balance_num.clone()));
                 member_bill_service::create(
                     db,
                     user_id,
@@ -173,7 +175,7 @@ pub async fn increment(
                     member_bill_service::BillType::Integral,
                     member_bill_service::CreateParams {
                         pm: Some(member_bill_service::BillPm::Increment.into()),
-                        number: Some(integral_num as f64),
+                        number: Some(integral_num.try_into().unwrap()),
                     },
                 )
                 .await?;
@@ -188,7 +190,7 @@ pub async fn increment(
 pub async fn decrement(
     db: &Database,
     user_id: i32,
-    balance: Option<f64>,
+    balance: Option<BigDecimal>,
     integral: Option<i32>,
 ) -> Result<Info> {
     let result = db
@@ -210,7 +212,7 @@ pub async fn decrement(
                 is_promoter: None,
             };
             if let Some(balance_num) = balance {
-                params.balance = Some(user.balance - balance_num);
+                params.balance = Some(user.balance.sub(balance_num.clone()));
                 member_bill_service::create(
                     db,
                     user_id,
@@ -230,7 +232,7 @@ pub async fn decrement(
                     member_bill_service::BillType::Integral,
                     member_bill_service::CreateParams {
                         pm: Some(member_bill_service::BillPm::Decrement.into()),
-                        number: Some(integral_num as f64),
+                        number: Some(integral_num.try_into().unwrap()),
                     },
                 )
                 .await?;
@@ -308,7 +310,7 @@ pub struct Info {
     nickname: String,
     avatar: String,
     sex: i32,
-    balance: f64,
+    balance: BigDecimal,
     integral: i32,
     remark: String,
     status: bool,

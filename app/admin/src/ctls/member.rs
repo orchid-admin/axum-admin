@@ -123,7 +123,7 @@ struct CreateRequest {
     #[serde(default)]
     sex: Option<i32>,
     #[serde(default)]
-    balance: Option<f64>,
+    balance: Option<bigdecimal::BigDecimal>,
     #[serde(default)]
     integral: Option<i32>,
     remark: Option<String>,

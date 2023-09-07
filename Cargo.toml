@@ -42,8 +42,8 @@ jsonwebtoken = { version = "8.3" }
 tower = { version = "0.4", default-features = false, features = ["util"] }
 tower-http = { version = "0.4", default-features = false, features = ["fs", "trace"] }
 # orm require
-prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", rev="113b48d", default-features = false, features = ["sqlite", "sqlite-create-many"] }
-prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", rev="113b48d", default-features = false, features = ["sqlite", "sqlite-create-many"] }
+prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", rev="7ca6a5d", default-features = false, features = ["sqlite", "sqlite-create-many"] }
+prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", rev="7ca6a5d", default-features = false, features = ["sqlite", "sqlite-create-many"] }
 # error code require
 custom_attrs = "1.4"
 thiserror = "1.0"
@@ -62,6 +62,8 @@ fastrand = "2.0"
 async-trait = "0.1"
 # smtp client require
 lettre = { version = "0.10", default-features = false, features = ["smtp-transport", "tokio1", "tokio1-native-tls", "builder"] }
+# big decimal require
+bigdecimal = { version = "0.3", features = ["serde"] }
 
 [profile.release]
 codegen-units = 1
