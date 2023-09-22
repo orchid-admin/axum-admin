@@ -18,9 +18,9 @@ pub struct Claims {
 }
 
 impl Claims {
-    pub fn build(user_id: i32) -> Self {
+    pub fn build(user_id: &i32) -> Self {
         Self {
-            user_id,
+            user_id: *user_id,
             exp: time::OffsetDateTime::now_utc().unix_timestamp_nanos(),
         }
     }

@@ -3,12 +3,15 @@ use crate::{
     system_menu_service, Database, Result,
 };
 
-pub async fn get_role_menus(db: &Database, role_id: i32) -> Result<Vec<system_menu_service::Info>> {
+pub async fn get_role_menus(
+    db: &Database,
+    role_id: &i32,
+) -> Result<Vec<system_menu_service::Info>> {
     let role_menus = db
         .client
         .system_role_menu()
         .find_many(vec![
-            system_role_menu::role_id::equals(role_id),
+            system_role_menu::role_id::equals(*role_id),
             system_role_menu::deleted_at::equals(None),
             system_role_menu::menu::is(vec![system_menu::deleted_at::equals(None)]),
         ])

@@ -98,7 +98,7 @@ async fn update(
         }
         None => {
             let info = system_role_service::info(&state.db, id).await?;
-            if info.get_sign().eq(&state.db.config().get_admin_role_sign()) {
+            if info.sign().eq(&state.db.config().get_admin_role_sign()) {
                 return Err(ErrorCode::Other("不可编辑系统管理员"));
             }
         }
@@ -116,7 +116,7 @@ async fn update(
 /// 删除
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
     let info = system_role_service::info(&state.db, id).await?;
-    if info.get_sign().eq(&state.db.config().get_admin_role_sign()) {
+    if info.sign().eq(&state.db.config().get_admin_role_sign()) {
         return Err(ErrorCode::Other("不可删除系统管理员"));
     }
     system_role_service::delete(&state.db, id).await?;

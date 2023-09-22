@@ -34,20 +34,19 @@ pub async fn exec() -> service::Result<()> {
     }
     if !role_sign_input.is_empty() {
         println!("正在创建角色...");
-        role = Some(
-            system_role_service::create(
-                &db,
-                "超级管理员",
-                &role_sign_input,
-                system_role_service::CreateParams {
-                    sort: Some(0),
-                    describe: Some(String::new()),
-                    status: Some(true),
-                },
-                vec![],
-            )
-            .await?,
-        );
+        let role_result = system_role_service::create(
+            &db,
+            "超级管理员",
+            &role_sign_input,
+            system_role_service::CreateParams {
+                sort: Some(0),
+                describe: Some(String::new()),
+                status: Some(1),
+            },
+            vec![],
+        )
+        .await?;
+        role = Some(role_result);
         println!("创建角色完成");
     }
 
@@ -60,7 +59,7 @@ pub async fn exec() -> service::Result<()> {
             &username_sign_input,
             system_user_service::CreateParams {
                 nickname: Some("超级管理员".to_owned()),
-                role_id: Some(role.map(|x| x.id)),
+                role_id: role.map(|x| x.id),
                 dept_id: None,
                 phone: Some(String::new()),
                 email: Some(String::new()),
@@ -69,7 +68,7 @@ pub async fn exec() -> service::Result<()> {
                 salt: Some(slat),
                 describe: Some(String::new()),
                 expire_time: None,
-                status: Some(true),
+                status: Some(1),
             },
         )
         .await?;
@@ -100,7 +99,7 @@ async fn get_input_role_sign(
     if role_sign_input.is_empty() {
         role_sign_input = default_role_sign.to_owned();
     }
-    let role = system_role_service::get_by_sign(&db, &role_sign_input, None).await?;
+    let role = system_role_service::get_by_sign(db, &role_sign_input, None).await?;
     if role.is_some() {
         println!("数据已存在，请重新输入");
         return get_input_role_sign(db, role_sign_input, default_role_sign).await;

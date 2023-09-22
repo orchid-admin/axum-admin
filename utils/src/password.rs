@@ -44,7 +44,7 @@ impl Password {
     }
 
     /// verify input password
-    pub fn verify_password(hash: String, salt: String, input_password: &[u8]) -> Result<bool> {
+    pub fn verify_password(hash: &str, salt: &str, input_password: &[u8]) -> Result<bool> {
         use password_hash::PasswordVerifier;
 
         let argon2 = Self::build()?;
@@ -54,8 +54,8 @@ impl Password {
             version: Some(argon2::Version::V0x13.into()),
             params: password_hash::ParamsString::try_from(&Self::build_params()?)
                 .map_err(ErrorType::Hash)?,
-            salt: Some(password_hash::Salt::from_b64(&salt).map_err(ErrorType::Hash)?),
-            hash: Some(password_hash::Output::b64_decode(&hash).map_err(ErrorType::Hash)?),
+            salt: Some(password_hash::Salt::from_b64(salt).map_err(ErrorType::Hash)?),
+            hash: Some(password_hash::Output::b64_decode(hash).map_err(ErrorType::Hash)?),
         };
         Ok(argon2
             .verify_password(input_password, &password_hash)

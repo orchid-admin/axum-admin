@@ -35,9 +35,6 @@ async fn main() -> Result<()> {
     let server_address = SocketAddr::from(([0, 0, 0, 0], 3000));
     tracing::info!("Service is running on {}", server_address);
 
-    // let (password, salt) = password::Password::generate_hash_salt("123456".as_bytes())?;
-    // println!("{}, {}", password, salt);
-
     axum::Server::bind(&server_address)
         .serve(app.into_make_service_with_connect_info::<SocketAddr>())
         .await

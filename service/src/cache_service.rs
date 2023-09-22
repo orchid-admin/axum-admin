@@ -1,4 +1,5 @@
 use crate::{generate_prisma::system_cache, Database, Result};
+use getset::Getters;
 use serde::Serialize;
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use utils::datetime::{now_time, offset_from_timestamp, timestamp_nanos};
@@ -417,10 +418,11 @@ impl Driver for CacheDriverDatabase {
     }
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, Getters)]
 pub struct Info {
     key: String,
     r#type: CacheType,
+    #[getset(get = "pub")]
     value: String,
     attach: Option<String>,
     valid_time:
@@ -429,10 +431,6 @@ pub struct Info {
 }
 
 impl Info {
-    pub fn get_value(self) -> String {
-        self.value
-    }
-
     pub fn is_valid(self) -> bool {
         if let Some(valid_time) = self.valid_time {
             return valid_time.timestamp_nanos() > now_time().timestamp_nanos();

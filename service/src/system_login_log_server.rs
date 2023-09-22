@@ -13,14 +13,14 @@ use utils::{
 
 pub async fn create(
     db: &Database,
-    user_id: i32,
+    user_id: &i32,
     ip_address: &str,
     params: CreateParams,
 ) -> Result<Info> {
     Ok(db
         .client
         .system_login_log()
-        .create_unchecked(user_id, ip_address.to_owned(), params.to_params())
+        .create_unchecked(*user_id, ip_address.to_owned(), params.to_params())
         .exec()
         .await?
         .into())

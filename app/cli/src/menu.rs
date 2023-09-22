@@ -62,7 +62,7 @@ async fn insert(
             .collect::<Vec<system_menu_service::Menu>>();
     }
     for menu in menus {
-        let children = menu.clone().get_children();
+        let children = menu.clone().children().clone();
         let info =
             system_menu_service::create(client, &menu.clone().get_title(), menu.into()).await?;
 

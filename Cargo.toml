@@ -47,6 +47,8 @@ prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-
 # error code require
 custom_attrs = "1.4"
 thiserror = "1.0"
+# struc get set
+getset = "0.1"
 # request params validator require
 validator = { version = "0.16", features = ["derive"] }
 # password encode require

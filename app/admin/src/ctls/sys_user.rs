@@ -77,11 +77,7 @@ async fn update_password(
     ValidatorJson(params): ValidatorJson<UpdatePasswordRequest>,
 ) -> Result<impl IntoResponse> {
     let info = system_user_service::info(&state.db, claims.user_id).await?;
-    if !Password::verify_password(
-        info.get_password(),
-        info.get_salt(),
-        params.old_password.as_bytes(),
-    )? {
+    if !Password::verify_password(info.password(), info.salt(), params.old_password.as_bytes())? {
         return Err(crate::error::ErrorCode::Other("旧密码错误"));
     }
     system_user_service::update(
@@ -124,7 +120,7 @@ async fn get_user_permission(
     let info = system_user_service::get_current_user_info(&state.db, claims.user_id).await?;
     let btn_auths = system_menu_service::filter_menu_types(
         Some(vec![system_menu_service::MenuType::BtnAuth]),
-        system_menu_service::get_menu_by_role(&state.db, info.get_role()).await?,
+        system_menu_service::get_menu_by_role(&state.db, info.role().clone()).await?,
     )
     .into_iter()
     .map(|x| x.btn_auth)

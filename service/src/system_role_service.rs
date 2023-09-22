@@ -2,6 +2,7 @@ use crate::{
     prisma::{system_role, system_role_menu, SortOrder},
     system_menu_service, system_role_menu_service, DataPower, Database, Result, ServiceError,
 };
+use getset::Getters;
 use prisma_client_rust::or;
 use serde::{Deserialize, Serialize};
 use utils::{
@@ -64,7 +65,7 @@ pub async fn update(
                 .exec()
                 .await?;
 
-            let current_menus = system_role_menu_service::get_role_menus(db, role.id).await?;
+            let current_menus = system_role_menu_service::get_role_menus(db, &role.id).await?;
 
             if !menus.is_empty() {
                 let wait_creates = menus
@@ -248,24 +249,18 @@ impl SearchParams {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Getters)]
 pub struct Info {
+    #[getset(get = "pub")]
     id: i32,
     name: String,
+    #[getset(get = "pub")]
     sign: String,
     describe: String,
     status: i32,
     sort: i32,
     created_at: String,
     menu_ids: Vec<i32>,
-}
-impl Info {
-    pub fn get_id(&self) -> i32 {
-        self.id
-    }
-    pub fn get_sign(&self) -> String {
-        self.sign.clone()
-    }
 }
 impl From<system_role::Data> for Info {
     fn from(value: system_role::Data) -> Self {

@@ -44,7 +44,7 @@ pub async fn delete(db: &Database, id: i32) -> Result<system_dept::Data> {
             let user_ids = system_user_service::get_users_by_dept_id(db, id)
                 .await?
                 .into_iter()
-                .map(|x| x.get_id())
+                .map(|x| *x.id())
                 .collect::<Vec<i32>>();
             if !user_ids.is_empty() {
                 system_user_service::batch_set_dept(db, None, user_ids).await?;
@@ -130,21 +130,19 @@ async fn get_depts_by_user_id(
 ) -> Result<Vec<Info>> {
     let user_permission = system_user_service::get_current_user_info(db, user_id).await?;
 
-    Ok(
-        match (user_permission.get_role(), user_permission.get_dept()) {
-            (Some(role), Some(dept)) => {
-                let depts = get_role_dept(db, role, params).await?;
-                if !depts.is_empty() {
-                    depts
-                } else {
-                    get_children_dept(get_depts(db, params).await?, dept.id)
-                }
+    Ok(match (user_permission.role(), user_permission.dept()) {
+        (Some(role), Some(dept)) => {
+            let depts = get_role_dept(db, role.clone(), params).await?;
+            if !depts.is_empty() {
+                depts
+            } else {
+                get_children_dept(get_depts(db, params).await?, dept.id)
             }
-            (None, Some(dept)) => get_children_dept(get_depts(db, params).await?, dept.id),
-            (Some(role), None) => get_role_dept(db, role, params).await?,
-            _ => vec![],
-        },
-    )
+        }
+        (None, Some(dept)) => get_children_dept(get_depts(db, params).await?, dept.id),
+        (Some(role), None) => get_role_dept(db, role.clone(), params).await?,
+        _ => vec![],
+    })
 }
 
 async fn get_role_dept(
@@ -152,7 +150,7 @@ async fn get_role_dept(
     role: system_role_service::Info,
     params: &SearchParams,
 ) -> Result<Vec<Info>> {
-    if role.get_sign().as_str().eq(&db.config.admin_role_sign) {
+    if role.sign().eq(&db.config.admin_role_sign) {
         return get_depts(db, params).await;
     }
     Ok(vec![])

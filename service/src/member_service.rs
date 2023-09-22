@@ -1,12 +1,12 @@
-use std::ops::{Add, Sub};
-
 use crate::{
     member_bill_service,
     prisma::{member, SortOrder},
     Database, Result, ServiceError,
 };
+use getset::Getters;
 use prisma_client_rust::{bigdecimal::BigDecimal, or};
 use serde::Serialize;
+use std::ops::{Add, Sub};
 use utils::{
     datetime::{now_time, to_local_string},
     paginate::{PaginateParams, PaginateResult},
@@ -254,6 +254,22 @@ pub async fn generate_code(db: &Database, code_length: usize) -> Result<String> 
         None => Ok(unique_code),
     }
 }
+
+pub async fn set_last_login(db: &Database, user_id: &i32, login_ip: &str) -> Result<Info> {
+    Ok(db
+        .client
+        .member()
+        .update(
+            member::id::equals(*user_id),
+            vec![
+                member::last_login_ip::set(login_ip.to_owned()),
+                member::last_login_time::set(Some(now_time())),
+            ],
+        )
+        .exec()
+        .await?
+        .into())
+}
 pub struct SearchParams {
     keyword: Option<String>,
     sex: Option<i32>,
@@ -301,22 +317,39 @@ impl SearchParams {
         }
     }
 }
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Getters)]
 pub struct Info {
+    #[getset(get = "pub")]
     id: i32,
+    #[getset(get = "pub")]
     unique_code: String,
+    #[getset(get = "pub")]
     email: String,
+    #[getset(get = "pub")]
     mobile: String,
+    #[getset(get = "pub")]
     nickname: String,
+    #[getset(get = "pub")]
     avatar: String,
+    #[serde(skip)]
+    #[getset(get = "pub")]
+    password: String,
+    #[getset(get = "pub")]
     sex: i32,
+    #[getset(get = "pub")]
     balance: BigDecimal,
+    #[getset(get = "pub")]
     integral: i32,
     remark: String,
+    #[getset(get = "pub")]
     status: i32,
+    #[getset(get = "pub")]
     is_promoter: i32,
+    #[getset(get = "pub")]
     last_login_ip: String,
+    #[getset(get = "pub")]
     last_login_time: Option<String>,
+    #[getset(get = "pub")]
     created_at: String,
 }
 
@@ -329,6 +362,7 @@ impl From<member::Data> for Info {
             mobile: value.mobile,
             nickname: value.nickname,
             avatar: value.avatar,
+            password: value.password,
             sex: value.sex,
             balance: value.balance,
             integral: value.integral,

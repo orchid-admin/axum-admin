@@ -7,6 +7,7 @@ use crate::{
     system_dept_service, system_menu_service, system_role_service, DataPower, Database, Result,
     ServiceError,
 };
+use getset::Getters;
 use prisma_client_rust::or;
 use serde::{Deserialize, Serialize};
 use utils::{
@@ -197,12 +198,12 @@ pub async fn paginate(
     })
 }
 
-pub async fn set_last_login(db: &Database, user_id: i32, login_ip: &str) -> Result<Info> {
+pub async fn set_last_login(db: &Database, user_id: &i32, login_ip: &str) -> Result<Info> {
     Ok(db
         .client
         .system_user()
         .update(
-            system_user::id::equals(user_id),
+            system_user::id::equals(*user_id),
             vec![
                 system_user::last_login_ip::set(login_ip.to_owned()),
                 system_user::last_login_time::set(Some(now_time())),
@@ -285,9 +286,11 @@ impl SearchParams {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Getters)]
 pub struct Info {
+    #[getset(get = "pub")]
     id: i32,
+    #[getset(get = "pub")]
     username: String,
     nickname: String,
     role_id: i32,
@@ -296,8 +299,10 @@ pub struct Info {
     email: String,
     sex: i32,
     #[serde(skip)]
+    #[getset(get = "pub")]
     password: String,
     #[serde(skip)]
+    #[getset(get = "pub")]
     salt: String,
     describe: String,
     expire_time: Option<String>,
@@ -305,29 +310,10 @@ pub struct Info {
     created_at: String,
     last_login_ip: String,
     last_login_time: Option<String>,
+    #[getset(get = "pub")]
     dept: Option<system_dept_service::Info>,
+    #[getset(get = "pub")]
     role: Option<system_role_service::Info>,
-}
-
-impl Info {
-    pub fn get_id(&self) -> i32 {
-        self.id
-    }
-    pub fn get_username(&self) -> String {
-        self.username.clone()
-    }
-    pub fn get_password(&self) -> String {
-        self.password.clone()
-    }
-    pub fn get_salt(&self) -> String {
-        self.salt.clone()
-    }
-    pub fn get_role(&self) -> Option<system_role_service::Info> {
-        self.role.clone()
-    }
-    pub fn get_dept(&self) -> Option<system_dept_service::Info> {
-        self.dept.clone()
-    }
 }
 
 impl From<system_user::Data> for Info {

@@ -39,7 +39,7 @@ async fn login_by_account(
         .await?
         .ok_or(ErrorCode::Other("验证码错误"))?;
 
-    let captcha_code = cache_info.get_value();
+    let captcha_code = cache_info.value();
     if captcha_code.to_lowercase().ne(&params.code.to_lowercase()) {
         return Err(ErrorCode::Other("验证码错误"));
     }
@@ -48,11 +48,8 @@ async fn login_by_account(
     let user = system_user_service::find_user_by_username(&state.db, &params.username)
         .await?
         .ok_or(ErrorCode::Other("用户名或密码错误"))?;
-    let verify_result = Password::verify_password(
-        user.get_password(),
-        user.get_salt(),
-        params.password.as_bytes(),
-    )?;
+    let verify_result =
+        Password::verify_password(user.password(), user.salt(), params.password.as_bytes())?;
 
     if !verify_result {
         return Err(ErrorCode::Other("用户名或密码错误"));
@@ -60,29 +57,23 @@ async fn login_by_account(
 
     let token_cache_type = service::cache_service::CacheType::SystemAuthJwt;
 
-    let token = generate_token(Claims::build(user.get_id()), "secret");
+    let token = generate_token(Claims::build(user.id()), "secret");
     cache
-        .put(
-            token_cache_type,
-            &token,
-            user.get_id(),
-            Some(24 * 3600),
-            None,
-        )
+        .put(token_cache_type, &token, user.id(), Some(24 * 3600), None)
         .await?;
 
     login_after(
         system_login_log_server::LoginType::Account,
         addr,
         state.clone(),
-        user.get_id(),
+        user.id(),
         user_agent,
     )
     .await?;
 
     Ok(Json(LoginReponse {
         token,
-        username: Some(user.get_username()),
+        username: Some(user.username().to_string()),
     }))
 }
 
@@ -91,7 +82,7 @@ async fn login_after(
     login_type: system_login_log_server::LoginType,
     addr: SocketAddr,
     state: AppState,
-    user_id: i32,
+    user_id: &i32,
     user_agent: HeaderValue,
 ) -> Result<()> {
     let ip_address = addr.to_string();
@@ -125,29 +116,23 @@ async fn login_by_mobile(
         .ok_or(ErrorCode::Other("用户名或密码错误"))?;
     let token_cache_type = service::cache_service::CacheType::SystemAuthJwt;
     let mut cache = state.cache.lock().await;
-    let token = generate_token(Claims::build(user.get_id()), "secret");
+    let token = generate_token(Claims::build(user.id()), "secret");
     cache
-        .put(
-            token_cache_type,
-            &token,
-            user.get_id(),
-            Some(24 * 3600),
-            None,
-        )
+        .put(token_cache_type, &token, user.id(), Some(24 * 3600), None)
         .await?;
 
     login_after(
         system_login_log_server::LoginType::Mobile,
         addr,
         state.clone(),
-        user.get_id(),
+        user.id(),
         user_agent,
     )
     .await?;
 
     Ok(Json(LoginReponse {
         token,
-        username: Some(user.get_username()),
+        username: Some(user.username().to_string()),
     }))
 }
 
@@ -161,7 +146,7 @@ async fn login_by_qrcode(
     // todo
     let token_cache_type = service::cache_service::CacheType::SystemAuthJwt;
     let mut cache = state.cache.lock().await;
-    let token = generate_token(Claims::build(1), "secret");
+    let token = generate_token(Claims::build(&1), "secret");
     cache
         .put(token_cache_type, &token, 1, Some(24 * 3600), None)
         .await?;
