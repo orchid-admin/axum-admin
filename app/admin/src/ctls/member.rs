@@ -97,8 +97,8 @@ async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl 
 struct SearchRequest {
     keyword: Option<String>,
     sex: Option<i32>,
-    status: Option<bool>,
-    is_promoter: Option<bool>,
+    status: Option<i32>,
+    is_promoter: Option<i32>,
     #[serde(flatten)]
     paginate: PaginateParams,
 }
@@ -128,9 +128,9 @@ struct CreateRequest {
     integral: Option<i32>,
     remark: Option<String>,
     #[serde(default)]
-    status: Option<bool>,
+    status: Option<i32>,
     #[serde(default)]
-    is_promoter: Option<bool>,
+    is_promoter: Option<i32>,
 }
 
 impl From<CreateRequest> for member_service::CreateParams {

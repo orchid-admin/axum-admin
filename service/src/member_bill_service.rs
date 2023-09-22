@@ -77,7 +77,7 @@ impl SearchParams {
                 member::mobile::contains(keyword.to_string()),
                 member::nickname::contains(keyword.to_string()),
             )];
-            params.push(or!(member_bill::user::is(user_search),));
+            params.push(or!(member_bill::member::is(user_search),));
         }
         if let Some(date) = &self.date {
             params.push(member_bill::created_at::equals(
@@ -118,8 +118,8 @@ impl From<member_bill::Data> for Info {
     fn from(value: member_bill::Data) -> Self {
         Self {
             id: value.id,
-            user_id: value.uid,
-            user: match value.user() {
+            user_id: value.member_id,
+            user: match value.member() {
                 Ok(x) => Some(x.clone().into()),
                 Err(_) => None,
             },

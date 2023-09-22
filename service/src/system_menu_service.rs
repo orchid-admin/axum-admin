@@ -316,7 +316,10 @@ impl From<Info> for UserMenu {
                     MenuType::Iframe => value.iframe.clone(),
                     _ => "".to_owned(),
                 },
-                is_iframe: !value.iframe.is_empty() && value.r#type.eq(&MenuType::Iframe),
+                is_iframe: match !value.iframe.is_empty() && value.r#type.eq(&MenuType::Iframe) {
+                    true => 1,
+                    false => 0,
+                },
                 is_hide: value.is_hide,
                 is_keep_alive: value.is_keep_alive,
                 is_affix: value.is_affix,
@@ -336,16 +339,16 @@ pub struct UserMenuMeta {
     pub is_link: String,
     /// 内嵌地址
     #[serde(rename = "isIframe")]
-    pub is_iframe: bool,
+    pub is_iframe: i32,
     /// 是否隐藏
     #[serde(rename = "isHide")]
-    pub is_hide: bool,
+    pub is_hide: i32,
     /// 是否开启keep_alive
     #[serde(rename = "isKeepAlive")]
-    pub is_keep_alive: bool,
+    pub is_keep_alive: i32,
     /// 是否固定
     #[serde(rename = "isAffix")]
-    pub is_affix: bool,
+    pub is_affix: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -415,11 +418,11 @@ pub struct Info {
     /// 接口请求方法
     pub api_method: String,
     /// 是否隐藏
-    pub is_hide: bool,
+    pub is_hide: i32,
     /// 是否开启keep_alive
-    pub is_keep_alive: bool,
+    pub is_keep_alive: i32,
     /// 是否固定
-    pub is_affix: bool,
+    pub is_affix: i32,
     /// 排序
     pub sort: i32,
     pub created_at: String,

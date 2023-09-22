@@ -97,9 +97,9 @@ struct CreateRequest {
     btn_auth: String,
     api_url: String,
     api_method: String,
-    is_hide: Option<bool>,
-    is_keep_alive: Option<bool>,
-    is_affix: Option<bool>,
+    is_hide: Option<i32>,
+    is_keep_alive: Option<i32>,
+    is_affix: Option<i32>,
     sort: i32,
 }
 

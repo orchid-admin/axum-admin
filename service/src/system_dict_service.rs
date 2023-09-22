@@ -104,7 +104,7 @@ pub async fn paginate(db: &Database, params: &SearchParams) -> Result<PaginateRe
 
 pub struct SearchParams {
     keyword: Option<String>,
-    status: Option<bool>,
+    status: Option<i32>,
     paginate: PaginateParams,
 }
 impl SearchParams {
@@ -122,7 +122,7 @@ impl SearchParams {
         params
     }
 
-    pub fn new(keyword: Option<String>, status: Option<bool>, paginate: PaginateParams) -> Self {
+    pub fn new(keyword: Option<String>, status: Option<i32>, paginate: PaginateParams) -> Self {
         Self {
             keyword,
             status,
@@ -135,7 +135,7 @@ pub struct Info {
     id: i32,
     name: String,
     sign: String,
-    status: bool,
+    status: i32,
     remark: String,
     created_at: String,
     data: Vec<system_dict_data_service::Info>,
@@ -149,7 +149,7 @@ impl Info {
 
 impl From<system_dict::Data> for Info {
     fn from(value: system_dict::Data) -> Self {
-        let data = match value.system_dict_data() {
+        let data = match value.dict_data() {
             Ok(data) => data
                 .iter()
                 .filter(|x| x.deleted_at.eq(&None))

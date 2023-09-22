@@ -85,7 +85,7 @@ pub async fn get_users_by_dept_id(db: &Database, dept_id: i32) -> Result<Vec<Inf
         .client
         .system_user()
         .find_many(vec![
-            system_user::dept_id::equals(Some(dept_id)),
+            system_user::dept_id::equals(dept_id),
             system_user::deleted_at::equals(None),
         ])
         .exec()
@@ -242,7 +242,7 @@ pub async fn upsert_system_user(
 #[derive(Debug, Deserialize)]
 pub struct SearchParams {
     keyword: Option<String>,
-    status: Option<bool>,
+    status: Option<i32>,
     role_id: Option<i32>,
     dept_id: Option<i32>,
     #[serde(flatten)]
@@ -263,14 +263,14 @@ impl SearchParams {
             params.push(system_user::status::equals(status));
         }
         if let Some(role_id) = self.role_id {
-            params.push(system_user::role_id::equals(Some(role_id)));
+            params.push(system_user::role_id::equals(role_id));
         }
         params
     }
 
     pub fn new(
         keyword: Option<String>,
-        status: Option<bool>,
+        status: Option<i32>,
         role_id: Option<i32>,
         dept_id: Option<i32>,
         paginate: PaginateParams,
@@ -290,8 +290,8 @@ pub struct Info {
     id: i32,
     username: String,
     nickname: String,
-    role_id: Option<i32>,
-    dept_id: Option<i32>,
+    role_id: i32,
+    dept_id: i32,
     phone: String,
     email: String,
     sex: i32,
@@ -301,7 +301,7 @@ pub struct Info {
     salt: String,
     describe: String,
     expire_time: Option<String>,
-    status: bool,
+    status: i32,
     created_at: String,
     last_login_ip: String,
     last_login_time: Option<String>,

@@ -257,8 +257,8 @@ pub async fn generate_code(db: &Database, code_length: usize) -> Result<String> 
 pub struct SearchParams {
     keyword: Option<String>,
     sex: Option<i32>,
-    status: Option<bool>,
-    is_promoter: Option<bool>,
+    status: Option<i32>,
+    is_promoter: Option<i32>,
     paginate: PaginateParams,
 }
 impl SearchParams {
@@ -288,8 +288,8 @@ impl SearchParams {
     pub fn new(
         keyword: Option<String>,
         sex: Option<i32>,
-        status: Option<bool>,
-        is_promoter: Option<bool>,
+        status: Option<i32>,
+        is_promoter: Option<i32>,
         paginate: PaginateParams,
     ) -> Self {
         Self {
@@ -313,8 +313,8 @@ pub struct Info {
     balance: BigDecimal,
     integral: i32,
     remark: String,
-    status: bool,
-    is_promoter: bool,
+    status: i32,
+    is_promoter: i32,
     last_login_ip: String,
     last_login_time: Option<String>,
     created_at: String,

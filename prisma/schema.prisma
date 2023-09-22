@@ -21,11 +21,9 @@ model SystemUser {
   /// 用户昵称
   nickname        String            @default("")
   /// 角色ID
-  role_id         Int?
-  role            SystemRole?       @relation(fields: [role_id], references: [id])
+  role_id         Int               @default(0)
   /// 部门ID
-  dept_id         Int?
-  dept            SystemDept?       @relation(fields: [dept_id], references: [id])
+  dept_id         Int               @default(0)
   /// 手机号
   phone           String            @default("")
   /// 邮箱
@@ -41,34 +39,36 @@ model SystemUser {
   /// 账户过期
   expire_time     DateTime?
   /// 用户状态
-  status          Boolean           @default(true)
+  status          Int               @default(0)
   last_login_ip   String            @default("")
   last_login_time DateTime?
   created_at      DateTime          @default(now())
   updated_at      DateTime          @updatedAt
   deleted_at      DateTime?
-  SystemLoginLog  SystemLoginLog[]
-  SystemActionLog SystemActionLog[]
+  login_log       SystemLoginLog[]
+  action_log      SystemActionLog[]
+  role            SystemRole?       @relation(fields: [role_id], references: [id])
+  dept            SystemDept?       @relation(fields: [dept_id], references: [id])
 }
 
 /// 角色表
 model SystemRole {
-  id             Int              @id @default(autoincrement())
+  id         Int              @id @default(autoincrement())
   /// 角色名称
-  name           String
+  name       String
   /// 角色标识
-  sign           String           @unique
+  sign       String           @unique
   /// 排序
-  sort           Int              @default(0)
+  sort       Int              @default(0)
   /// 角色描述
-  describe       String           @default("")
+  describe   String           @default("")
   /// 角色状态
-  status         Boolean          @default(true)
-  created_at     DateTime         @default(now())
-  updated_at     DateTime         @default(now())
-  deleted_at     DateTime?
-  SystemUser     SystemUser[]
-  SystemRoleMenu SystemRoleMenu[]
+  status     Int              @default(1)
+  created_at DateTime         @default(now())
+  updated_at DateTime         @default(now())
+  deleted_at DateTime?
+  user       SystemUser[]
+  role_menu  SystemRoleMenu[]
 }
 
 /// 菜单表
@@ -101,27 +101,27 @@ model SystemMenu {
   /// 请求方法 (接口权限)
   api_method       String            @default("")
   /// 是否隐藏
-  is_hide          Boolean           @default(false)
+  is_hide          Int               @default(0)
   /// 页面缓存
-  is_keep_alive    Boolean           @default(true)
+  is_keep_alive    Int               @default(1)
   /// 是否固定
-  is_affix         Boolean           @default(false)
+  is_affix         Int               @default(0)
   /// 菜单排序
   sort             Int               @default(0)
   created_at       DateTime          @default(now())
   updated_at       DateTime          @updatedAt
   deleted_at       DateTime?
-  SystemRoleMenu   SystemRoleMenu[]
-  SystemActionLog  SystemActionLog[]
+  role_menu        SystemRoleMenu[]
+  action_log       SystemActionLog[]
 }
 
 model SystemRoleMenu {
   id         Int        @id @default(autoincrement())
-  role       SystemRole @relation(fields: [role_id], references: [id])
-  menu       SystemMenu @relation(fields: [menu_id], references: [id])
   role_id    Int
   menu_id    Int
   deleted_at DateTime?
+  role       SystemRole @relation(fields: [role_id], references: [id])
+  menu       SystemMenu @relation(fields: [menu_id], references: [id])
 
   @@unique([role_id, menu_id])
 }
@@ -142,29 +142,29 @@ model SystemDept {
   /// 部门描述
   describe     String       @default("")
   /// 角色状态
-  status       Boolean      @default(true)
+  status       Int          @default(1)
   /// 菜单排序
   sort         Int          @default(0)
   created_at   DateTime     @default(now())
   updated_at   DateTime     @updatedAt
   deleted_at   DateTime?
-  SystemUser   SystemUser[]
+  user         SystemUser[]
 }
 
 /// 字典表
 model SystemDict {
-  id             Int              @id @default(autoincrement())
+  id         Int              @id @default(autoincrement())
   /// 名称
-  name           String
+  name       String
   /// 标识
-  sign           String
-  remark         String           @default("")
+  sign       String
+  remark     String           @default("")
   /// 状态
-  status         Boolean          @default(true)
-  created_at     DateTime         @default(now())
-  updated_at     DateTime         @updatedAt
-  deleted_at     DateTime?
-  SystemDictData SystemDictData[]
+  status     Int              @default(1)
+  created_at DateTime         @default(now())
+  updated_at DateTime         @updatedAt
+  deleted_at DateTime?
+  dict_data  SystemDictData[]
 }
 
 /// 字典数据表
@@ -172,19 +172,19 @@ model SystemDictData {
   id         Int        @id @default(autoincrement())
   /// 字典ID
   dict_id    Int
-  dict       SystemDict @relation(fields: [dict_id], references: [id])
   /// 名称
   label      String
   /// 标识
   value      Int
   remark     String     @default("")
   /// 状态
-  status     Boolean    @default(true)
+  status     Int        @default(1)
   /// 排序
   sort       Int        @default(0)
   created_at DateTime   @default(now())
   updated_at DateTime   @updatedAt
   deleted_at DateTime?
+  dict       SystemDict @relation(fields: [dict_id], references: [id])
 }
 
 /// 登录记录表
@@ -194,7 +194,6 @@ model SystemLoginLog {
   type            Int        @default(1)
   /// 管理员ID
   user_id         Int
-  user            SystemUser @relation(fields: [user_id], references: [id])
   /// 登录的IP地址
   ip_address      String
   /// 登录的IP地址名称
@@ -203,6 +202,7 @@ model SystemLoginLog {
   browser_agent   String     @default("")
   /// 登录的日期时间
   created_at      DateTime   @default(now())
+  user            SystemUser @relation(fields: [user_id], references: [id])
 }
 
 /// 操作记录表
@@ -210,10 +210,8 @@ model SystemActionLog {
   id              Int        @id @default(autoincrement())
   /// 管理员ID
   user_id         Int
-  user            SystemUser @relation(fields: [user_id], references: [id])
   /// 操作的菜单ID
   menu_id         Int
-  menu            SystemMenu @relation(fields: [menu_id], references: [id])
   /// 完整的菜单名称
   menu_names      String     @default("")
   /// 操作时的IP地址
@@ -224,6 +222,8 @@ model SystemActionLog {
   browser_agent   String     @default("")
   /// 操作时的日期时间
   created_at      DateTime   @default(now())
+  user            SystemUser @relation(fields: [user_id], references: [id])
+  menu            SystemMenu @relation(fields: [menu_id], references: [id])
 }
 
 /// 缓存表
@@ -249,43 +249,43 @@ model SystemCache {
 
 /// 用户表
 model Member {
-  id                 Int          @id @default(autoincrement())
+  id              Int          @id @default(autoincrement())
   /// 唯一标识编号（可用作邀请码）
-  unique_code        String       @unique
+  unique_code     String       @unique
   /// 用户邮箱
-  email              String       @unique
+  email           String       @unique
   /// 手机号码
-  mobile             String       @default("")
+  mobile          String       @default("")
   /// 昵称
-  nickname           String       @default("")
+  nickname        String       @default("")
   /// 头像
-  avatar             String       @default("")
+  avatar          String       @default("")
   /// 密码
-  password           String       @default("")
+  password        String       @default("")
   /// 性别
-  sex                Int          @default(1)
+  sex             Int          @default(1)
   /// 余额
-  balance            Decimal      @default(0.00)
+  balance         Decimal      @default(0.00)
   /// 积分
-  integral           Int          @default(0)
+  integral        Int          @default(0)
   /// 备注
-  remark             String       @default("")
+  remark          String       @default("")
   /// 状态
-  status             Boolean      @default(true)
+  status          Int          @default(1)
   /// 推广权限
-  is_promoter        Boolean      @default(true)
+  is_promoter     Int          @default(1)
   /// 最后登录IP
-  last_login_ip      String       @default("")
+  last_login_ip   String       @default("")
   /// 最后登录时间
-  last_login_time    DateTime?
+  last_login_time DateTime?
   /// 注册时间
-  created_at         DateTime     @default(now())
-  updated_at         DateTime     @updatedAt
-  deleted_at         DateTime?
-  member_team_owner  MemberTeam[] @relation("owner")
-  member_team_parent MemberTeam[] @relation("parent")
-  member_team_user   MemberTeam[] @relation("user")
-  MemberBill         MemberBill[]
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+  deleted_at      DateTime?
+  team_owner      MemberTeam[] @relation("owner")
+  team_parent     MemberTeam[] @relation("parent")
+  team_user       MemberTeam[] @relation("member")
+  bill            MemberBill[]
 }
 
 /// 用户推广表
@@ -293,27 +293,26 @@ model MemberTeam {
   id         Int       @id @default(autoincrement())
   /// 团队所属用户ID
   owner_uid  Int
-  owner      Member    @relation(name: "owner", fields: [owner_uid], references: [id])
   /// 推广用户ID
   parent_uid Int
-  parent     Member    @relation(name: "parent", fields: [parent_uid], references: [id])
   /// 被推广用户ID
-  uid        Int
-  user       Member    @relation(name: "user", fields: [uid], references: [id])
+  member_id  Int
   /// 被推广用户在团队的级别
   level      Int       @default(0)
   /// 推广时间
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
   deleted_at DateTime?
+  owner      Member    @relation(name: "owner", fields: [owner_uid], references: [id])
+  parent     Member    @relation(name: "parent", fields: [parent_uid], references: [id])
+  member     Member    @relation(name: "member", fields: [member_id], references: [id])
 }
 
 /// 用户资金账单表
 model MemberBill {
   id         Int       @id @default(autoincrement())
   /// 用户ID
-  uid        Int
-  user       Member    @relation(fields: [uid], references: [id])
+  member_id  Int
   /// 种类
   type       Int
   /// 类型：0.减少，1.增加
@@ -323,4 +322,5 @@ model MemberBill {
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
   deleted_at DateTime?
+  member     Member    @relation(fields: [member_id], references: [id])
 }

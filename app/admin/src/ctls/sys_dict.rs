@@ -105,7 +105,7 @@ async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl 
 #[derive(Debug, Deserialize)]
 struct SearchRequest {
     keyword: Option<String>,
-    status: Option<bool>,
+    status: Option<i32>,
     #[serde(flatten)]
     paginate: PaginateParams,
 }
@@ -120,7 +120,7 @@ struct CreateRequest {
     sign: String,
     remark: Option<String>,
     #[serde(default)]
-    status: bool,
+    status: i32,
 }
 
 impl From<CreateRequest> for system_dict_service::CreateParams {

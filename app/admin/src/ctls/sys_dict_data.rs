@@ -112,7 +112,7 @@ struct BatchAction {
 struct SearchRequest {
     dict_id: Option<i32>,
     keyword: Option<String>,
-    status: Option<bool>,
+    status: Option<i32>,
     #[serde(flatten)]
     paginate: PaginateParams,
 }
@@ -128,7 +128,7 @@ struct CreateRequest {
     value: i32,
     remark: Option<String>,
     #[serde(default)]
-    status: bool,
+    status: i32,
     sort: i32,
 }
 

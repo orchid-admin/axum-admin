@@ -137,7 +137,7 @@ struct SearchRequest {
     keyword: Option<String>,
     role_id: Option<i32>,
     dept_id: Option<i32>,
-    status: Option<bool>,
+    status: Option<i32>,
     #[serde(flatten)]
     paginate: PaginateParams,
 }
@@ -165,19 +165,15 @@ struct CreateRequest {
     password: Option<String>,
     describe: Option<String>,
     expire_time: Option<String>,
-    status: bool,
+    status: i32,
 }
 
 impl From<CreateRequest> for system_user_service::CreateParams {
     fn from(value: CreateRequest) -> Self {
         let mut data = Self {
             nickname: Some(value.nickname),
-            role_id: value
-                .role_id
-                .and_then(|x| if x <= 0 { None } else { Some(Some(x)) }),
-            dept_id: value
-                .dept_id
-                .and_then(|x| if x <= 0 { None } else { Some(Some(x)) }),
+            role_id: value.role_id,
+            dept_id: value.dept_id,
             phone: value.phone,
             email: value.email,
             sex: Some(value.sex),
@@ -206,8 +202,8 @@ impl From<CreateRequest> for system_user_service::UpdateParams {
         let mut data = Self {
             username: Some(value.username),
             nickname: Some(value.nickname),
-            role_id: value.role_id.map(|x| if x <= 0 { None } else { Some(x) }),
-            dept_id: value.dept_id.map(|x| if x <= 0 { None } else { Some(x) }),
+            role_id: value.role_id,
+            dept_id: value.dept_id,
             phone: value.phone,
             email: value.email,
             sex: Some(value.sex),

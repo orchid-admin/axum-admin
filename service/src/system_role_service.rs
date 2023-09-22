@@ -188,7 +188,7 @@ pub async fn info(db: &Database, id: i32) -> Result<Info> {
             system_role::deleted_at::equals(None),
         ])
         .with(
-            system_role::system_role_menu::fetch(vec![system_role_menu::deleted_at::equals(None)])
+            system_role::role_menu::fetch(vec![system_role_menu::deleted_at::equals(None)])
                 .with(system_role_menu::menu::fetch()),
         )
         .exec()
@@ -218,7 +218,7 @@ pub async fn get_by_sign(
 #[derive(Debug, Deserialize)]
 pub struct SearchParams {
     keyword: Option<String>,
-    status: Option<bool>,
+    status: Option<i32>,
     #[serde(flatten)]
     paginate: PaginateParams,
 }
@@ -239,7 +239,7 @@ impl SearchParams {
         params
     }
 
-    pub fn new(keyword: Option<String>, status: Option<bool>, paginate: PaginateParams) -> Self {
+    pub fn new(keyword: Option<String>, status: Option<i32>, paginate: PaginateParams) -> Self {
         Self {
             keyword,
             status,
@@ -254,7 +254,7 @@ pub struct Info {
     name: String,
     sign: String,
     describe: String,
-    status: bool,
+    status: i32,
     sort: i32,
     created_at: String,
     menu_ids: Vec<i32>,

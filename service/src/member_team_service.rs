@@ -47,7 +47,7 @@ pub async fn paginate(db: &Database, params: &SearchParams) -> Result<PaginateRe
                 .order_by(member_team::id::order(SortOrder::Desc))
                 .with(member_team::owner::fetch())
                 .with(member_team::parent::fetch())
-                .with(member_team::user::fetch()),
+                .with(member_team::member::fetch()),
             db.client.member_team().count(params.to_params()),
         ))
         .await?;
@@ -75,7 +75,7 @@ impl SearchParams {
             params.push(or!(
                 member_team::owner::is(user_search.clone()),
                 member_team::parent::is(user_search.clone()),
-                member_team::user::is(user_search),
+                member_team::member::is(user_search),
             ));
         }
         if let Some(date) = &self.date {
@@ -121,8 +121,8 @@ impl From<member_team::Data> for Info {
                 Ok(x) => Some(x.clone().into()),
                 Err(_) => None,
             },
-            uid: value.uid,
-            user: match value.user() {
+            uid: value.member_id,
+            user: match value.member() {
                 Ok(x) => Some(x.clone().into()),
                 Err(_) => None,
             },

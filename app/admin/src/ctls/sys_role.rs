@@ -126,7 +126,7 @@ async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl 
 #[derive(Debug, Deserialize)]
 struct SearchRequest {
     keyword: Option<String>,
-    status: Option<bool>,
+    status: Option<i32>,
     #[serde(flatten)]
     paginate: PaginateParams,
 }
@@ -144,7 +144,7 @@ struct CreateRequest {
     #[serde(default)]
     describe: String,
     #[serde(default)]
-    status: bool,
+    status: i32,
     menu_ids: Option<Vec<i32>>,
 }
 

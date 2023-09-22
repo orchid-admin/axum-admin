@@ -65,7 +65,7 @@ async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl 
 #[derive(Debug, Deserialize)]
 struct SearchRequest {
     keyword: Option<String>,
-    status: Option<bool>,
+    status: Option<i32>,
 }
 impl From<SearchRequest> for system_dept_service::SearchParams {
     fn from(value: SearchRequest) -> Self {
@@ -80,7 +80,7 @@ struct CreateRequest {
     person_phone: Option<String>,
     person_email: Option<String>,
     describe: Option<String>,
-    status: bool,
+    status: i32,
     sort: i32,
 }
 

@@ -111,7 +111,7 @@ pub async fn paginate(db: &Database, params: &SearchParams) -> Result<PaginateRe
 pub struct SearchParams {
     dict_id: Option<i32>,
     keyword: Option<String>,
-    status: Option<bool>,
+    status: Option<i32>,
     paginate: PaginateParams,
 }
 impl SearchParams {
@@ -132,7 +132,7 @@ impl SearchParams {
     pub fn new(
         dict_id: Option<i32>,
         keyword: Option<String>,
-        status: Option<bool>,
+        status: Option<i32>,
         paginate: PaginateParams,
     ) -> Self {
         Self {
@@ -150,7 +150,7 @@ pub struct Info {
     dict: Option<system_dict_service::Info>,
     label: String,
     value: i32,
-    status: bool,
+    status: i32,
     sort: i32,
     remark: String,
     created_at: String,

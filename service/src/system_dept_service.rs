@@ -201,7 +201,7 @@ pub struct Info {
     person_phone: String,
     person_email: String,
     describe: String,
-    status: bool,
+    status: i32,
     sort: i32,
     created_at: String,
 }
@@ -235,7 +235,7 @@ impl From<system_dept::Data> for Info {
 #[derive(Debug)]
 pub struct SearchParams {
     keyword: Option<String>,
-    status: Option<bool>,
+    status: Option<i32>,
 }
 impl SearchParams {
     fn to_params(&self) -> Vec<system_dept::WhereParam> {
@@ -254,7 +254,7 @@ impl SearchParams {
         }
         params
     }
-    pub fn new(keyword: Option<String>, status: Option<bool>) -> Self {
+    pub fn new(keyword: Option<String>, status: Option<i32>) -> Self {
         Self { keyword, status }
     }
 }
