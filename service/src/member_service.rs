@@ -147,6 +147,7 @@ pub async fn increment(
                 nickname: None,
                 avatar: None,
                 password: None,
+                salt: None,
                 sex: None,
                 balance: None,
                 integral: None,
@@ -204,6 +205,7 @@ pub async fn decrement(
                 nickname: None,
                 avatar: None,
                 password: None,
+                salt: None,
                 sex: None,
                 balance: None,
                 integral: None,
@@ -334,6 +336,9 @@ pub struct Info {
     #[serde(skip)]
     #[getset(get = "pub")]
     password: String,
+    #[serde(skip)]
+    #[getset(get = "pub")]
+    salt: String,
     #[getset(get = "pub")]
     sex: i32,
     #[getset(get = "pub")]
@@ -363,6 +368,7 @@ impl From<member::Data> for Info {
             nickname: value.nickname,
             avatar: value.avatar,
             password: value.password,
+            salt: value.salt,
             sex: value.sex,
             balance: value.balance,
             integral: value.integral,
@@ -380,6 +386,7 @@ member::partial_unchecked!(CreateParams {
     nickname
     avatar
     password
+    salt
     sex
     balance
     integral
@@ -393,6 +400,7 @@ member::partial_unchecked!(UpdateParams {
     nickname
     avatar
     password
+    salt
     sex
     balance
     integral

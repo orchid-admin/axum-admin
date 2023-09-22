@@ -262,6 +262,8 @@ model Member {
   avatar          String       @default("")
   /// 密码
   password        String       @default("")
+  /// 账户密码salt
+  salt            String       @default("")
   /// 性别
   sex             Int          @default(1)
   /// 余额
