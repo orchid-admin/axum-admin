@@ -437,6 +437,10 @@ impl Info {
         }
         false
     }
+
+    pub fn get_valid_timestamp(self) -> Option<i64> {
+        self.valid_time.map(|x| x.timestamp())
+    }
 }
 impl From<system_cache::Data> for Info {
     fn from(value: system_cache::Data) -> Self {
