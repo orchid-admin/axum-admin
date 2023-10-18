@@ -134,7 +134,10 @@ where
         Ok(self.0.first(r#type.clone(), key, None).await?.is_some())
     }
     pub async fn get(&self, r#type: CacheType, key: &str, default: Option<Info>) -> Result<Info> {
-        Ok(self.0.first(r#type, key, default).await?.unwrap())
+        self.0
+            .first(r#type, key, default)
+            .await?
+            .ok_or(super::ServiceError::CacheNotFound)
     }
     pub async fn add<T>(
         &mut self,
@@ -296,7 +299,10 @@ impl Driver for CacheDriverMemory {
         Ok(info)
     }
     async fn pull(&mut self, r#type: CacheType, key: &str) -> Result<Info> {
-        let info = self.first(r#type.clone(), key, None).await?.unwrap();
+        let info = self
+            .first(r#type.clone(), key, None)
+            .await?
+            .ok_or(super::ServiceError::CacheNotFound)?;
         self.data = self
             .data
             .clone()

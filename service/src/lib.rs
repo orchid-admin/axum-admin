@@ -25,6 +25,7 @@ pub enum ServiceError {
     RelationNotFetchedError(String),
     DataNotFound,
     SerializeJson(serde_json::Error),
+    CacheNotFound,
 }
 
 impl From<prisma_client_rust::NewClientError> for ServiceError {

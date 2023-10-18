@@ -150,8 +150,7 @@ mod middlewares {
         let jwt_item = cache
             .get(token_cache_type, token, None)
             .await
-            .map_err(|_| ErrorCode::Unauthorized)
-            .unwrap();
+            .map_err(|_| ErrorCode::Unauthorized)?;
         if !jwt_item.is_valid() {
             return Err(ErrorCode::Unauthorized);
         }

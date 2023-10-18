@@ -33,6 +33,7 @@ impl From<service::ServiceError> for ErrorCode {
             }
             service::ServiceError::SerializeJson(err) => err.to_string(),
             service::ServiceError::DataNotFound => "数据不存在".to_owned(),
+            service::ServiceError::CacheNotFound => "缓存不存在".to_owned(),
         };
         Self::InternalServerString(err_string)
     }
