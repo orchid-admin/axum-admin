@@ -2,7 +2,9 @@ use axum::{extract::MatchedPath, http::Request};
 use error::{ErrorCode, Result};
 use std::net::SocketAddr;
 
+/// controllers
 mod ctls;
+/// error and result
 mod error;
 mod state;
 

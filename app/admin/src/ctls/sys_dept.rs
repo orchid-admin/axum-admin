@@ -10,8 +10,6 @@ use axum::{
 use axum_extra::extract::Query;
 use serde::Deserialize;
 use service::system_dept_service;
-use utils::extracts::ValidatorJson;
-use validator::Validate;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
     Router::new()
@@ -22,7 +20,7 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .route("/dept/:id", delete(del))
         .with_state(state)
 }
-/// 获取树形列表
+/// get tree dept
 async fn index(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -33,30 +31,31 @@ async fn index(
     ))
 }
 
-/// 获取菜单详情
+/// dept detail
 async fn info(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
     Ok(Json(system_dept_service::info(&state.db, id).await?))
 }
 
-/// 新增
+/// create dept
 async fn create(
     State(state): State<AppState>,
-    ValidatorJson(params): ValidatorJson<CreateRequest>,
+    Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     system_dept_service::create(&state.db, &params.name.clone(), params.into()).await?;
     Ok(Empty::new())
 }
 
-/// 更新
+/// update dept
 async fn update(
     Path(id): Path<i32>,
     State(state): State<AppState>,
-    ValidatorJson(params): ValidatorJson<CreateRequest>,
+    Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     system_dept_service::update(&state.db, id, params.into()).await?;
     Ok(Empty::new())
 }
 
+/// delete dept
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
     system_dept_service::delete(&state.db, id).await?;
     Ok(Empty::new())
@@ -72,7 +71,7 @@ impl From<SearchRequest> for system_dept_service::SearchParams {
         Self::new(value.keyword, value.status)
     }
 }
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 struct CreateRequest {
     parent_id: i32,
     name: String,

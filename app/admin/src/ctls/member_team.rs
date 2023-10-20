@@ -17,7 +17,7 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .with_state(state)
 }
 
-/// 列表
+/// member team list
 async fn index(
     State(state): State<AppState>,
     Query(params): Query<SearchRequest>,
@@ -26,7 +26,7 @@ async fn index(
     Ok(Json(data))
 }
 
-/// 详情
+/// member team detail
 async fn info(
     State(state): State<AppState>,
     extract::Path(id): extract::Path<i32>,

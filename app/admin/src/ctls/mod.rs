@@ -26,19 +26,20 @@ impl Claims {
     }
 }
 
-/// 路由
+/// router mod
 pub mod router {
     use super::*;
     use crate::state::AppState;
     use axum::{middleware, Router};
 
+    /// routers init
     pub async fn init(state: AppState) -> Router {
         Router::new()
             .merge(no_auths(state.clone()))
             .merge(auths(state))
     }
 
-    /// 需授权的路由
+    /// need auth`routers
     fn auths(state: AppState) -> Router {
         Router::new()
             .merge(sys_user::routers(state.clone()))
@@ -63,12 +64,13 @@ pub mod router {
             .with_state(state)
     }
 
+    /// not need auth`routers
     fn no_auths(state: AppState) -> Router {
         Router::new().merge(auth::routers(state))
     }
 }
 
-/// 中间件
+/// middleware mod
 mod middlewares {
     use crate::{error::ErrorCode, state::AppState};
     use axum::{
@@ -87,7 +89,7 @@ mod middlewares {
         Extension, RequestExt,
     };
 
-    /// 获取请求的User-Agent
+    /// get request`User-Agent
     pub struct ExtractUserAgent(pub HeaderValue);
     #[async_trait]
     impl<S> FromRequestParts<S> for ExtractUserAgent
@@ -103,12 +105,12 @@ mod middlewares {
             if let Some(user_agent) = parts.headers.get(USER_AGENT) {
                 Ok(ExtractUserAgent(user_agent.clone()))
             } else {
-                Err(ErrorCode::Other("请求错误").into_response())
+                Err(ErrorCode::RequestUserAgent.into_response())
             }
         }
     }
 
-    /// TOKEN检查
+    /// jwt`token check middleware
     pub async fn token_check<B>(
         State(state): State<AppState>,
         mut req: Request<B>,
@@ -123,7 +125,7 @@ mod middlewares {
         }
     }
 
-    /// 解析TOKEN
+    /// parse jwt token
     async fn parse_token<B>(
         state: AppState,
         req: &Request<B>,
@@ -146,7 +148,7 @@ mod middlewares {
             .ok_or(ErrorCode::Unauthorized)?;
         let token_cache_type = service::cache_service::CacheType::SystemAuthJwt;
         let cache = state.cache.lock().await;
-        let claims = super::decode_token(token, "secret");
+        let claims = super::decode_token(token, "secret")?;
         let jwt_item = cache
             .get(token_cache_type, token, None)
             .await
@@ -158,7 +160,7 @@ mod middlewares {
         Ok(claims)
     }
 
-    /// 权限检查
+    /// logined user`s permissions check
     pub async fn access_matched_path(
         Extension(claims): Extension<super::Claims>,
         ExtractUserAgent(user_agent): ExtractUserAgent,
@@ -208,20 +210,21 @@ mod middlewares {
 
                         next.run(req).await
                     }
-                    _ => ErrorCode::Other("权限不足").into_response(),
+                    _ => ErrorCode::Permissions.into_response(),
                 }
             }
-            Err(_) => ErrorCode::Other("权限不足").into_response(),
+            Err(_) => ErrorCode::Permissions.into_response(),
         })
     }
 }
 
-fn decode_token(token: &str, secret: &str) -> Claims {
+/// decode jwt`token
+fn decode_token(token: &str, secret: &str) -> crate::error::Result<Claims> {
     jsonwebtoken::decode::<Claims>(
         token,
         &jsonwebtoken::DecodingKey::from_secret(secret.as_bytes()),
         &jsonwebtoken::Validation::default(),
     )
     .map(|x| x.claims)
-    .unwrap()
+    .map_err(|_| crate::error::ErrorCode::Unauthorized)
 }

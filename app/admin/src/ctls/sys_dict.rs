@@ -12,8 +12,7 @@ use axum::{
 use axum_extra::extract::Query;
 use serde::Deserialize;
 use service::system_dict_service;
-use utils::{extracts::ValidatorJson, paginate::PaginateParams};
-use validator::Validate;
+use utils::paginate::PaginateParams;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
     Router::new()
@@ -26,13 +25,13 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .with_state(state)
 }
 
-/// 获取所有
+/// get all dict data
 async fn all(State(state): State<AppState>) -> Result<impl IntoResponse> {
     let data = system_dict_service::all(&state.db).await?;
     Ok(Json(data))
 }
 
-/// 列表
+/// dict list
 async fn index(
     State(state): State<AppState>,
     Query(params): Query<SearchRequest>,
@@ -41,7 +40,7 @@ async fn index(
     Ok(Json(data))
 }
 
-/// 详情
+/// dict detail
 async fn info(
     State(state): State<AppState>,
     extract::Path(id): extract::Path<i32>,
@@ -49,19 +48,16 @@ async fn info(
     Ok(Json(system_dict_service::info(&state.db, id).await?))
 }
 
-/// 创建
+/// create dict
 async fn create(
     State(state): State<AppState>,
-    ValidatorJson(params): ValidatorJson<CreateRequest>,
+    Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     if system_dict_service::get_by_sign(&state.db, &params.sign, None)
         .await?
         .is_some()
     {
-        return Err(ErrorCode::OtherString(format!(
-            "标识为{}的字典已存在",
-            params.sign
-        )));
+        return Err(ErrorCode::DictSignExsist);
     }
     system_dict_service::create(
         &state.db,
@@ -73,30 +69,27 @@ async fn create(
     Ok(Empty::new())
 }
 
-/// 更新
+/// update dict
 async fn update(
     Path(id): Path<i32>,
     State(state): State<AppState>,
-    ValidatorJson(params): ValidatorJson<CreateRequest>,
+    Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     if system_dict_service::get_by_sign(&state.db, &params.sign, Some(id))
         .await?
         .is_some()
     {
-        return Err(ErrorCode::OtherString(format!(
-            "标识为{}的字典已存在",
-            params.sign
-        )));
+        return Err(ErrorCode::DictSignExsist);
     }
     system_dict_service::update(&state.db, id, params.into()).await?;
     Ok(Empty::new())
 }
 
-/// 删除
+/// delete dict
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
     let info = system_dict_service::info(&state.db, id).await?;
     if !info.data_is_empty() {
-        return Err(ErrorCode::Other("该字典存在数据，不可删除"));
+        return Err(ErrorCode::NotDeleteData);
     }
     system_dict_service::delete(&state.db, id).await?;
     Ok(Empty::new())
@@ -114,7 +107,7 @@ impl From<SearchRequest> for system_dict_service::SearchParams {
         Self::new(value.keyword, value.status, value.paginate)
     }
 }
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 struct CreateRequest {
     name: String,
     sign: String,

@@ -3,24 +3,59 @@ use custom_attrs::CustomAttrs;
 
 pub type Result<T> = std::result::Result<T, ErrorCode>;
 
+/// Error Code Mapping
 #[derive(Debug, CustomAttrs)]
 #[attr(pub status_code: StatusCode)]
 #[attr(pub message: Option<&str>)]
 pub enum ErrorCode {
-    /// 内部服务错误
-    #[attr(status_code = StatusCode::INTERNAL_SERVER_ERROR,message = "服务异常")]
+    /// Internal Server error
+    #[attr(status_code = StatusCode::INTERNAL_SERVER_ERROR,message = "Internal Server error")]
     InternalServerString(String),
-    /// TOKEN无效
-    #[attr(status_code = StatusCode::UNAUTHORIZED,message = "无效TOKEN")]
+    /// Token valid
+    #[attr(status_code = StatusCode::UNAUTHORIZED,message = "Token valid")]
     Unauthorized,
-    /// 服务启动失败
-    #[attr(status_code = StatusCode::INTERNAL_SERVER_ERROR, message = "服务启动失败")]
+    /// Server startup error
+    #[attr(status_code = StatusCode::INTERNAL_SERVER_ERROR, message = "Server startup error")]
     ServerSteup,
-    /// 其他错误提示
-    #[attr(status_code = StatusCode::BAD_REQUEST)]
-    Other(&'static str),
-    #[attr(status_code = StatusCode::BAD_REQUEST)]
-    OtherString(String),
+    /// Permissions error
+    #[attr(status_code = StatusCode::FORBIDDEN, message = "Permissions error")]
+    Permissions,
+    /// Get Request User-Agent error
+    #[attr(status_code = StatusCode::BAD_REQUEST, message = "Get Request User-Agent error")]
+    RequestUserAgent,
+    /// Captche error
+    #[attr(status_code = StatusCode::BAD_REQUEST, message = "Captche error")]
+    Captche,
+    /// Input user`username or user`pwd error
+    #[attr(status_code = StatusCode::BAD_REQUEST, message = "Input user`username or user`pwd error")]
+    InputUserAndPwd,
+    /// Not Delete Data
+    #[attr(status_code = StatusCode::BAD_REQUEST, message = "Not Delete Data")]
+    NotDeleteData,
+    /// input old Password Error
+    #[attr(status_code = StatusCode::BAD_REQUEST, message = "Input old Password not empty")]
+    InputOldPassword,
+    /// input Password not empty Error
+    #[attr(status_code = StatusCode::BAD_REQUEST, message = "Input Password not empty")]
+    InputPasswordNotEmpty,
+    /// Input comfirm password is different for input password
+    #[attr(status_code = StatusCode::BAD_REQUEST, message = "Input comfirm password is different for input password")]
+    InputComfirmPasswordDifferentForInputPassword,
+    /// Not Change Admin Error
+    #[attr(status_code = StatusCode::BAD_REQUEST, message = "Not Change Admin")]
+    NotChangeAdmin,
+    /// Email exsist
+    #[attr(status_code = StatusCode::BAD_REQUEST, message = "Email exsist")]
+    EmailExsist,
+    /// Role Sign exsist
+    #[attr(status_code = StatusCode::BAD_REQUEST, message = "Role Sign exsist")]
+    RoleSignExsist,
+    /// Dict Sign exsist
+    #[attr(status_code = StatusCode::BAD_REQUEST, message = "Dict Sign exsist")]
+    DictSignExsist,
+    /// Dict Data Lable exsist
+    #[attr(status_code = StatusCode::BAD_REQUEST, message = "Dict Data Lable exsist")]
+    DictDataLableExsist,
 }
 
 impl From<service::ServiceError> for ErrorCode {
@@ -32,8 +67,8 @@ impl From<service::ServiceError> for ErrorCode {
                 format!("RelationNotFetchedError: {}", err)
             }
             service::ServiceError::SerializeJson(err) => err.to_string(),
-            service::ServiceError::DataNotFound => "数据不存在".to_owned(),
-            service::ServiceError::CacheNotFound => "缓存不存在".to_owned(),
+            service::ServiceError::DataNotFound => "DataNotExsist".to_owned(),
+            service::ServiceError::CacheNotFound => "CacheNotExsist".to_owned(),
         };
         Self::InternalServerString(err_string)
     }
@@ -45,7 +80,7 @@ impl From<utils::password::ErrorType> for ErrorCode {
             utils::password::ErrorType::Argon2(e) => e.to_string(),
             utils::password::ErrorType::Hash(e) => e.to_string(),
         };
-        Self::InternalServerString(format!("生成密码错误:{}", msg))
+        Self::InternalServerString(format!("GeneratePasswordError:{}", msg))
     }
 }
 
@@ -58,8 +93,6 @@ impl From<axum::http::StatusCode> for ErrorCode {
 impl IntoResponse for ErrorCode {
     fn into_response(self) -> axum::response::Response {
         let response = match self {
-            Self::Other(err_str) => Some(err_str),
-            Self::OtherString(ref err_str) => Some(err_str).map(|x| x.as_str()),
             Self::InternalServerString(ref err_str) => Some(err_str).map(|x| x.as_str()),
             _ => self.get_message(),
         }

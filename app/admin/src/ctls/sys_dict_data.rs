@@ -12,8 +12,7 @@ use axum::{
 use axum_extra::extract::Query;
 use serde::Deserialize;
 use service::system_dict_data_service;
-use utils::{extracts::ValidatorJson, paginate::PaginateParams};
-use validator::Validate;
+use utils::paginate::PaginateParams;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
     Router::new()
@@ -26,7 +25,7 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .with_state(state)
 }
 
-/// 列表
+/// dict data list
 async fn index(
     State(state): State<AppState>,
     Query(params): Query<SearchRequest>,
@@ -35,7 +34,7 @@ async fn index(
     Ok(Json(data))
 }
 
-/// 详情
+/// dict data detail
 async fn info(
     State(state): State<AppState>,
     extract::Path(id): extract::Path<i32>,
@@ -43,19 +42,16 @@ async fn info(
     Ok(Json(system_dict_data_service::info(&state.db, id).await?))
 }
 
-/// 创建
+/// create dict data
 async fn create(
     State(state): State<AppState>,
-    ValidatorJson(params): ValidatorJson<CreateRequest>,
+    Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     if system_dict_data_service::get_by_label(&state.db, params.dict_id, &params.label, None)
         .await?
         .is_some()
     {
-        return Err(ErrorCode::OtherString(format!(
-            "该字典中名称为{}的已存在",
-            params.label
-        )));
+        return Err(ErrorCode::DictDataLableExsist);
     }
     system_dict_data_service::create(
         &state.db,
@@ -68,42 +64,39 @@ async fn create(
     Ok(Empty::new())
 }
 
-/// 更新
+/// update dict data
 async fn update(
     Path(id): Path<i32>,
     State(state): State<AppState>,
-    ValidatorJson(params): ValidatorJson<CreateRequest>,
+    Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     if system_dict_data_service::get_by_label(&state.db, params.dict_id, &params.label, Some(id))
         .await?
         .is_some()
     {
-        return Err(ErrorCode::OtherString(format!(
-            "该字典中名称为{}的已存在",
-            params.label
-        )));
+        return Err(ErrorCode::DictDataLableExsist);
     }
     system_dict_data_service::update(&state.db, id, params.into()).await?;
     Ok(Empty::new())
 }
 
-/// 删除
+/// delete dict data
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
     system_dict_data_service::info(&state.db, id).await?;
     system_dict_data_service::delete(&state.db, id).await?;
     Ok(Empty::new())
 }
 
-/// 批量删除
+/// batch delete dict data
 async fn batch_del(
     State(state): State<AppState>,
-    ValidatorJson(params): ValidatorJson<BatchAction>,
+    Json(params): Json<BatchAction>,
 ) -> Result<impl IntoResponse> {
     system_dict_data_service::batch_delete(&state.db, params.ids).await?;
     Ok(Empty::new())
 }
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 struct BatchAction {
     ids: Vec<i32>,
 }
@@ -121,7 +114,7 @@ impl From<SearchRequest> for system_dict_data_service::SearchParams {
         Self::new(value.dict_id, value.keyword, value.status, value.paginate)
     }
 }
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 struct CreateRequest {
     dict_id: i32,
     label: String,

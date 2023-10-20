@@ -12,8 +12,7 @@ use axum::{
 use axum_extra::extract::Query;
 use serde::Deserialize;
 use service::member_service;
-use utils::{extracts::ValidatorJson, paginate::PaginateParams};
-use validator::Validate;
+use utils::paginate::PaginateParams;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
     Router::new()
@@ -25,7 +24,7 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .with_state(state)
 }
 
-/// 列表
+/// member list
 async fn index(
     State(state): State<AppState>,
     Query(params): Query<SearchRequest>,
@@ -34,7 +33,7 @@ async fn index(
     Ok(Json(data))
 }
 
-/// 详情
+/// member detail
 async fn info(
     State(state): State<AppState>,
     extract::Path(id): extract::Path<i32>,
@@ -42,19 +41,16 @@ async fn info(
     Ok(Json(member_service::info(&state.db, id).await?))
 }
 
-/// 创建
+/// create member
 async fn create(
     State(state): State<AppState>,
-    ValidatorJson(params): ValidatorJson<CreateRequest>,
+    Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     if member_service::get_by_email(&state.db, &params.email, None)
         .await?
         .is_some()
     {
-        return Err(ErrorCode::OtherString(format!(
-            "邮箱地址为{}的用户已存在",
-            params.email
-        )));
+        return Err(ErrorCode::EmailExsist);
     }
     let unique_code = member_service::generate_code(&state.db, 8).await?;
     member_service::create(
@@ -67,26 +63,23 @@ async fn create(
     Ok(Empty::new())
 }
 
-/// 更新
+/// update user
 async fn update(
     Path(id): Path<i32>,
     State(state): State<AppState>,
-    ValidatorJson(params): ValidatorJson<CreateRequest>,
+    Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     if member_service::get_by_email(&state.db, &params.email, Some(id))
         .await?
         .is_some()
     {
-        return Err(ErrorCode::OtherString(format!(
-            "邮箱地址为{}的用户已存在",
-            params.email
-        )));
+        return Err(ErrorCode::EmailExsist);
     }
     member_service::update(&state.db, id, params.into()).await?;
     Ok(Empty::new())
 }
 
-/// 删除
+/// delete member
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
     member_service::info(&state.db, id).await?;
     member_service::delete(&state.db, id).await?;
@@ -113,7 +106,7 @@ impl From<SearchRequest> for member_service::SearchParams {
         )
     }
 }
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 struct CreateRequest {
     email: String,
     mobile: Option<String>,

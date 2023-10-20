@@ -1,5 +1,8 @@
 use super::Claims;
-use crate::{error::Result, state::AppState};
+use crate::{
+    error::{ErrorCode, Result},
+    state::AppState,
+};
 use axum::{
     body::Empty,
     extract::{Path, State},
@@ -10,8 +13,7 @@ use axum::{
 use axum_extra::extract::Query;
 use serde::{Deserialize, Serialize};
 use service::{system_menu_service, system_user_service};
-use utils::{extracts::ValidatorJson, paginate::PaginateParams, password::Password};
-use validator::Validate;
+use utils::{paginate::PaginateParams, password::Password};
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
     Router::new()
@@ -25,7 +27,7 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .route("/user/get_user_permission", get(get_user_permission))
         .with_state(state)
 }
-/// 列表
+/// user list
 async fn index(
     State(state): State<AppState>,
     Query(params): Query<SearchRequest>,
@@ -35,25 +37,25 @@ async fn index(
     ))
 }
 
-/// 详情
+/// user`detail
 async fn info(State(state): State<AppState>, Path(id): Path<i32>) -> Result<impl IntoResponse> {
     Ok(Json(system_user_service::info(&state.db, id).await?))
 }
 
-/// 新增
+/// add user
 async fn create(
     State(state): State<AppState>,
-    ValidatorJson(params): ValidatorJson<CreateRequest>,
+    Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     system_user_service::create(&state.db, &params.username.clone(), params.into()).await?;
     Ok(Empty::new())
 }
 
-/// 更新
+/// update user by user`id
 async fn update(
     State(state): State<AppState>,
     Path(id): Path<i32>,
-    ValidatorJson(params): ValidatorJson<CreateRequest>,
+    Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     system_user_service::update(
         &state.db,
@@ -64,21 +66,27 @@ async fn update(
     Ok(Empty::new())
 }
 
-/// 删除
+/// delete user by user`id
 async fn del(State(state): State<AppState>, Path(id): Path<i32>) -> Result<impl IntoResponse> {
     system_user_service::delete(&state.db, id).await?;
     Ok(Empty::new())
 }
 
-/// 修改密码
+/// change password
 async fn update_password(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
-    ValidatorJson(params): ValidatorJson<UpdatePasswordRequest>,
+    Json(params): Json<UpdatePasswordRequest>,
 ) -> Result<impl IntoResponse> {
     let info = system_user_service::info(&state.db, claims.user_id).await?;
     if !Password::verify_password(info.password(), info.salt(), params.old_password.as_bytes())? {
-        return Err(crate::error::ErrorCode::Other("旧密码错误"));
+        return Err(crate::error::ErrorCode::InputOldPassword);
+    }
+    if params.new_password.is_empty() {
+        return Err(ErrorCode::InputPasswordNotEmpty);
+    }
+    if params.new_password.eq(&params.confirm_password) {
+        return Err(ErrorCode::InputComfirmPasswordDifferentForInputPassword);
     }
     system_user_service::update(
         &state.db,
@@ -89,7 +97,7 @@ async fn update_password(
     Ok(Empty::new())
 }
 
-/// 获取当前用户角色菜单
+/// get current user menu
 async fn get_menu(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -112,7 +120,7 @@ async fn get_menu(
     ))
 }
 
-/// 获取当前用户权限
+/// get current user permission
 async fn get_user_permission(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -149,7 +157,7 @@ impl From<SearchRequest> for system_user_service::SearchParams {
     }
 }
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 struct CreateRequest {
     username: String,
     nickname: String,
@@ -223,13 +231,10 @@ impl From<CreateRequest> for system_user_service::UpdateParams {
     }
 }
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 struct UpdatePasswordRequest {
-    #[validate(length(min = 6, message = "旧密码最小长度不能小于6位字符"))]
     old_password: String,
-    #[validate(length(min = 1, message = "旧密码最小长度不能小于6位字符"))]
     new_password: String,
-    #[validate(must_match(other = "new_password", message = "确认新密码与新密码不一致"))]
     confirm_password: String,
 }
 

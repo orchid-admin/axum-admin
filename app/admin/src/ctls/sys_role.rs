@@ -13,8 +13,7 @@ use axum::{
 use axum_extra::extract::Query;
 use serde::Deserialize;
 use service::{system_menu_service, system_role_service};
-use utils::{extracts::ValidatorJson, paginate::PaginateParams};
-use validator::Validate;
+use utils::paginate::PaginateParams;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
     Router::new()
@@ -27,13 +26,13 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .with_state(state)
 }
 
-/// 获取所有
+/// get all role
 async fn all(State(state): State<AppState>) -> Result<impl IntoResponse> {
     let data = system_role_service::all(&state.db).await?;
     Ok(Json(data))
 }
 
-/// 列表
+/// role list
 async fn index(
     State(state): State<AppState>,
     Query(params): Query<SearchRequest>,
@@ -42,7 +41,7 @@ async fn index(
     Ok(Json(data))
 }
 
-/// 详情
+/// role detail
 async fn info(
     State(state): State<AppState>,
     extract::Path(id): extract::Path<i32>,
@@ -50,20 +49,17 @@ async fn info(
     Ok(Json(system_role_service::info(&state.db, id).await?))
 }
 
-/// 创建
+/// create role
 async fn create(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
-    ValidatorJson(params): ValidatorJson<CreateRequest>,
+    Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     if system_role_service::get_by_sign(&state.db, &params.sign, None)
         .await?
         .is_some()
     {
-        return Err(ErrorCode::OtherString(format!(
-            "标识为{}的角色已存在",
-            params.sign
-        )));
+        return Err(ErrorCode::RoleSignExsist);
     }
     let user_menus = system_menu_service::get_user_menus_by_menu_ids(
         &state.db,
@@ -82,24 +78,21 @@ async fn create(
     Ok(Empty::new())
 }
 
-/// 更新
+/// update role
 async fn update(
     Path(id): Path<i32>,
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
-    ValidatorJson(params): ValidatorJson<CreateRequest>,
+    Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     match system_role_service::get_by_sign(&state.db, &params.sign, Some(id)).await? {
         Some(_) => {
-            return Err(ErrorCode::OtherString(format!(
-                "标识为{}的角色已存在",
-                params.sign
-            )));
+            return Err(ErrorCode::RoleSignExsist);
         }
         None => {
             let info = system_role_service::info(&state.db, id).await?;
             if info.sign().eq(&state.db.config().get_admin_role_sign()) {
-                return Err(ErrorCode::Other("不可编辑系统管理员"));
+                return Err(ErrorCode::NotChangeAdmin);
             }
         }
     }
@@ -113,11 +106,11 @@ async fn update(
     Ok(Empty::new())
 }
 
-/// 删除
+/// delete role
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
     let info = system_role_service::info(&state.db, id).await?;
     if info.sign().eq(&state.db.config().get_admin_role_sign()) {
-        return Err(ErrorCode::Other("不可删除系统管理员"));
+        return Err(ErrorCode::NotDeleteData);
     }
     system_role_service::delete(&state.db, id).await?;
     Ok(Empty::new())
@@ -135,7 +128,7 @@ impl From<SearchRequest> for system_role_service::SearchParams {
         Self::new(value.keyword, value.status, value.paginate)
     }
 }
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 struct CreateRequest {
     name: String,
     sign: String,
