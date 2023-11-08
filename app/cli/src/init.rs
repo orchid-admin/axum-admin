@@ -52,6 +52,20 @@ pub async fn exec() -> service::Result<()> {
 
     if !username_sign_input.is_empty() {
         println!("正在创建登录账户...");
+        let dept = service::system_dept_service::create(
+            &db,
+            "部门",
+            service::system_dept_service::CreateParams {
+                parent_id: None,
+                person_name: None,
+                person_phone: None,
+                person_email: None,
+                describe: None,
+                status: Some(1),
+                sort: Some(0),
+            },
+        )
+        .await?;
         let (password, slat) =
             Password::generate_hash_salt(username_password_input.as_bytes()).unwrap();
         system_user_service::create(
@@ -60,7 +74,7 @@ pub async fn exec() -> service::Result<()> {
             system_user_service::CreateParams {
                 nickname: Some("超级管理员".to_owned()),
                 role_id: role.map(|x| x.id),
-                dept_id: None,
+                dept_id: Some(dept.id),
                 phone: Some(String::new()),
                 email: Some(String::new()),
                 sex: Some(1),

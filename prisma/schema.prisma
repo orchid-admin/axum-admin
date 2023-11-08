@@ -10,7 +10,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:dev.db"
+  url      = "file:dev1.db"
 }
 
 /// 用户表
