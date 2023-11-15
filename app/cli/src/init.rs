@@ -1,80 +1,70 @@
-use service::{system_menu_service, system_role_service, system_user_service, Database};
+use service::{system_dept_service, system_menu_service, system_role_service, system_user_service};
 use utils::password::Password;
 
-pub async fn exec() -> service::Result<()> {
+#[derive(Debug, clap::Args)]
+pub struct CliInitParams {
+    /// Dept Name
+    pub dept_name: String,
+    /// System User`s Username Password
+    pub username_password: String,
+}
+
+pub async fn exec(params: &CliInitParams) -> service::Result<()> {
     let db_config = service::DatabaseConfig::default();
+    let db = service::Database::new(db_config.clone()).await?;
+
     let role_sign = db_config.get_admin_role_sign();
-    let user_sign = db_config.get_admin_username();
-    let db = service::Database::new(db_config).await?;
-    let mut role = system_role_service::get_by_sign(&db, &role_sign, None).await?;
-    let mut role_sign_input = String::new();
+    let mut role: Option<system_role_service::Info> =
+        system_role_service::get_by_sign(&db, &role_sign, None)
+            .await?
+            .map(|x| x.into());
     if role.is_none() {
-        role_sign_input = get_input_role_sign(&db, role_sign_input, &role_sign).await?;
+        role = Some(
+            system_role_service::create(
+                &db,
+                &role_sign,
+                &role_sign,
+                system_role_service::CreateParams {
+                    sort: Some(0),
+                    describe: Some(String::new()),
+                    status: Some(1),
+                },
+                vec![],
+            )
+            .await?
+            .into(),
+        );
     }
+    tracing::info!("System Role finish..");
 
-    let mut username_sign_input = String::new();
-    let mut username_password_input = String::new();
+    let dept = system_dept_service::create(
+        &db,
+        &params.dept_name,
+        service::system_dept_service::CreateParams {
+            parent_id: None,
+            person_name: None,
+            person_phone: None,
+            person_email: None,
+            describe: None,
+            status: Some(1),
+            sort: Some(0),
+        },
+    )
+    .await?;
+    tracing::info!("System Dept finish..");
 
+    let user_sign = db_config.get_admin_username();
     let user = system_user_service::find_user_by_username(&db, &user_sign).await?;
-
     if user.is_none() {
-        username_sign_input = get_input_username_sign(&db, username_sign_input, &user_sign).await?;
-
-        println!("请输入超级管理员登录密码(默认:admin123456):");
-        std::io::stdin()
-            .read_line(&mut username_password_input)
-            .unwrap();
-        if username_sign_input.is_empty() {
-            username_sign_input = user_sign;
-        }
-
-        if username_password_input.is_empty() {
-            username_password_input = String::from("admin123456");
-        }
-    }
-    if !role_sign_input.is_empty() {
-        println!("正在创建角色...");
-        let role_result = system_role_service::create(
-            &db,
-            "超级管理员",
-            &role_sign_input,
-            system_role_service::CreateParams {
-                sort: Some(0),
-                describe: Some(String::new()),
-                status: Some(1),
-            },
-            vec![],
-        )
-        .await?;
-        role = Some(role_result);
-        println!("创建角色完成");
-    }
-
-    if !username_sign_input.is_empty() {
-        println!("正在创建登录账户...");
-        let dept = service::system_dept_service::create(
-            &db,
-            "部门",
-            service::system_dept_service::CreateParams {
-                parent_id: None,
-                person_name: None,
-                person_phone: None,
-                person_email: None,
-                describe: None,
-                status: Some(1),
-                sort: Some(0),
-            },
-        )
-        .await?;
         let (password, slat) =
-            Password::generate_hash_salt(username_password_input.as_bytes()).unwrap();
+            Password::generate_hash_salt(params.username_password.as_bytes()).unwrap();
         system_user_service::create(
             &db,
-            &username_sign_input,
+            &user_sign.clone(),
             system_user_service::CreateParams {
-                nickname: Some("超级管理员".to_owned()),
-                role_id: role.map(|x| x.id),
-                dept_id: Some(dept.id),
+                nickname: Some(user_sign),
+                role_id: role.map(|x| x.id().clone()),
+                dept_id: Some(dept.id().clone()),
                 phone: Some(String::new()),
                 email: Some(String::new()),
                 sex: Some(1),
@@ -86,56 +76,14 @@ pub async fn exec() -> service::Result<()> {
             },
         )
         .await?;
-        println!("创建登录账户完成");
     }
+    tracing::info!("System User finish..");
 
-    println!("正在检测菜单...");
+    tracing::info!("Check Menu..");
     let menus = system_menu_service::get_menus(&db).await?;
     if menus.is_empty() {
-        println!("正在创建菜单数据...");
         crate::menu::import().await?;
-        println!("创建菜单数据完成");
-    } else {
-        println!("菜单数据不为空，不可创建菜单数据");
     }
-    println!("完成");
+    tracing::info!("Menu Import finish..");
     Ok(())
-}
-
-#[async_recursion::async_recursion]
-async fn get_input_role_sign(
-    db: &Database,
-    mut role_sign_input: String,
-    default_role_sign: &str,
-) -> service::Result<String> {
-    println!("请输入超级管理员角色标识(默认:admin):");
-    std::io::stdin().read_line(&mut role_sign_input).unwrap();
-    if role_sign_input.is_empty() {
-        role_sign_input = default_role_sign.to_owned();
-    }
-    let role = system_role_service::get_by_sign(db, &role_sign_input, None).await?;
-    if role.is_some() {
-        println!("数据已存在，请重新输入");
-        return get_input_role_sign(db, role_sign_input, default_role_sign).await;
-    }
-    Ok(role_sign_input)
-}
-
-#[async_recursion::async_recursion]
-async fn get_input_username_sign(
-    db: &Database,
-    mut username_input: String,
-    default_role_sign: &str,
-) -> service::Result<String> {
-    println!("请输入超级管理员用户名(默认:admin):");
-    std::io::stdin().read_line(&mut username_input).unwrap();
-    if username_input.is_empty() {
-        username_input = default_role_sign.to_owned();
-    }
-    let role = system_user_service::find_user_by_username(db, &username_input).await?;
-    if role.is_some() {
-        println!("用户名已存在，请重新输入");
-        return get_input_role_sign(db, username_input, default_role_sign).await;
-    }
-    Ok(username_input)
 }

@@ -2,6 +2,7 @@ use crate::{
     prisma::{system_dept, SortOrder},
     system_role_service, system_user_service, Database, Result, ServiceError,
 };
+use getset::Getters;
 use prisma_client_rust::or;
 use serde::Serialize;
 use utils::{
@@ -9,25 +10,31 @@ use utils::{
     tree::{get_tree_start_parent_id, vec_to_tree_into, Tree, TreeInfo},
 };
 
-pub async fn create(db: &Database, name: &str, params: CreateParams) -> Result<system_dept::Data> {
-    Ok(db
-        .client
-        .system_dept()
-        .create_unchecked(name.to_owned(), params.to_params())
-        .exec()
-        .await?)
+pub async fn create(db: &Database, name: &str, params: CreateParams) -> Result<Info> {
+    match info_by_name(db, name).await {
+        Ok(info) => Ok(info),
+        Err(ServiceError::DataNotFound) => Ok(db
+            .client
+            .system_dept()
+            .create_unchecked(name.to_owned(), params.to_params())
+            .exec()
+            .await?
+            .into()),
+        Err(err) => Err(err),
+    }
 }
 
-pub async fn update(db: &Database, id: i32, params: UpdateParams) -> Result<system_dept::Data> {
+pub async fn update(db: &Database, id: i32, params: UpdateParams) -> Result<Info> {
     Ok(db
         .client
         .system_dept()
         .update_unchecked(system_dept::id::equals(id), params.to_params())
         .exec()
-        .await?)
+        .await?
+        .into())
 }
 
-pub async fn delete(db: &Database, id: i32) -> Result<system_dept::Data> {
+pub async fn delete(db: &Database, id: i32) -> Result<Info> {
     let res = db
         .client
         ._transaction()
@@ -40,7 +47,8 @@ pub async fn delete(db: &Database, id: i32) -> Result<system_dept::Data> {
                     vec![system_dept::deleted_at::set(Some(now_time()))],
                 )
                 .exec()
-                .await?;
+                .await?
+                .into();
             let user_ids = system_user_service::get_users_by_dept_id(db, id)
                 .await?
                 .into_iter()
@@ -96,6 +104,20 @@ pub async fn info(db: &Database, id: i32) -> Result<Info> {
         .system_dept()
         .find_first(vec![
             system_dept::id::equals(id),
+            system_dept::deleted_at::equals(None),
+        ])
+        .exec()
+        .await?
+        .ok_or(ServiceError::DataNotFound)?
+        .into())
+}
+
+pub async fn info_by_name(db: &Database, name: &str) -> Result<Info> {
+    Ok(db
+        .client
+        .system_dept()
+        .find_first(vec![
+            system_dept::name::equals(name.to_owned()),
             system_dept::deleted_at::equals(None),
         ])
         .exec()
@@ -190,8 +212,9 @@ impl Tree<Dept> for Dept {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Getters)]
 pub struct Info {
+    #[getset(get = "pub")]
     id: i32,
     parent_id: i32,
     name: String,

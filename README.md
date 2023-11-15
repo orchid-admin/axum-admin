@@ -1,59 +1,47 @@
 # axum-admin
 
-`axum-admin` 是基于`axum` + `prisma-client-rust` 开发的后台管理系统服务端实现。
+[English](https://github.com/orchid-admin/axum-admin/blob/main/README.md)&nbsp;&nbsp;
+[中文简体](https://github.com/orchid-admin/axum-admin/blob/main/README.zh-hans.md)&nbsp;&nbsp;
 
-## 相关文档
+`axum-admin` is a backend management system server implementation developed based on [axum](https://github.com/tokio-rs/axum) + [prisma-client-rust](https://github.com/Brendonovich/prisma-client-rust).
 
-- axum: 是一个专注于人体工程学和模块化的 Web 应用程序框架
-  - 当前版本: 0.6.8
-  - [github 仓库](https://github.com/tokio-rs/axum)
-  - [使用例子](https://github.com/tokio-rs/axum/tree/main/examples)
-  - [使用文档](https://docs.rs/axum)
-- prisma-client-rust：Rust 的类型安全数据库访问，[prisma](https://github.com/prisma/prisma) 的 rust 实现。
-  - 当前版本: 0.6.8
-  - [github 仓库](https://github.com/Brendonovich/prisma-client-rust)
-  - [使用例子](https://github.com/Brendonovich/prisma-client-rust/tree/main/examples)
-  - [使用文档](https://prisma.brendonovich.dev/)
-  - prisma 支持的数据库：PostgreSQL、MySQL、MariaDB、SQL Server、SQLite、MongoDB、CockroachDB
+## Instructions
 
-## 使用方法
+1. Install rust environment
 
-1. 安装 rust 环境
-
-2. 生成 prisma 客户端并创建数据库表
+2. Generate prisma client and create database tables
 
    ```rust
    cargo prisma db push
    ```
 
-3. 创建超级管理员角色、账号和菜单数据
+3. Create super administrator role, account and initialization menu data
+
    ```rust
-   cargo run init
+   cargo cli init <DEPT_NAME> <USERNAME_PASSWORD>
    ```
-4. 运行
+
+4. Run Admin Gateway
+
    ```rust
    cargo run -p admin
    ```
 
-## 功能列表
+## function list
 
-- [x] 用户名 + 密码登录
-- [x] 菜单管理
-- [x] 角色管理
-- [x] 部门管理
-- [x] 管理员管理
-- [x] 字典管理
-- [x] 登录日志管理
-- [x] 操作日志管理
-- [x] 用户管理
-- [x] 用户推广团队管理
-- [x] 用户资金流水
-- [x] cli-数据初始化
-- [x] cli-菜单数据导入导出
-- [x] 缓存系统（Memory/Database）
+- [x] Username + Password login
+- [x] Menu management
+- [x] Role management
+- [x] Department management
+- [x] Administrator management
+- [x] Dictionary management
+- [x] Login log management
+- [x] Operation log management
+- [x] User Management
+- [x] Caching system（Memory/Database）
 
-## 前端实现列表
+## Front-end implementation list
 
-- [orchid-admin-vue3](https://github.com/orchid-admin/orchid-admin-vue3)：基于[vue-next-admin](https://gitee.com/lyt-top/vue-next-admin) 二次开发。
-  - 技术栈：vue3.x + CompositionAPI setup 语法糖 + typescript + vite + element plus + vue-router-next + pinia 技术.
-  - 适配：手机、平板、pc
+- [orchid-admin-vue3](https://github.com/orchid-admin/orchid-admin-vue3): Based on [vue-next-admin](https://gitee.com/lyt-top/vue-next-admin) secondary development.
+  - Technology stack: vue3.x + CompositionAPI setup syntax sugar + typescript + vite + element plus + vue-router-next + pinia.
+  - Adaptation: mobile phones, tablets, PCs

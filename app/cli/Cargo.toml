@@ -11,6 +11,8 @@ clap = { workspace = true }
 fs_extra = "1.3"
 serde = { workspace = true }
 serde_json = { workspace = true }
-service = { path = "../../service" }
 tokio = { workspace = true }
-utils = { path = "../../utils", features=["tree", "password"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+service = { path = "../../service" }
+utils = { path = "../../utils", features=["tree", "password", "logger"] }

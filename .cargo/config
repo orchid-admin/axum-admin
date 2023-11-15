@@ -1,4 +1,5 @@
 [alias]
+cli = "run -p cli"
 prisma = "run -p prisma_cli --"
 
 #[http]

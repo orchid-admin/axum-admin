@@ -1,37 +1,30 @@
-use clap::{Parser, Subcommand};
+use clap::Parser;
 mod init;
 mod menu;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
-struct Cli {
-    #[command(subcommand)]
-    command: Option<Commands>,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    /// 数据初始化
-    Init,
-    /// 菜单导出
+enum Cli {
+    /// Data Init
+    Init(init::CliInitParams),
+    /// Menu Export
     MenuExport,
-    /// 菜单导入
+    /// Menu Import
     MenuImport,
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let env_filter = Some(format!("{}=INFO", env!("CARGO_PKG_NAME")));
+    utils::logger::init(env_filter);
     let cli = Cli::parse();
-    match &cli.command {
-        Some(Commands::Init) => {
-            init::exec().await.unwrap();
-        }
-        Some(Commands::MenuExport) => {
-            menu::export().await.unwrap();
-        }
-        Some(Commands::MenuImport) => {
-            menu::import().await.unwrap();
-        }
-        None => {}
+    let result = match &cli {
+        Cli::Init(params) => init::exec(params).await,
+        Cli::MenuExport => menu::export().await,
+        Cli::MenuImport => menu::import().await,
     };
+    if let Err(e) = result {
+        tracing::error!("{:#?}", e);
+    }
+    Ok(())
 }
