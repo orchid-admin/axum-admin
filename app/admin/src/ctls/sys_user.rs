@@ -4,7 +4,7 @@ use crate::{
     state::AppState,
 };
 use axum::{
-    body::Empty,
+    body::Body,
     extract::{Path, State},
     response::IntoResponse,
     routing::{delete, get, post, put},
@@ -48,7 +48,7 @@ async fn create(
     Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     system_user_service::create(&state.db, &params.username.clone(), params.into()).await?;
-    Ok(Empty::new())
+    Ok(Body::empty())
 }
 
 /// update user by user`id
@@ -63,13 +63,13 @@ async fn update(
         Into::<system_user_service::UpdateParams>::into(params).to_params(),
     )
     .await?;
-    Ok(Empty::new())
+    Ok(Body::empty())
 }
 
 /// delete user by user`id
 async fn del(State(state): State<AppState>, Path(id): Path<i32>) -> Result<impl IntoResponse> {
     system_user_service::delete(&state.db, id).await?;
-    Ok(Empty::new())
+    Ok(Body::empty())
 }
 
 /// change password
@@ -94,7 +94,7 @@ async fn update_password(
         Into::<system_user_service::UpdatePasswordParams>::into(params).to_params(),
     )
     .await?;
-    Ok(Empty::new())
+    Ok(Body::empty())
 }
 
 /// get current user menu

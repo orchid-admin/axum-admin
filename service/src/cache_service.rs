@@ -439,7 +439,7 @@ pub struct Info {
 impl Info {
     pub fn is_valid(self) -> bool {
         if let Some(valid_time) = self.valid_time {
-            return valid_time.timestamp_nanos() > now_time().timestamp_nanos();
+            return valid_time.timestamp() > now_time().timestamp();
         }
         false
     }

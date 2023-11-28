@@ -14,19 +14,20 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.74"
 
 [workspace.dependencies]
 # web server require
-axum = { version = "0.6.18", default-features = false, features = ["headers", "matched-path", "form", "ws", "tracing", "query", "json"] }
-axum-macros = { version = "0.3" }
-axum-extra = { version = "0.7", features = ["query"] }
+axum = { version = "0.7.1", default-features = false, features = ["matched-path", "form", "ws", "tracing", "query", "json", "tokio", "http1"] }
+axum-macros = { version = "0.4" }
+axum-extra = { version = "0.9", features = ["query"] }
 # async require
-tokio = { version = "1.17", default-features = false, features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.34", default-features = false, features = ["macros", "rt-multi-thread"] }
 # log require
 tracing = { version = "0.1" }
 tracing-appender = { version="0.2", default-features = false }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "time", "local-time", "fmt", "registry", "std"] }
-console-subscriber = { version = "0.1.8", default-features = false, features = ["env-filter"] }
+console-subscriber = { version = "0.2", default-features = false, features = ["env-filter"] }
 chrono = { version = "0.4" }
 time = { version = "0.3", default-features = false, features = ["macros"] }
 # json require
@@ -37,15 +38,15 @@ serde_with = { version = "3.0" }
 # captcha require
 captcha-rs = { version = "0.2" }
 # jwt require
-jsonwebtoken = { version = "8.3" }
+jsonwebtoken = { version = "9.1" }
 # static file require
 tower = { version = "0.4", default-features = false, features = ["util"] }
-tower-http = { version = "0.4", default-features = false, features = ["fs", "trace"] }
+tower-http = { version = "0.5", default-features = false, features = ["fs", "trace"] }
 # orm require
 prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", rev="7ca6a5d", default-features = false, features = ["sqlite", "sqlite-create-many"] }
 prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", rev="7ca6a5d", default-features = false, features = ["sqlite", "sqlite-create-many"] }
 # error code require
-custom_attrs = "1.4"
+custom_attrs = "1.6"
 thiserror = "1.0"
 # struc get set
 getset = "0.1"
@@ -55,7 +56,7 @@ validator = { version = "0.16", features = ["derive"] }
 argon2 = { version = "0.5" }
 password-hash = { version = "0.5", default-features = false, features = ["alloc", "rand_core"] }
 # cli require
-clap = { version = "4.2", features = ["derive"] }
+clap = { version = "4.4", features = ["derive"] }
 # async function recursion require
 async-recursion = "1.0"
 # generate rand number require
@@ -63,7 +64,7 @@ fastrand = "2.0"
 # async trait require
 async-trait = "0.1"
 # smtp client require
-lettre = { version = "0.10", default-features = false, features = ["smtp-transport", "tokio1", "tokio1-native-tls", "builder"] }
+lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "tokio1", "tokio1-native-tls", "builder"] }
 # big decimal require
 bigdecimal = { version = "0.3", features = ["serde"] }
 

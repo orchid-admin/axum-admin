@@ -2,17 +2,16 @@
 pub struct ValidatorJson<T: validator::Validate>(pub T);
 
 #[axum::async_trait]
-impl<T, S, B> axum::extract::FromRequest<S, B> for ValidatorJson<T>
+impl<T, S> axum::extract::FromRequest<S> for ValidatorJson<T>
 where
     T: serde::de::DeserializeOwned + validator::Validate,
     S: Send + Sync,
     axum::extract::Json<T>:
-        axum::extract::FromRequest<S, B, Rejection = axum::extract::rejection::JsonRejection>,
-    B: Send + 'static,
+        axum::extract::FromRequest<S, Rejection = axum::extract::rejection::JsonRejection>,
 {
     type Rejection = ValidatorError;
 
-    async fn from_request(req: axum::http::Request<B>, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: axum::extract::Request, state: &S) -> Result<Self, Self::Rejection> {
         let axum::extract::Json(value) = axum::extract::Json::<T>::from_request(req, state).await?;
         value.validate()?;
         Ok(ValidatorJson(value))
@@ -23,17 +22,16 @@ where
 pub struct ValidatorForm<T>(pub T);
 
 #[axum::async_trait]
-impl<T, S, B> axum::extract::FromRequest<S, B> for ValidatorForm<T>
+impl<T, S> axum::extract::FromRequest<S> for ValidatorForm<T>
 where
     T: serde::de::DeserializeOwned + validator::Validate,
     S: Send + Sync,
     axum::Form<T>:
-        axum::extract::FromRequest<S, B, Rejection = axum::extract::rejection::FormRejection>,
-    B: Send + 'static,
+        axum::extract::FromRequest<S, Rejection = axum::extract::rejection::FormRejection>,
 {
     type Rejection = ValidatorError;
 
-    async fn from_request(req: axum::http::Request<B>, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: axum::extract::Request, state: &S) -> Result<Self, Self::Rejection> {
         let axum::Form(value) = axum::Form::<T>::from_request(req, state).await?;
         value.validate()?;
         Ok(ValidatorForm(value))

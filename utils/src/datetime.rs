@@ -32,7 +32,7 @@ pub fn offset_from_timestamp(timestamp: i64) -> chrono::DateTime<chrono::FixedOf
         .with_timezone(&chrono::FixedOffset::east_opt(0).unwrap())
 }
 pub fn timestamp_nanos(checked_add: Option<i64>) -> i64 {
-    let nanos = now_time().timestamp_nanos();
+    let nanos = now_time().timestamp_nanos_opt().unwrap_or_default();
     if let Some(time) = checked_add {
         return nanos.add(time);
     }

@@ -1,6 +1,5 @@
 use axum::{extract::MatchedPath, http::Request};
 use error::{ErrorCode, Result};
-use std::net::SocketAddr;
 
 /// controllers
 mod ctls;
@@ -34,12 +33,16 @@ async fn main() -> Result<()> {
             )
         }),
     );
-    let server_address = SocketAddr::from(([0, 0, 0, 0], 3000));
-    tracing::info!("Service is running on {}", server_address);
-
-    axum::Server::bind(&server_address)
-        .serve(app.into_make_service_with_connect_info::<SocketAddr>())
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
-        .map_err(|_| ErrorCode::ServerSteup)?;
+        .unwrap();
+    tracing::info!("Service is running on {}", listener.local_addr().unwrap());
+
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .await
+    .map_err(|_| ErrorCode::ServerSteup)?;
     Ok(())
 }

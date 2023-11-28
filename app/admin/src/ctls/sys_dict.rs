@@ -3,7 +3,7 @@ use crate::{
     state::AppState,
 };
 use axum::{
-    body::Empty,
+    body::Body,
     extract::{self, Path, State},
     response::IntoResponse,
     routing::{delete, get, post, put},
@@ -66,7 +66,7 @@ async fn create(
         params.into(),
     )
     .await?;
-    Ok(Empty::new())
+    Ok(Body::empty())
 }
 
 /// update dict
@@ -82,7 +82,7 @@ async fn update(
         return Err(ErrorCode::DictSignExsist);
     }
     system_dict_service::update(&state.db, id, params.into()).await?;
-    Ok(Empty::new())
+    Ok(Body::empty())
 }
 
 /// delete dict
@@ -92,7 +92,7 @@ async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl 
         return Err(ErrorCode::NotDeleteData);
     }
     system_dict_service::delete(&state.db, id).await?;
-    Ok(Empty::new())
+    Ok(Body::empty())
 }
 
 #[derive(Debug, Deserialize)]

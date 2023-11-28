@@ -1,7 +1,7 @@
 use super::Claims;
 use crate::{error::Result, state::AppState};
 use axum::{
-    body::Empty,
+    body::Body,
     extract::{Path, State},
     response::IntoResponse,
     routing::{delete, get, post, put},
@@ -43,7 +43,7 @@ async fn create(
     Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     system_menu_service::create(&state.db, &params.title.clone(), params.into()).await?;
-    Ok(Empty::new())
+    Ok(Body::empty())
 }
 
 /// update menu
@@ -53,13 +53,13 @@ async fn update(
     Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     system_menu_service::update(&state.db, id, params.into()).await?;
-    Ok(Empty::new())
+    Ok(Body::empty())
 }
 
 /// delete menu
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
     system_menu_service::delete(&state.db, id).await?;
-    Ok(Empty::new())
+    Ok(Body::empty())
 }
 
 // #[serde_as]

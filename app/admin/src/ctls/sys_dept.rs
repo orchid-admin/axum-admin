@@ -1,7 +1,7 @@
 use super::Claims;
 use crate::{error::Result, state::AppState};
 use axum::{
-    body::Empty,
+    body::Body,
     extract::{Path, State},
     response::IntoResponse,
     routing::{delete, get, post, put},
@@ -42,7 +42,7 @@ async fn create(
     Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     system_dept_service::create(&state.db, &params.name.clone(), params.into()).await?;
-    Ok(Empty::new())
+    Ok(Body::empty())
 }
 
 /// update dept
@@ -52,13 +52,13 @@ async fn update(
     Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
     system_dept_service::update(&state.db, id, params.into()).await?;
-    Ok(Empty::new())
+    Ok(Body::empty())
 }
 
 /// delete dept
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
     system_dept_service::delete(&state.db, id).await?;
-    Ok(Empty::new())
+    Ok(Body::empty())
 }
 
 #[derive(Debug, Deserialize)]

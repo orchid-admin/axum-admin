@@ -75,14 +75,14 @@ mod middlewares {
     use crate::{error::ErrorCode, state::AppState};
     use axum::{
         async_trait,
-        body::Body,
         extract::{
-            rejection::MatchedPathRejection, ConnectInfo, FromRequestParts, MatchedPath, State,
+            rejection::MatchedPathRejection, ConnectInfo, FromRequestParts, MatchedPath, Request,
+            State,
         },
         http::{
             header::{AUTHORIZATION, USER_AGENT},
             request::Parts,
-            HeaderValue, Request, StatusCode,
+            HeaderMap, HeaderValue, StatusCode,
         },
         middleware::Next,
         response::{IntoResponse, Response},
@@ -111,12 +111,13 @@ mod middlewares {
     }
 
     /// jwt`token check middleware
-    pub async fn token_check<B>(
+    pub async fn token_check(
         State(state): State<AppState>,
-        mut req: Request<B>,
-        next: Next<B>,
+        mut req: Request,
+        next: Next,
     ) -> Result<Response, StatusCode> {
-        match parse_token(state, &req).await {
+        let headers = req.headers();
+        match parse_token(state, headers).await {
             Ok(claims) => {
                 req.extensions_mut().insert(claims);
                 Ok(next.run(req).await)
@@ -126,12 +127,11 @@ mod middlewares {
     }
 
     /// parse jwt token
-    async fn parse_token<B>(
+    async fn parse_token(
         state: AppState,
-        req: &Request<B>,
+        headers: &HeaderMap<HeaderValue>,
     ) -> crate::error::Result<super::Claims> {
-        let authorization = req
-            .headers()
+        let authorization = headers
             .get(AUTHORIZATION)
             .ok_or(ErrorCode::Unauthorized)?
             .to_str()
@@ -166,17 +166,18 @@ mod middlewares {
         ExtractUserAgent(user_agent): ExtractUserAgent,
         ConnectInfo(addr): ConnectInfo<std::net::SocketAddr>,
         State(state): State<AppState>,
-        mut req: Request<Body>,
-        next: Next<Body>,
+        mut req: Request,
+        next: Next,
     ) -> Result<Response, StatusCode> {
         let matched_path: Result<MatchedPath, MatchedPathRejection> =
             req.extract_parts::<MatchedPath>().await;
         Ok(match matched_path {
             Ok(path) => {
+                let request_method = req.method().as_str();
                 match service::system_user_service::check_user_permission(
                     &state.db,
                     claims.user_id,
-                    req.method().as_str(),
+                    request_method,
                     path.as_str(),
                 )
                 .await
@@ -185,7 +186,7 @@ mod middlewares {
                         if let Ok(Some(menu_info)) =
                             service::system_menu_service::get_menu_id_by_api_request(
                                 &state.db,
-                                req.method().as_str(),
+                                request_method,
                                 path.as_str(),
                             )
                             .await

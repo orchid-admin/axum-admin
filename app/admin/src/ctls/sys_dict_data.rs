@@ -3,7 +3,7 @@ use crate::{
     state::AppState,
 };
 use axum::{
-    body::Empty,
+    body::Body,
     extract::{self, Path, State},
     response::IntoResponse,
     routing::{delete, get, post, put},
@@ -61,7 +61,7 @@ async fn create(
         params.into(),
     )
     .await?;
-    Ok(Empty::new())
+    Ok(Body::empty())
 }
 
 /// update dict data
@@ -77,14 +77,14 @@ async fn update(
         return Err(ErrorCode::DictDataLableExsist);
     }
     system_dict_data_service::update(&state.db, id, params.into()).await?;
-    Ok(Empty::new())
+    Ok(Body::empty())
 }
 
 /// delete dict data
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
     system_dict_data_service::info(&state.db, id).await?;
     system_dict_data_service::delete(&state.db, id).await?;
-    Ok(Empty::new())
+    Ok(Body::empty())
 }
 
 /// batch delete dict data
@@ -93,7 +93,7 @@ async fn batch_del(
     Json(params): Json<BatchAction>,
 ) -> Result<impl IntoResponse> {
     system_dict_data_service::batch_delete(&state.db, params.ids).await?;
-    Ok(Empty::new())
+    Ok(Body::empty())
 }
 
 #[derive(Debug, Deserialize)]
