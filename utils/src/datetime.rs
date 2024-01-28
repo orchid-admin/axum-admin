@@ -3,6 +3,13 @@ use std::ops::Add;
 pub fn now_time() -> chrono::DateTime<chrono::FixedOffset> {
     chrono::Utc::now().with_timezone(&chrono::FixedOffset::east_opt(0).unwrap())
 }
+pub fn timestamp(checked_add: Option<i64>) -> i64 {
+    let timestamp = now_time().timestamp();
+    if let Some(time) = checked_add {
+        return timestamp.add(time);
+    }
+    timestamp
+}
 
 pub fn to_local_string(datetime: chrono::DateTime<chrono::FixedOffset>) -> String {
     datetime

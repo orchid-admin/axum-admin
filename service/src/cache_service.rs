@@ -1,8 +1,8 @@
 use crate::{generate_prisma::system_cache, Database, Result};
 use getset::Getters;
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
-use utils::datetime::{now_time, offset_from_timestamp, timestamp_nanos};
+use utils::datetime::{now_time, offset_from_timestamp, timestamp};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
 #[repr(i32)]
@@ -274,7 +274,7 @@ impl Driver for CacheDriverMemory {
             key: key.to_owned(),
             value: serde_json::to_string(&value).unwrap(),
             valid_time: valid_time_length
-                .map(|_: i64| offset_from_timestamp(timestamp_nanos(valid_time_length))),
+                .map(|_: i64| offset_from_timestamp(timestamp(valid_time_length))),
             attach,
             create_time: now_time(),
         };
@@ -357,9 +357,8 @@ impl Driver for CacheDriverDatabase {
                 CreateParams {
                     attach,
                     valid_time: Some(
-                        valid_time_length.map(|_: i64| {
-                            offset_from_timestamp(timestamp_nanos(valid_time_length))
-                        }),
+                        valid_time_length
+                            .map(|_: i64| offset_from_timestamp(timestamp(valid_time_length))),
                     ),
                 }
                 .to_params(),
@@ -424,7 +423,7 @@ impl Driver for CacheDriverDatabase {
     }
 }
 
-#[derive(Debug, Serialize, Clone, Getters)]
+#[derive(Debug, Serialize, Deserialize, Clone, Getters)]
 pub struct Info {
     key: String,
     r#type: CacheType,
@@ -446,6 +445,10 @@ impl Info {
 
     pub fn get_valid_timestamp(self) -> Option<i64> {
         self.valid_time.map(|x| x.timestamp())
+    }
+
+    pub fn get_value<T: DeserializeOwned>(self) -> T {
+        serde_json::from_str(self.value.as_str()).unwrap()
     }
 }
 impl From<system_cache::Data> for Info {
