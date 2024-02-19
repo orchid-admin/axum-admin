@@ -2,6 +2,15 @@ pub fn now_time() -> chrono::DateTime<chrono::FixedOffset> {
     chrono::Local::now().fixed_offset()
 }
 
+pub fn now_timestamp(checked_add: Option<i64>) -> i64 {
+    use std::ops::Add;
+    let timestamp = now_time().timestamp();
+    if let Some(time) = checked_add {
+        return timestamp.add(time);
+    }
+    timestamp
+}
+
 pub fn to_local_string(datetime: chrono::DateTime<chrono::FixedOffset>) -> String {
     datetime
         .with_timezone(&chrono::Local)
@@ -22,13 +31,4 @@ pub fn parse_string(datetime: String) -> chrono::DateTime<chrono::FixedOffset> {
 pub fn offset_from_timestamp(timestamp: i64) -> chrono::DateTime<chrono::FixedOffset> {
     let utc_time = chrono::DateTime::<chrono::Utc>::from_timestamp(timestamp, 0).unwrap();
     utc_time.fixed_offset()
-}
-
-pub fn now_timestamp(checked_add: Option<i64>) -> i64 {
-    use std::ops::Add;
-    let timestamp = now_time().timestamp();
-    if let Some(time) = checked_add {
-        return timestamp.add(time);
-    }
-    timestamp
 }

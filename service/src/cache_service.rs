@@ -441,6 +441,10 @@ impl Info {
     pub fn value<T: serde::de::DeserializeOwned>(&self) -> serde_json::Result<T> {
         serde_json::from_str::<T>(&self.value)
     }
+
+    pub fn get_value<T: serde::de::DeserializeOwned>(self) -> T {
+        serde_json::from_str(self.value.as_str()).unwrap()
+    }
 }
 impl From<system_cache::Data> for Info {
     fn from(value: system_cache::Data) -> Self {
