@@ -58,7 +58,7 @@ pub struct DataPower<T: serde::Serialize> {
     data: T,
 }
 
-/// 数据库配置
+/// db config
 #[derive(Debug, Clone)]
 pub struct DatabaseConfig {
     database_url: Option<String>,
@@ -82,7 +82,6 @@ impl DatabaseConfig {
         self.admin_role_sign.clone()
     }
 }
-/// 外部使用的数据库链接结构
 pub struct Database {
     config: DatabaseConfig,
     client: prisma::PrismaClient,

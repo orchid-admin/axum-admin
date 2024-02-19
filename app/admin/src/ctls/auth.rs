@@ -38,7 +38,7 @@ async fn login_by_account(
         .await?
         .ok_or(ErrorCode::Captche)?;
 
-    let captcha_code = cache_info.value();
+    let captcha_code = cache_info.value::<String>()?;
     if captcha_code.to_lowercase().ne(&params.code.to_lowercase()) {
         return Err(ErrorCode::Captche);
     }
@@ -175,7 +175,7 @@ async fn get_captcha(State(state): State<AppState>) -> Result<impl IntoResponse>
         .compression(40)
         .build();
 
-    let key = utils::datetime::timestamp_nanos_string(None);
+    let key = utils::datetime::now_timestamp(None).to_string();
     state
         .cache
         .lock()

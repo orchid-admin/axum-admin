@@ -56,6 +56,8 @@ pub enum ErrorCode {
     /// Dict Data Lable exsist
     #[attr(status_code = StatusCode::BAD_REQUEST, message = "Dict Data Lable exsist")]
     DictDataLableExsist,
+    #[attr(status_code = StatusCode::BAD_REQUEST, message = "json error")]
+    SerdeJson(serde_json::Error),
 }
 
 impl From<service::ServiceError> for ErrorCode {
@@ -90,6 +92,11 @@ impl From<axum::http::StatusCode> for ErrorCode {
     }
 }
 
+impl From<serde_json::Error> for ErrorCode {
+    fn from(value: serde_json::Error) -> Self {
+        Self::SerdeJson(value)
+    }
+}
 impl IntoResponse for ErrorCode {
     fn into_response(self) -> axum::response::Response {
         let response = match self {

@@ -10,7 +10,9 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:dev1.db"
+  // provider = "mysql"
+  // provider = "postgres"
+  url      = "file:dev.db"
 }
 
 /// 用户表
@@ -21,9 +23,9 @@ model SystemUser {
   /// 用户昵称
   nickname        String            @default("")
   /// 角色ID
-  role_id         Int               @default(0)
+  role_id         Int?
   /// 部门ID
-  dept_id         Int               @default(0)
+  dept_id         Int?
   /// 手机号
   phone           String            @default("")
   /// 邮箱
@@ -228,21 +230,21 @@ model SystemActionLog {
 
 /// 缓存表
 model SystemCache {
-  id         Int       @id @default(autoincrement())
+  id                Int       @id @default(autoincrement())
   /// 唯一键
-  key        String
+  key               String
   /// 类型
-  type       Int
+  type              Int
   /// value
-  value      String
+  value             String
   /// 附加字符
-  attach     String    @default("")
+  attach            String    @default("")
   /// 到期时间
-  valid_time DateTime?
+  valid_time_length Int?
   /// 创建时间
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  deleted_at DateTime?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
 
   @@unique([key, type])
 }

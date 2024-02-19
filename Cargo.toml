@@ -43,6 +43,11 @@ jsonwebtoken = { version = "9.1" }
 tower = { version = "0.4", default-features = false, features = ["util"] }
 tower-http = { version = "0.5", default-features = false, features = ["fs", "trace"] }
 # orm require
+# sqlite: features = ["sqlite", "sqlite-create-many"]
+# mysql: features = ["mysql"]
+# postgres: features = ["postgresql"]
+# mssql: features = ["mssql"]
+# mongodb: features = ["mongodb"]
 prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", rev="7ca6a5d", default-features = false, features = ["sqlite", "sqlite-create-many"] }
 prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", rev="7ca6a5d", default-features = false, features = ["sqlite", "sqlite-create-many"] }
 # error code require

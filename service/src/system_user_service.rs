@@ -86,7 +86,7 @@ pub async fn get_users_by_dept_id(db: &Database, dept_id: i32) -> Result<Vec<Inf
         .client
         .system_user()
         .find_many(vec![
-            system_user::dept_id::equals(dept_id),
+            system_user::dept_id::equals(Some(dept_id)),
             system_user::deleted_at::equals(None),
         ])
         .exec()
@@ -264,7 +264,7 @@ impl SearchParams {
             params.push(system_user::status::equals(status));
         }
         if let Some(role_id) = self.role_id {
-            params.push(system_user::role_id::equals(role_id));
+            params.push(system_user::role_id::equals(Some(role_id)));
         }
         params
     }
@@ -330,8 +330,8 @@ impl From<system_user::Data> for Info {
             id: value.id,
             username: value.username,
             nickname: value.nickname,
-            role_id: value.role_id,
-            dept_id: value.dept_id,
+            role_id: value.role_id.unwrap_or_default(),
+            dept_id: value.dept_id.unwrap_or_default(),
             phone: value.phone,
             email: value.email,
             sex: value.sex,

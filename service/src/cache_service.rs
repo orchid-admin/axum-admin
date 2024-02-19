@@ -1,8 +1,7 @@
 use crate::{generate_prisma::system_cache, Database, Result};
-use getset::Getters;
 use serde::Serialize;
 use serde_repr::{Deserialize_repr, Serialize_repr};
-use utils::datetime::{now_time, offset_from_timestamp, timestamp_nanos};
+use utils::datetime::{now_time, now_timestamp};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
 #[repr(i32)]
@@ -184,8 +183,7 @@ where
                 r#type,
                 key,
                 value + number,
-                info.valid_time
-                    .map(|x| now_time().timestamp() - x.timestamp()),
+                info.valid_time_length,
                 info.attach,
             )
             .await
@@ -206,8 +204,7 @@ where
                 r#type,
                 key,
                 value - number,
-                info.valid_time
-                    .map(|x| now_time().timestamp() - x.timestamp()),
+                info.valid_time_length,
                 info.attach,
             )
             .await
@@ -273,10 +270,9 @@ impl Driver for CacheDriverMemory {
             r#type,
             key: key.to_owned(),
             value: serde_json::to_string(&value).unwrap(),
-            valid_time: valid_time_length
-                .map(|_: i64| offset_from_timestamp(timestamp_nanos(valid_time_length))),
+            valid_time_length,
             attach,
-            create_time: now_time(),
+            create_time: now_timestamp(None),
         };
         self.data.push(info.clone());
         Ok(info)
@@ -356,11 +352,7 @@ impl Driver for CacheDriverDatabase {
                 serde_json::to_string(&value)?,
                 CreateParams {
                     attach,
-                    valid_time: Some(
-                        valid_time_length.map(|_: i64| {
-                            offset_from_timestamp(timestamp_nanos(valid_time_length))
-                        }),
-                    ),
+                    valid_time_length: valid_time_length.map(|x| Some(x as i32)),
                 }
                 .to_params(),
             )
@@ -424,28 +416,30 @@ impl Driver for CacheDriverDatabase {
     }
 }
 
-#[derive(Debug, Serialize, Clone, Getters)]
+#[derive(Debug, Serialize, Clone)]
 pub struct Info {
     key: String,
     r#type: CacheType,
-    #[getset(get = "pub")]
     value: String,
     attach: Option<String>,
-    valid_time:
-        Option<prisma_client_rust::chrono::DateTime<prisma_client_rust::chrono::FixedOffset>>,
-    create_time: prisma_client_rust::chrono::DateTime<prisma_client_rust::chrono::FixedOffset>,
+    valid_time_length: Option<i64>, //prisma_client_rust::chrono::DateTime<prisma_client_rust::chrono::FixedOffset>
+    create_time: i64, //prisma_client_rust::chrono::DateTime<prisma_client_rust::chrono::FixedOffset>,
 }
 
 impl Info {
     pub fn is_valid(self) -> bool {
-        if let Some(valid_time) = self.valid_time {
-            return valid_time.timestamp() > now_time().timestamp();
+        if let Some(valid_time_length) = self.valid_time_length {
+            return (self.create_time + valid_time_length) > now_time().timestamp();
         }
         false
     }
 
     pub fn get_valid_timestamp(self) -> Option<i64> {
-        self.valid_time.map(|x| x.timestamp())
+        self.valid_time_length.map(|x| self.create_time + x)
+    }
+
+    pub fn value<T: serde::de::DeserializeOwned>(&self) -> serde_json::Result<T> {
+        serde_json::from_str::<T>(&self.value)
     }
 }
 impl From<system_cache::Data> for Info {
@@ -458,18 +452,18 @@ impl From<system_cache::Data> for Info {
                 true => None,
                 false => Some(value.attach),
             },
-            valid_time: value.valid_time,
-            create_time: value.created_at,
+            valid_time_length: value.valid_time_length.map(|x| x as i64),
+            create_time: value.created_at.timestamp(),
         }
     }
 }
 
 system_cache::partial_unchecked!(CreateParams {
     attach
-    valid_time
+    valid_time_length
 });
 system_cache::partial_unchecked!(UpdateParams {
     r#type
     attach
-    valid_time
+    valid_time_length
 });

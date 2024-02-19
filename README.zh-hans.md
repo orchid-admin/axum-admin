@@ -15,24 +15,23 @@
    cargo prisma db push
    ```
 
-3. 创建超级管理员角色、账号和初始化菜单数据
+3. 创建超级管理员账号和初始化菜单数据
 
    ```rust
-   cargo cli init <DEPT_NAME> <USERNAME_PASSWORD>
+   cargo cli init <USERNAME_PASSWORD>
    ```
 
-   - DEPT_NAME 部门名称
    - USERNAME_PASSWORD 超级管理员密码
 
 4. 运行
 
    ```rust
-   cargo run -p admin
+   cargo admin
    ```
 
 ## 功能列表
 
-- [x] 用户名 + 密码登录
+- [x] 登录（用户名 + 密码）
 - [x] 菜单管理
 - [x] 角色管理
 - [x] 部门管理

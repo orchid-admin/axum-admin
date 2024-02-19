@@ -15,21 +15,21 @@
    cargo prisma db push
    ```
 
-3. Create super administrator role, account and initialization menu data
+3. Create super administrator account and initialization menu data
 
    ```rust
-   cargo cli init <DEPT_NAME> <USERNAME_PASSWORD>
+   cargo cli init <USERNAME_PASSWORD>
    ```
 
 4. Run Admin Gateway
 
    ```rust
-   cargo run -p admin
+   cargo admin
    ```
 
 ## function list
 
-- [x] Username + Password login
+- [x] Login (Username + Password)
 - [x] Menu management
 - [x] Role management
 - [x] Department management

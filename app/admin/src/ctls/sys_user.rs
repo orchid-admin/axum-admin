@@ -176,8 +176,8 @@ impl From<CreateRequest> for system_user_service::CreateParams {
     fn from(value: CreateRequest) -> Self {
         let mut data = Self {
             nickname: Some(value.nickname),
-            role_id: value.role_id,
-            dept_id: value.dept_id,
+            role_id: None,
+            dept_id: None,
             phone: value.phone,
             email: value.email,
             sex: Some(value.sex),
@@ -188,6 +188,12 @@ impl From<CreateRequest> for system_user_service::CreateParams {
             describe: value.describe,
         };
 
+        if value.role_id.is_some() {
+            data.role_id = Some(value.role_id);
+        }
+        if value.dept_id.is_some() {
+            data.dept_id = Some(value.dept_id);
+        }
         if let Some(password) = value.password {
             let (encode_password, salt) =
                 utils::password::Password::generate_hash_salt(password.as_bytes()).unwrap();
@@ -206,8 +212,8 @@ impl From<CreateRequest> for system_user_service::UpdateParams {
         let mut data = Self {
             username: Some(value.username),
             nickname: Some(value.nickname),
-            role_id: value.role_id,
-            dept_id: value.dept_id,
+            role_id: None,
+            dept_id: None,
             phone: value.phone,
             email: value.email,
             sex: Some(value.sex),
@@ -218,6 +224,12 @@ impl From<CreateRequest> for system_user_service::UpdateParams {
             describe: value.describe,
         };
 
+        if value.role_id.is_some() {
+            data.role_id = Some(value.role_id);
+        }
+        if value.dept_id.is_some() {
+            data.dept_id = Some(value.dept_id);
+        }
         if let Some(password) = value.password {
             let (encode_password, salt) =
                 utils::password::Password::generate_hash_salt(password.as_bytes()).unwrap();
