@@ -44,6 +44,7 @@ pub async fn paginate(db: &Database, params: &SearchParams) -> Result<PaginateRe
                 .find_many(params.to_params())
                 .skip(params.paginate.get_skip())
                 .take(params.paginate.get_limit())
+                .with(system_login_log::user::fetch())
                 .order_by(system_login_log::id::order(SortOrder::Desc)),
             db.client.system_login_log().count(params.to_params()),
         ))

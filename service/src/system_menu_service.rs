@@ -107,13 +107,7 @@ pub async fn get_menu_by_role(
     role: Option<system_role_service::Info>,
 ) -> Result<Vec<Info>> {
     Ok(match role {
-        Some(role) => {
-            if role.sign().eq(&db.config.admin_role_sign) {
-                get_menus(db).await?
-            } else {
-                system_role_menu_service::get_role_menus(db, role.id()).await?
-            }
-        }
+        Some(role) => system_role_menu_service::get_role_menus(db, role.id()).await?,
         None => vec![],
     })
 }
@@ -201,6 +195,9 @@ pub async fn get_menus(db: &Database) -> Result<Vec<Info>> {
 
 async fn get_menus_by_user_id(db: &Database, user_id: i32) -> Result<Vec<Info>> {
     let user_permission = system_user_service::get_current_user_info(db, user_id).await?;
+    if user_permission.username().eq(&db.config.admin_username) {
+        return get_menus(db).await;
+    }
     get_menu_by_role(db, user_permission.role().clone()).await
 }
 

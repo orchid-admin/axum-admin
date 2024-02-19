@@ -66,11 +66,6 @@ pub async fn check_user_permission(
         return Ok(true);
     }
     let role = user.role().map(|x| x.cloned()).unwrap_or_default();
-    if let Some(role) = role.clone() {
-        if role.sign.eq(&db.config.admin_role_sign) {
-            return Ok(true);
-        }
-    }
     let auths = system_menu_service::filter_menu_types(
         Some(vec![system_menu_service::MenuType::Api]),
         system_menu_service::get_menu_by_role(db, role.clone().map(|x| x.into())).await?,
@@ -293,8 +288,8 @@ pub struct Info {
     #[getset(get = "pub")]
     username: String,
     nickname: String,
-    role_id: i32,
-    dept_id: i32,
+    role_id: Option<i32>,
+    dept_id: Option<i32>,
     phone: String,
     email: String,
     sex: i32,
@@ -330,8 +325,8 @@ impl From<system_user::Data> for Info {
             id: value.id,
             username: value.username,
             nickname: value.nickname,
-            role_id: value.role_id.unwrap_or_default(),
-            dept_id: value.dept_id.unwrap_or_default(),
+            role_id: value.role_id,
+            dept_id: value.dept_id,
             phone: value.phone,
             email: value.email,
             sex: value.sex,

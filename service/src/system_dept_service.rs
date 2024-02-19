@@ -1,6 +1,6 @@
 use crate::{
     prisma::{system_dept, SortOrder},
-    system_role_service, system_user_service, Database, Result, ServiceError,
+    system_user_service, Database, Result, ServiceError,
 };
 use getset::Getters;
 use prisma_client_rust::or;
@@ -152,30 +152,13 @@ async fn get_depts_by_user_id(
 ) -> Result<Vec<Info>> {
     let user_permission = system_user_service::get_current_user_info(db, user_id).await?;
 
-    Ok(match (user_permission.role(), user_permission.dept()) {
-        (Some(role), Some(dept)) => {
-            let depts = get_role_dept(db, role.clone(), params).await?;
-            if !depts.is_empty() {
-                depts
-            } else {
-                get_children_dept(get_depts(db, params).await?, dept.id)
-            }
-        }
-        (None, Some(dept)) => get_children_dept(get_depts(db, params).await?, dept.id),
-        (Some(role), None) => get_role_dept(db, role.clone(), params).await?,
-        _ => vec![],
-    })
-}
-
-async fn get_role_dept(
-    db: &Database,
-    role: system_role_service::Info,
-    params: &SearchParams,
-) -> Result<Vec<Info>> {
-    if role.sign().eq(&db.config.admin_role_sign) {
+    if user_permission.username().eq(&db.config.admin_username) {
         return get_depts(db, params).await;
     }
-    Ok(vec![])
+    Ok(match user_permission.dept() {
+        Some(dept) => get_children_dept(get_depts(db, params).await?, dept.id),
+        _ => vec![],
+    })
 }
 
 fn get_children_dept(depts: Vec<Info>, dept_id: i32) -> Vec<Info> {
