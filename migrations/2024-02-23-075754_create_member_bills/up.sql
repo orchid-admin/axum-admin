@@ -1,0 +1,12 @@
+-- Your SQL goes here
+CREATE TABLE IF NOT EXISTS member_bills (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    member_id INTEGER NOT NULL,
+    type INTEGER NOT NULL,
+    pm INTEGER NOT NULL DEFAULT 1,
+    number DECIMAL NOT NULL DEFAULT 0.00,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL,
+    deleted_at DATETIME,
+    CONSTRAINT "member_bills_member_id_fkey" FOREIGN KEY ("member_id") REFERENCES "members" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);

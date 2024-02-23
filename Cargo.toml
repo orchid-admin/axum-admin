@@ -4,7 +4,7 @@ members = [
     "app/api",
     "app/cli",
     "app/merchant",
-    "prisma/prisma_cli",
+    "models",
     "service",
     "utils",
 ]
@@ -67,19 +67,8 @@ tower-http = { version = "0.5", default-features = false, features = [
     "trace",
 ] }
 # orm require
-# sqlite: features = ["sqlite", "sqlite-create-many"]
-# mysql: features = ["mysql"]
-# postgres: features = ["postgresql"]
-# mssql: features = ["mssql"]
-# mongodb: features = ["mongodb"]
-prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", rev = "7ca6a5d", default-features = false, features = [
-    "sqlite",
-    "sqlite-create-many",
-] }
-prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", rev = "7ca6a5d", default-features = false, features = [
-    "sqlite",
-    "sqlite-create-many",
-] }
+diesel = { version = "2.1.4" }
+diesel-async = { version = "0.4.1", features = ["sqlite"] }
 # error code require
 custom_attrs = "1.6"
 thiserror = "1.0"

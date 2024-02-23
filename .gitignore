@@ -5,3 +5,5 @@
 /service/src/generate_prisma
 bruh.json
 /logs
+dev.db
+dev_prisma.db
