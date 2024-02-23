@@ -328,3 +328,40 @@ model MemberBill {
   deleted_at DateTime?
   member     Member    @relation(fields: [member_id], references: [id])
 }
+
+/// 分类表
+model Category {
+  id         Int       @id @default(autoincrement())
+  type       Int       @default(1)
+  name       String
+  icon       String?
+  status     Int       @default(1)
+  sort       Int       @default(0)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+}
+
+/// 文章表
+model Article {
+  id          Int       @id @default(autoincrement())
+  category_id Int?
+  title       String
+  thumb       String?
+  author      String?
+  descption   String
+  content     String
+  /// 浏览数
+  visit       Int       @default(0)
+  /// 精华
+  is_elite    Int       @default(0)
+  /// 置顶
+  is_top      Int       @default(0)
+  /// 热门
+  is_hot      Int       @default(0)
+  status      Int       @default(1)
+  sort        Int       @default(0)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  deleted_at  DateTime?
+}
