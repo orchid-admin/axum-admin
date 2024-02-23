@@ -18,16 +18,37 @@ rust-version = "1.74"
 
 [workspace.dependencies]
 # web server require
-axum = { version = "0.7.1", default-features = false, features = ["matched-path", "form", "ws", "tracing", "query", "json", "tokio", "http1"] }
+axum = { version = "0.7.1", default-features = false, features = [
+    "matched-path",
+    "form",
+    "ws",
+    "tracing",
+    "query",
+    "json",
+    "tokio",
+    "http1",
+] }
 axum-macros = { version = "0.4" }
 axum-extra = { version = "0.9", features = ["query"] }
 # async require
-tokio = { version = "1.34", default-features = false, features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.34", default-features = false, features = [
+    "macros",
+    "rt-multi-thread",
+] }
 # log require
 tracing = { version = "0.1" }
-tracing-appender = { version="0.2", default-features = false }
-tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "time", "local-time", "fmt", "registry", "std"] }
-console-subscriber = { version = "0.2", default-features = false, features = ["env-filter"] }
+tracing-appender = { version = "0.2", default-features = false }
+tracing-subscriber = { version = "0.3", default-features = false, features = [
+    "env-filter",
+    "time",
+    "local-time",
+    "fmt",
+    "registry",
+    "std",
+] }
+console-subscriber = { version = "0.2", default-features = false, features = [
+    "env-filter",
+] }
 chrono = { version = "0.4" }
 time = { version = "0.3", default-features = false, features = ["macros"] }
 # json require
@@ -41,15 +62,24 @@ captcha-rs = { version = "0.2" }
 jsonwebtoken = { version = "9.1" }
 # static file require
 tower = { version = "0.4", default-features = false, features = ["util"] }
-tower-http = { version = "0.5", default-features = false, features = ["fs", "trace"] }
+tower-http = { version = "0.5", default-features = false, features = [
+    "fs",
+    "trace",
+] }
 # orm require
 # sqlite: features = ["sqlite", "sqlite-create-many"]
 # mysql: features = ["mysql"]
 # postgres: features = ["postgresql"]
 # mssql: features = ["mssql"]
 # mongodb: features = ["mongodb"]
-prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", rev="7ca6a5d", default-features = false, features = ["sqlite", "sqlite-create-many"] }
-prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", rev="7ca6a5d", default-features = false, features = ["sqlite", "sqlite-create-many"] }
+prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", rev = "7ca6a5d", default-features = false, features = [
+    "sqlite",
+    "sqlite-create-many",
+] }
+prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", rev = "7ca6a5d", default-features = false, features = [
+    "sqlite",
+    "sqlite-create-many",
+] }
 # error code require
 custom_attrs = "1.6"
 thiserror = "1.0"
@@ -59,7 +89,10 @@ getset = "0.1"
 validator = { version = "0.16", features = ["derive"] }
 # password encode require
 argon2 = { version = "0.5" }
-password-hash = { version = "0.5", default-features = false, features = ["alloc", "rand_core"] }
+password-hash = { version = "0.5", default-features = false, features = [
+    "alloc",
+    "rand_core",
+] }
 # cli require
 clap = { version = "4.4", features = ["derive"] }
 # async function recursion require
@@ -69,7 +102,12 @@ fastrand = "2.0"
 # async trait require
 async-trait = "0.1"
 # smtp client require
-lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "tokio1", "tokio1-native-tls", "builder"] }
+lettre = { version = "0.11", default-features = false, features = [
+    "smtp-transport",
+    "tokio1",
+    "tokio1-native-tls",
+    "builder",
+] }
 # big decimal require
 bigdecimal = { version = "0.3", features = ["serde"] }
 
