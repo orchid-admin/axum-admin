@@ -1,0 +1,22 @@
+-- Your SQL goes here
+CREATE TABLE IF NOT EXISTS members (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    unique_code VARCHAR NOT NULL UNIQUE,
+    email VARCHAR NOT NULL,
+    mobile VARCHAR NOT NULL DEFAULT '',
+    nickname VARCHAR NOT NULL DEFAULT '',
+    avatar VARCHAR NOT NULL DEFAULT '',
+    password VARCHAR NOT NULL DEFAULT '',
+    salt VARCHAR NOT NULL DEFAULT '',
+    sex INTEGER NOT NULL DEFAULT 1,
+    balance DECIMAL NOT NULL DEFAULT 0.00,
+    integral INTEGER NOT NULL DEFAULT 0,
+    remark VARCHAR NOT NULL DEFAULT '',
+    status INTEGER NOT NULL DEFAULT 1,
+    is_promoter INTEGER NOT NULL DEFAULT 1,
+    last_login_ip VARCHAR NOT NULL DEFAULT '',
+    last_login_time DATETIME,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL,
+    deleted_at DATETIME
+);

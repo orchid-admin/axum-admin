@@ -1,0 +1,14 @@
+-- Your SQL goes here
+CREATE TABLE IF NOT EXISTS system_dict_data (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    dict_id INTEGER NOT NULL,
+    label VARCHAR NOT NULL,
+    value INTEGER NOT NULL,
+    remark VARCHAR NOT NULL DEFAULT '',
+    status INTEGER NOT NULL DEFAULT 1,
+    sort INTEGER NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL,
+    deleted_at DATETIME,
+    CONSTRAINT "system_dict_data_dict_id_fkey" FOREIGN KEY ("dict_id") REFERENCES "system_dict" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
