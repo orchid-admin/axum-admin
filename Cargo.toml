@@ -1,14 +1,14 @@
 [workspace]
 members = [
-    "app/admin",
-    "app/api",
-    "app/cli",
-    "app/merchant",
+    # "app/admin",
+    # "app/api",
+    # "app/cli",
+    # "app/merchant",
     "models",
-    "service",
+    # "service",
     "utils",
 ]
-default-members = ["app/cli"]
+# default-members = ["app/cli"]
 resolver = "2"
 
 [workspace.package]
