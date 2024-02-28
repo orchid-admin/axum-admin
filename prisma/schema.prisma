@@ -51,6 +51,8 @@ model SystemUser {
   action_log      SystemActionLog[]
   role            SystemRole?       @relation(fields: [role_id], references: [id])
   dept            SystemDept?       @relation(fields: [dept_id], references: [id])
+
+  @@map("system_users")
 }
 
 /// 角色表
@@ -71,6 +73,8 @@ model SystemRole {
   deleted_at DateTime?
   user       SystemUser[]
   role_menu  SystemRoleMenu[]
+
+  @@map("system_roles")
 }
 
 /// 菜单表
@@ -115,6 +119,8 @@ model SystemMenu {
   deleted_at       DateTime?
   role_menu        SystemRoleMenu[]
   action_log       SystemActionLog[]
+
+  @@map("system_menus")
 }
 
 model SystemRoleMenu {
@@ -126,6 +132,7 @@ model SystemRoleMenu {
   menu       SystemMenu @relation(fields: [menu_id], references: [id])
 
   @@unique([role_id, menu_id])
+  @@map("system_role_menus")
 }
 
 /// 部门表
@@ -151,6 +158,8 @@ model SystemDept {
   updated_at   DateTime     @updatedAt
   deleted_at   DateTime?
   user         SystemUser[]
+
+  @@map("system_depts")
 }
 
 /// 字典表
@@ -167,6 +176,8 @@ model SystemDict {
   updated_at DateTime         @updatedAt
   deleted_at DateTime?
   dict_data  SystemDictData[]
+
+  @@map("system_dicts")
 }
 
 /// 字典数据表
@@ -187,6 +198,8 @@ model SystemDictData {
   updated_at DateTime   @updatedAt
   deleted_at DateTime?
   dict       SystemDict @relation(fields: [dict_id], references: [id])
+
+  @@map("system_dict_data")
 }
 
 /// 登录记录表
@@ -205,6 +218,8 @@ model SystemLoginLog {
   /// 登录的日期时间
   created_at      DateTime   @default(now())
   user            SystemUser @relation(fields: [user_id], references: [id])
+
+  @@map("system_login_logs")
 }
 
 /// 操作记录表
@@ -226,6 +241,8 @@ model SystemActionLog {
   created_at      DateTime   @default(now())
   user            SystemUser @relation(fields: [user_id], references: [id])
   menu            SystemMenu @relation(fields: [menu_id], references: [id])
+
+  @@map("system_action_logs")
 }
 
 /// 缓存表
@@ -247,6 +264,7 @@ model SystemCache {
   deleted_at        DateTime?
 
   @@unique([key, type])
+  @@map("system_caches")
 }
 
 /// 用户表
@@ -290,6 +308,8 @@ model Member {
   team_parent     MemberTeam[] @relation("parent")
   team_user       MemberTeam[] @relation("member")
   bill            MemberBill[]
+
+  @@map("members")
 }
 
 /// 用户推广表
@@ -310,6 +330,8 @@ model MemberTeam {
   owner      Member    @relation(name: "owner", fields: [owner_uid], references: [id])
   parent     Member    @relation(name: "parent", fields: [parent_uid], references: [id])
   member     Member    @relation(name: "member", fields: [member_id], references: [id])
+
+  @@map("member_teams")
 }
 
 /// 用户资金账单表
@@ -327,19 +349,27 @@ model MemberBill {
   updated_at DateTime  @updatedAt
   deleted_at DateTime?
   member     Member    @relation(fields: [member_id], references: [id])
+
+  @@map("member_bills")
 }
 
 /// 分类表
 model Category {
-  id         Int       @id @default(autoincrement())
-  type       Int       @default(1)
+  id         Int        @id @default(autoincrement())
+  pid        Int        @default(0)
+  type       Int        @default(1)
   name       String
   icon       String?
-  status     Int       @default(1)
-  sort       Int       @default(0)
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
+  status     Int        @default(1)
+  sort       Int        @default(0)
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
   deleted_at DateTime?
+  parent     Category?  @relation(name: "parent", fields: [pid], references: [id])
+  children   Category[] @relation("parent")
+  Article    Article[]
+
+  @@map("categories")
 }
 
 /// 文章表
@@ -364,4 +394,7 @@ model Article {
   created_at  DateTime  @default(now())
   updated_at  DateTime  @updatedAt
   deleted_at  DateTime?
+  category    Category? @relation(fields: [category_id], references: [id])
+
+  @@map("articles")
 }
