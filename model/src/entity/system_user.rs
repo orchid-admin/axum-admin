@@ -1,5 +1,5 @@
 use crate::{schema::system_users, Connect, Result};
-use diesel::{insert_into, prelude::*, update};
+use diesel::{delete, insert_into, prelude::*, update};
 use diesel_async::RunQueryDsl;
 use getset::Getters;
 use serde::Serialize;
@@ -77,6 +77,32 @@ impl Entity {
             .await?)
     }
 
+    pub async fn update(conn: &mut Connect, id: i32, params: CreateForm) -> Result<usize> {
+        let result = update(system_users::dsl::system_users.filter(system_users::id.eq(id)))
+            .set(params)
+            .execute(conn)
+            .await?;
+        Ok(result)
+    }
+
+    pub async fn soft_delete(conn: &mut Connect, id: i32) -> Result<usize> {
+        // let result = delete(system_users::dsl::system_users.filter(system_users::id.eq(id)))
+        //     .execute(conn)
+        //     .await?;
+        let result = update(system_users::dsl::system_users.filter(system_users::id.eq(id)))
+            .set(system_users::deleted_at.eq(Some(std::time::SystemTime::now())))
+            .execute(conn)
+            .await?;
+        Ok(result)
+    }
+
+    pub async fn delete(conn: &mut Connect, id: i32) -> Result<usize> {
+        let result = delete(system_users::dsl::system_users.filter(system_users::id.eq(id)))
+            .execute(conn)
+            .await?;
+        Ok(result)
+    }
+
     pub async fn batch_set_dept(
         conn: &mut Connect,
         dept_id: Option<i32>,
@@ -101,7 +127,7 @@ pub struct Filter {
     pub dept_id: Option<i32>,
 }
 
-#[derive(Debug, Insertable)]
+#[derive(Debug, Insertable, AsChangeset)]
 #[diesel(table_name = crate::schema::system_users)]
 pub struct CreateForm {
     pub username: String,

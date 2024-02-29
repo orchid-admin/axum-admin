@@ -110,41 +110,29 @@ pub async fn create(pool: &ConnectPool, params: &system_user::CreateForm) -> Res
     Ok(system_user::Entity::insert(&mut conn, params).await?)
 }
 
-// pub async fn update(db: &Database, id: i32, params: Vec<UncheckedSetParam>) -> Result<Info> {
-//     Ok(db
-//         .client
-//         .system_user()
-//         .update_unchecked(system_user::id::equals(id), params)
-//         .exec()
-//         .await?
-//         .into())
-// }
+pub async fn update(pool: &ConnectPool, id: i32, params: system_user::CreateForm) -> Result<usize> {
+    let mut conn = pool.conn().await?;
+    Ok(system_user::Entity::update(&mut conn, id, params).await?)
+}
 
-// pub async fn delete(db: &Database, id: i32) -> Result<Info> {
-//     Ok(db
-//         .client
-//         .system_user()
-//         .update(
-//             system_user::id::equals(id),
-//             vec![system_user::deleted_at::set(Some(now_time()))],
-//         )
-//         .exec()
-//         .await?
-//         .into())
-// }
+pub async fn delete(pool: &ConnectPool, id: i32) -> Result<usize> {
+    let mut conn = pool.conn().await?;
+    Ok(system_user::Entity::delete(&mut conn, id).await?)
+}
 
-// pub async fn info(db: &Database, id: i32) -> Result<Info> {
-//     db.client
-//         .system_user()
-//         .find_first(vec![
-//             system_user::id::equals(id),
-//             system_user::deleted_at::equals(None),
-//         ])
-//         .exec()
-//         .await?
-//         .map(|x| x.into())
-//         .ok_or(ServiceError::DataNotFound)
-// }
+pub async fn info(pool: &ConnectPool, id: i32) -> Result<system_user::Entity> {
+    let mut conn = pool.conn().await?;
+    let info = system_user::Entity::find(
+        &mut conn,
+        &system_user::Filter {
+            id: Some(id.to_owned()),
+            ..Default::default()
+        },
+    )
+    .await?
+    .ok_or(ServiceError::DataNotFound)?;
+    Ok(info)
+}
 
 // pub async fn paginate(
 //     db: &Database,
