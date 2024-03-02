@@ -8,10 +8,10 @@ pub struct PaginateParams {
 }
 
 impl PaginateParams {
-    pub fn get_skip(&self) -> i64 {
-        match self.page > 0 {
-            true => (self.page - 1) * self.limit,
-            false => self.limit,
+    pub fn get_page(&self) -> i64 {
+        match self.page.ge(&0) {
+            true => self.page,
+            false => self.page,
         }
     }
 

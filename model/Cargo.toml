@@ -13,3 +13,4 @@ serde_repr = { workspace = true }
 diesel = { workspace = true }
 diesel-async = { workspace = true }
 getset = { workspace = true }
+utils = { path = "../utils", features = ["tree"] }

@@ -1,11 +1,8 @@
-use crate::{DataPower, Result, ServiceError};
+use crate::{Result, ServiceError};
 use getset::Getters;
-use model::{system_user, ConnectPool};
+use model::{connect::DbConnectPool as ConnectPool, system_dept, system_role, system_user};
 use serde::{Deserialize, Serialize};
-use utils::{
-    datetime::{now_time, to_local_string},
-    paginate::{PaginateParams, PaginateResult},
-};
+use utils::paginate::{PaginateParams, PaginateResult};
 
 pub async fn find_user_by_username(
     pool: &ConnectPool,
@@ -39,18 +36,42 @@ pub async fn find_user_by_phone(
     Ok(info)
 }
 
-// pub async fn get_current_user_info(db: &Database, id: i32) -> Result<Info> {
-//     Ok(db
-//         .client
-//         .system_user()
-//         .find_first(vec![system_user::id::equals(id)])
-//         .with(system_user::role::fetch())
-//         .with(system_user::dept::fetch())
-//         .exec()
-//         .await?
-//         .ok_or(ServiceError::DataNotFound)?
-//         .into())
-// }
+pub async fn get_current_user_info(pool: &ConnectPool, id: i32) -> Result<UserInfo> {
+    let mut conn = pool.conn().await?;
+    let mut user_info: UserInfo = system_user::Entity::find(
+        &mut conn,
+        &system_user::Filter {
+            id: Some(id),
+            ..Default::default()
+        },
+    )
+    .await?
+    .ok_or(ServiceError::DataNotFound)?
+    .into();
+    if user_info.user.dept_id().is_some() {
+        user_info.dept = system_dept::Entity::find(
+            &mut conn,
+            &system_dept::Filter {
+                id: *user_info.user.dept_id(),
+                ..Default::default()
+            },
+        )
+        .await?;
+    }
+
+    if user_info.user.role_id().is_some() {
+        user_info.role = system_role::Entity::find(
+            &mut conn,
+            &system_role::Filter {
+                id: *user_info.user.role_id(),
+                ..Default::default()
+            },
+        )
+        .await?;
+    }
+
+    Ok(user_info)
+}
 
 // pub async fn check_user_permission(
 //     db: &Database,
@@ -100,22 +121,29 @@ pub async fn batch_set_dept(
     pool: &ConnectPool,
     dept_id: Option<i32>,
     user_ids: Vec<i32>,
-) -> Result<usize> {
+) -> Result<system_user::Entity> {
     let mut conn = pool.conn().await?;
     Ok(system_user::Entity::batch_set_dept(&mut conn, dept_id, user_ids).await?)
 }
 
-pub async fn create(pool: &ConnectPool, params: &system_user::CreateForm) -> Result<usize> {
+pub async fn create(
+    pool: &ConnectPool,
+    params: &system_user::FormParamsForCreate,
+) -> Result<system_user::Entity> {
     let mut conn = pool.conn().await?;
-    Ok(system_user::Entity::insert(&mut conn, params).await?)
+    Ok(system_user::Entity::create(&mut conn, params).await?)
 }
 
-pub async fn update(pool: &ConnectPool, id: i32, params: system_user::CreateForm) -> Result<usize> {
+pub async fn update(
+    pool: &ConnectPool,
+    id: i32,
+    params: system_user::FormParamsForUpdate,
+) -> Result<system_user::Entity> {
     let mut conn = pool.conn().await?;
     Ok(system_user::Entity::update(&mut conn, id, params).await?)
 }
 
-pub async fn delete(pool: &ConnectPool, id: i32) -> Result<usize> {
+pub async fn delete(pool: &ConnectPool, id: i32) -> Result<system_user::Entity> {
     let mut conn = pool.conn().await?;
     Ok(system_user::Entity::delete(&mut conn, id).await?)
 }
@@ -134,228 +162,76 @@ pub async fn info(pool: &ConnectPool, id: i32) -> Result<system_user::Entity> {
     Ok(info)
 }
 
-// pub async fn paginate(
-//     db: &Database,
-//     params: SearchParams,
-// ) -> Result<PaginateResult<Vec<DataPower<Info>>>> {
-//     let mut query_params = params.to_params();
-//     if let Some(dept_id) = params.dept_id {
-//         query_params.push(system_user::dept_id::in_vec(
-//             system_dept_service::get_dept_children_ids(db, dept_id).await?,
-//         ));
-//     }
-//     let (data, total): (Vec<system_user::Data>, i64) = db
-//         .client
-//         ._batch((
-//             db.client
-//                 .system_user()
-//                 .find_many(query_params.clone())
-//                 .with(system_user::role::fetch())
-//                 .with(system_user::dept::fetch())
-//                 .skip(params.paginate.get_skip())
-//                 .take(params.paginate.get_limit())
-//                 .order_by(system_user::id::order(SortOrder::Desc)),
-//             db.client.system_user().count(query_params),
-//         ))
-//         .await?;
-//     Ok(PaginateResult {
-//         total,
-//         data: data
-//             .into_iter()
-//             .map(|x| DataPower {
-//                 _can_edit: x.username.ne(&db.config.admin_username),
-//                 _can_delete: x.username.ne(&db.config.admin_username),
-//                 data: x.into(),
-//             })
-//             .collect::<Vec<DataPower<Info>>>(),
-//     })
-// }
+pub async fn paginate(
+    pool: &ConnectPool,
+    params: SearchParams,
+) -> Result<PaginateResult<Vec<system_user::Entity>>> {
+    let mut conn = pool.conn().await?;
+    let (data, total): (Vec<system_user::Entity>, i64) = system_user::Entity::paginate(
+        &mut conn,
+        params.paginate.get_page(),
+        params.paginate.get_limit(),
+        &params.filter,
+    )
+    .await?;
+    Ok(PaginateResult { total, data })
+}
 
-// pub async fn set_last_login(db: &Database, user_id: &i32, login_ip: &str) -> Result<Info> {
-//     Ok(db
-//         .client
-//         .system_user()
-//         .update(
-//             system_user::id::equals(*user_id),
-//             vec![
-//                 system_user::last_login_ip::set(login_ip.to_owned()),
-//                 system_user::last_login_time::set(Some(now_time())),
-//             ],
-//         )
-//         .exec()
-//         .await?
-//         .into())
-// }
+pub async fn set_last_login(
+    pool: &ConnectPool,
+    id: &i32,
+    login_ip: &str,
+) -> Result<system_user::Entity> {
+    let mut conn = pool.conn().await?;
+    let mut info = system_user::Entity::find(
+        &mut conn,
+        &system_user::Filter {
+            id: Some(id.to_owned()),
+            ..Default::default()
+        },
+    )
+    .await?
+    .ok_or(ServiceError::DataNotFound)?;
 
-// pub async fn upsert_system_user(
-//     db: &Database,
-//     username: &str,
-//     password: &str,
-//     salt: &str,
-//     role_id: i32,
-// ) -> Result<Info> {
-//     let data = vec![
-//         system_user::password::set(password.to_owned()),
-//         system_user::salt::set(salt.to_owned()),
-//         system_user::role::connect(system_role::id::equals(role_id)),
-//     ];
+    Ok(system_user::Entity::set_last_login(&mut conn, &mut info, login_ip).await?)
+}
 
-//     Ok(db
-//         .client
-//         .system_user()
-//         .upsert(
-//             system_user::username::equals(username.to_owned()),
-//             system_user::create(username.to_owned(), data.clone()),
-//             data,
-//         )
-//         .exec()
-//         .await?
-//         .into())
-// }
+#[derive(Debug, Deserialize)]
+pub struct SearchParams {
+    #[serde(flatten)]
+    filter: system_user::Filter,
+    #[serde(flatten)]
+    paginate: PaginateParams,
+}
+impl SearchParams {
+    pub fn new(filter: system_user::Filter, paginate: PaginateParams) -> Self {
+        Self { filter, paginate }
+    }
+}
 
-// #[derive(Debug, Deserialize)]
-// pub struct SearchParams {
-//     keyword: Option<String>,
-//     status: Option<i32>,
-//     role_id: Option<i32>,
-//     dept_id: Option<i32>,
-//     #[serde(flatten)]
-//     paginate: PaginateParams,
-// }
-// impl SearchParams {
-//     fn to_params(&self) -> Vec<system_user::WhereParam> {
-//         let mut params = vec![system_user::deleted_at::equals(None)];
-//         if let Some(k) = &self.keyword {
-//             params.push(or!(
-//                 system_user::username::contains(k.to_string()),
-//                 system_user::nickname::contains(k.to_string()),
-//                 system_user::phone::contains(k.to_string()),
-//                 system_user::email::contains(k.to_string())
-//             ));
-//         }
-//         if let Some(status) = self.status {
-//             params.push(system_user::status::equals(status));
-//         }
-//         if let Some(role_id) = self.role_id {
-//             params.push(system_user::role_id::equals(Some(role_id)));
-//         }
-//         params
-//     }
+#[derive(Debug, Serialize, Getters)]
+pub struct UserInfo {
+    user: system_user::Entity,
+    #[getset(get = "pub")]
+    dept: Option<system_dept::Entity>,
+    #[getset(get = "pub")]
+    role: Option<system_role::Entity>,
+}
 
-//     pub fn new(
-//         keyword: Option<String>,
-//         status: Option<i32>,
-//         role_id: Option<i32>,
-//         dept_id: Option<i32>,
-//         paginate: PaginateParams,
-//     ) -> Self {
-//         Self {
-//             keyword,
-//             status,
-//             role_id,
-//             dept_id,
-//             paginate,
-//         }
-//     }
-// }
+impl From<system_user::Entity> for UserInfo {
+    fn from(value: system_user::Entity) -> Self {
+        Self {
+            user: value,
+            dept: None,
+            role: None,
+        }
+    }
+}
 
-// #[derive(Debug, Serialize, Getters)]
-// pub struct Info {
-//     #[getset(get = "pub")]
-//     id: i32,
-//     #[getset(get = "pub")]
-//     username: String,
-//     nickname: String,
-//     role_id: Option<i32>,
-//     dept_id: Option<i32>,
-//     phone: String,
-//     email: String,
-//     sex: i32,
-//     #[serde(skip)]
-//     #[getset(get = "pub")]
-//     password: String,
-//     #[serde(skip)]
-//     #[getset(get = "pub")]
-//     salt: String,
-//     describe: String,
-//     expire_time: Option<String>,
-//     status: i32,
-//     created_at: String,
-//     last_login_ip: String,
-//     last_login_time: Option<String>,
-//     #[getset(get = "pub")]
-//     dept: Option<system_dept_service::Info>,
-//     #[getset(get = "pub")]
-//     role: Option<system_role_service::Info>,
-// }
-
-// impl From<system_user::Data> for Info {
-//     fn from(value: system_user::Data) -> Self {
-//         let dept = match value.dept() {
-//             Ok(dept) => dept.map(|x| x.clone().into()),
-//             Err(_) => None,
-//         };
-//         let role = match value.role() {
-//             Ok(role) => role.map(|x| x.clone().into()),
-//             Err(_) => None,
-//         };
-//         Self {
-//             id: value.id,
-//             username: value.username,
-//             nickname: value.nickname,
-//             role_id: value.role_id,
-//             dept_id: value.dept_id,
-//             phone: value.phone,
-//             email: value.email,
-//             sex: value.sex,
-//             password: value.password,
-//             salt: value.salt,
-//             describe: value.describe,
-//             expire_time: value.expire_time.map(to_local_string),
-//             status: value.status,
-//             last_login_ip: value.last_login_ip,
-//             last_login_time: value.last_login_time.map(to_local_string),
-//             created_at: to_local_string(value.created_at),
-//             dept,
-//             role,
-//         }
-//     }
-// }
-// #[derive(Debug, Serialize)]
-// pub struct Permission {
-//     pub user: Info,
-//     pub role: Option<system_role::Data>,
-//     pub dept: Option<system_dept::Data>,
-//     pub btn_auths: Vec<String>,
-// }
-
-// system_user::partial_unchecked!(CreateParams {
-//     nickname
-//     role_id
-//     dept_id
-//     phone
-//     email
-//     sex
-//     password
-//     salt
-//     describe
-//     expire_time
-//     status
-// });
-
-// system_user::partial_unchecked!(UpdateParams {
-//     username
-//     nickname
-//     role_id
-//     dept_id
-//     phone
-//     email
-//     sex
-//     password
-//     salt
-//     describe
-//     expire_time
-//     status
-// });
-
-// system_user::partial_unchecked!(UpdatePasswordParams { password salt });
+#[derive(Debug, Serialize)]
+pub struct Permission {
+    pub user: UserInfo,
+    pub role: Option<system_role::Entity>,
+    pub dept: Option<system_dept::Entity>,
+    pub btn_auths: Vec<String>,
+}
