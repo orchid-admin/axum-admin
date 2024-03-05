@@ -7,7 +7,7 @@ pub async fn create(
     pool: &ConnectPool,
     params: system_role::FormParamsForCreate,
     menu_ids: Vec<i32>,
-) -> Result<system_role::Entity> {
+) -> Result<Info> {
     let mut conn = pool.conn().await?;
     Ok(system_role::Entity::create_with_menus(&mut conn, &params, menu_ids).await?)
 }
@@ -17,18 +17,18 @@ pub async fn update(
     id: i32,
     params: system_role::FormParamsForCreate,
     menu_ids: Vec<i32>,
-) -> Result<system_role::Entity> {
+) -> Result<Info> {
     let mut conn = pool.conn().await?;
     Ok(system_role::Entity::update_with_menus(&mut conn, id, params, menu_ids).await?)
 }
 
-pub async fn delete(pool: &ConnectPool, id: i32) -> Result<system_role::Entity> {
+pub async fn delete(pool: &ConnectPool, id: i32) -> Result<Info> {
     let mut conn = pool.conn().await?;
     let result = system_role::Entity::soft_delete_transaction(&mut conn, id).await?;
     Ok(result)
 }
 
-pub async fn all(pool: &ConnectPool) -> Result<Vec<system_role::Entity>> {
+pub async fn all(pool: &ConnectPool) -> Result<Vec<Info>> {
     let mut conn = pool.conn().await?;
     let infos = system_role::Entity::query(
         &mut conn,
@@ -40,16 +40,13 @@ pub async fn all(pool: &ConnectPool) -> Result<Vec<system_role::Entity>> {
     Ok(infos)
 }
 
-pub async fn paginate(
-    pool: &ConnectPool,
-    params: &SearchParams,
-) -> Result<PaginateResult<Vec<system_role::Entity>>> {
+pub async fn paginate(pool: &ConnectPool, filter: &Filter) -> Result<PaginateResult<Vec<Info>>> {
     let mut conn = pool.conn().await?;
     let (data, total) = system_role::Entity::paginate(
         &mut conn,
-        params.paginate.get_page(),
-        params.paginate.get_limit(),
-        &params.filter,
+        filter.paginate.get_page(),
+        filter.paginate.get_limit(),
+        &filter.filter,
     )
     .await?;
     Ok(PaginateResult { total, data })
@@ -71,11 +68,7 @@ pub async fn info(pool: &ConnectPool, id: i32) -> Result<InfoWithMenuIds> {
     Ok(info)
 }
 
-pub async fn get_by_sign(
-    pool: &ConnectPool,
-    sign: &str,
-    id: Option<i32>,
-) -> Result<Option<system_role::Entity>> {
+pub async fn get_by_sign(pool: &ConnectPool, sign: &str, id: Option<i32>) -> Result<Option<Info>> {
     let mut conn = pool.conn().await?;
     let role_result = system_role::Entity::find(
         &mut conn,
@@ -90,6 +83,8 @@ pub async fn get_by_sign(
         _ => None,
     })
 }
+pub type Info = system_role::Entity;
+
 #[derive(Debug, Serialize)]
 pub struct InfoWithMenuIds {
     #[serde(flatten)]
@@ -106,7 +101,7 @@ impl From<system_role::Entity> for InfoWithMenuIds {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct SearchParams {
+pub struct Filter {
     #[serde(flatten)]
     filter: system_role::Filter,
     #[serde(flatten)]

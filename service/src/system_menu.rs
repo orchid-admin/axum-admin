@@ -1,94 +1,80 @@
-use crate::{
-    prisma::{system_menu, SortOrder},
-    system_role_menu_service, system_role_service, system_user_service, Database, Result,
-    ServiceError,
-};
+use crate::{Result, ServiceError};
 use getset::Getters;
+use model::{connect::DbConnectPool as ConnectPool, system_menu, system_role, system_role_menu};
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
-use utils::{
-    datetime::{now_time, to_local_string},
-    tree::{get_tree_start_parent_id, vec_to_tree_into, Tree, TreeInfo},
-};
+use utils::tree::{get_tree_start_parent_id, vec_to_tree_into, Tree, TreeInfo};
 
-pub async fn create(db: &Database, title: &str, params: CreateParams) -> Result<Info> {
-    Ok(db
-        .client
-        .system_menu()
-        .create_unchecked(title.to_owned(), params.to_params())
-        .exec()
+pub async fn create(pool: &ConnectPool, params: system_menu::FormParamsForCreate) -> Result<Info> {
+    let mut conn = pool.conn().await?;
+    Ok(system_menu::Entity::create(&mut conn, &params)
         .await?
         .into())
 }
 
-pub async fn update(db: &Database, id: i32, params: UpdateParams) -> Result<Info> {
-    Ok(db
-        .client
-        .system_menu()
-        .update_unchecked(system_menu::id::equals(id), params.to_params())
-        .exec()
+pub async fn update(
+    pool: &ConnectPool,
+    id: i32,
+    params: system_menu::FormParamsForUpdate,
+) -> Result<Info> {
+    let mut conn = pool.conn().await?;
+    Ok(system_menu::Entity::update(&mut conn, id, params)
         .await?
         .into())
 }
 
-pub async fn delete(db: &Database, id: i32) -> Result<Info> {
-    Ok(db
-        .client
-        .system_menu()
-        .update(
-            system_menu::id::equals(id),
-            vec![system_menu::deleted_at::set(Some(now_time()))],
-        )
-        .exec()
+pub async fn delete(pool: &ConnectPool, id: i32) -> Result<Info> {
+    let mut conn = pool.conn().await?;
+    Ok(system_menu::Entity::soft_delete(&mut conn, id)
         .await?
         .into())
 }
 
-pub async fn info(db: &Database, id: i32) -> Result<Info> {
-    Ok(db
-        .client
-        .system_menu()
-        .find_first(vec![
-            system_menu::id::equals(id),
-            system_menu::deleted_at::equals(None),
-        ])
-        .exec()
-        .await?
-        .ok_or(ServiceError::DataNotFound)?
-        .into())
+pub async fn info(pool: &ConnectPool, id: i32) -> Result<Info> {
+    let mut conn = pool.conn().await?;
+    Ok(system_menu::Entity::find(
+        &mut conn,
+        &system_menu::Filter {
+            id: Some(id),
+            ..Default::default()
+        },
+    )
+    .await?
+    .ok_or(ServiceError::DataNotFound)?
+    .into())
 }
 
 pub async fn get_user_menu_trees(
-    db: &Database,
+    pool: &ConnectPool,
     user_id: i32,
-    query_params: &SearchParams,
+    filter: &Filter,
 ) -> Result<Vec<Menu>> {
-    let infos = get_user_menus(db, user_id, query_params).await?;
+    let infos = get_user_menus(pool, user_id, filter).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
     Ok(vec_to_tree_into::<Menu, Info>(&parent_id, &infos))
 }
 
 pub async fn get_user_slide_menu_trees(
-    db: &Database,
+    pool: &ConnectPool,
     user_id: i32,
-    query_params: &SearchParams,
+    filter: &Filter,
 ) -> Result<Vec<UserMenu>> {
-    let infos = get_user_menus(db, user_id, query_params).await?;
+    let infos = get_user_menus(pool, user_id, filter).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
     Ok(vec_to_tree_into::<UserMenu, Info>(&parent_id, &infos))
 }
 
 pub async fn get_user_menus_by_menu_ids(
-    db: &Database,
+    pool: &ConnectPool,
     user_id: i32,
     menu_ids: Vec<i32>,
 ) -> Result<Vec<Info>> {
     Ok(match menu_ids.is_empty() {
         true => vec![],
-        false => get_menus_by_user_id(db, user_id)
+        false => get_menus_by_user_id(pool, user_id)
             .await?
             .into_iter()
-            .filter(|x| menu_ids.clone().into_iter().any(|z| x.id.eq(&z)))
+            .filter(|x| menu_ids.clone().into_iter().any(|z| x.info.id().eq(&z)))
             .collect::<Vec<Info>>(),
     })
 }
@@ -97,79 +83,80 @@ pub fn filter_menu_types(menu_type: Option<Vec<MenuType>>, x: Vec<Info>) -> Vec<
     match menu_type {
         Some(t) => x
             .into_iter()
-            .filter(|x| t.contains(&x.r#type))
+            .filter(|x| t.contains(&x.menu_type))
             .collect::<Vec<Info>>(),
         None => x,
     }
 }
 pub async fn get_menu_by_role(
-    db: &Database,
-    role: Option<system_role_service::Info>,
+    pool: &ConnectPool,
+    role: &Option<system_role::Entity>,
 ) -> Result<Vec<Info>> {
+    let mut conn = pool.conn().await?;
     Ok(match role {
-        Some(role) => system_role_menu_service::get_role_menus(db, role.id()).await?,
+        Some(role) => system_role_menu::Entity::get_role_menus(&mut conn, *role.id())
+            .await?
+            .into_iter()
+            .map(|x| x.into())
+            .collect::<Vec<Info>>(),
         None => vec![],
     })
 }
 
 pub async fn get_menu_id_by_api_request(
-    db: &Database,
+    pool: &ConnectPool,
     method: &str,
     path: &str,
 ) -> Result<Option<(i32, String)>> {
-    let info: Option<Info> = db
-        .client
-        .system_menu()
-        .find_first(vec![
-            system_menu::api_method::equals(method.to_owned()),
-            system_menu::api_url::equals(path.to_owned()),
-        ])
-        .exec()
-        .await?
-        .map(|x| x.into());
+    let mut conn = pool.conn().await?;
+    let info = system_menu::Entity::find(
+        &mut conn,
+        &system_menu::Filter {
+            api_method: Some(method.to_owned()),
+            api_url: Some(path.to_owned()),
+            ..Default::default()
+        },
+    )
+    .await?;
     if let Some(x) = info {
-        let mut parent_names = get_parent_names(db, x.parent_id).await?;
-        parent_names.push(x.title);
-        return Ok(Some((x.id, parent_names.join("/"))));
+        let mut parent_names = get_parent_names(pool, *x.parent_id()).await?;
+        parent_names.push(x.title().clone());
+        return Ok(Some((*x.id(), parent_names.join("/"))));
     }
     Ok(None)
 }
 
-async fn get_user_menus(
-    db: &Database,
-    user_id: i32,
-    query_params: &SearchParams,
-) -> Result<Vec<Info>> {
-    get_menus_by_user_id(db, user_id)
+async fn get_user_menus(pool: &ConnectPool, user_id: i32, filter: &Filter) -> Result<Vec<Info>> {
+    get_menus_by_user_id(pool, user_id)
         .await
-        .map(|x| filter_menu_by_search(query_params, x))
+        .map(|x| filter_menu_by_search(filter, x))
 }
 
-fn filter_menu_by_search(query_params: &SearchParams, x: Vec<Info>) -> Vec<Info> {
-    let type_filters = match &query_params.menu_types {
+fn filter_menu_by_search(filter: &Filter, x: Vec<Info>) -> Vec<Info> {
+    let type_filters = match &filter.menu_types {
         Some(t) => x
             .into_iter()
-            .filter(|x| t.contains(&x.r#type))
+            .filter(|x| t.contains(&x.menu_type))
             .collect::<Vec<Info>>(),
         None => x,
     };
-    match &query_params.keyword {
+    match &filter.filter.keyword {
         Some(keyword) => {
             if !keyword.is_empty() {
                 return type_filters
                     .into_iter()
                     .filter(|x| {
                         let k = keyword.to_owned();
-                        x.title.contains(&k)
-                            || x.router_name.contains(&k)
-                            || x.router_component.contains(&k)
-                            || x.router_path.contains(&k)
-                            || x.redirect.contains(&k)
-                            || x.link.contains(&k)
-                            || x.iframe.contains(&k)
-                            || x.btn_auth.contains(&k)
-                            || x.api_url.contains(&k)
-                            || x.api_method.contains(&k)
+                        x.info.title().contains(&k)
+                            || x.info.router_name().contains(&k)
+                            || x.info.router_component().contains(&k)
+                            || x.info.router_path().contains(&k)
+                            || x.info.redirect().contains(&k)
+                            || x.info.link().contains(&k)
+                            || x.info.iframe().contains(&k)
+                            || x.info.btn_auth().contains(&k)
+                            || x.info.api_url().contains(&k)
+                            || x.info.api_method().contains(&k)
                     })
                     .collect::<Vec<Info>>();
             }
@@ -179,40 +166,37 @@ fn filter_menu_by_search(query_params: &SearchParams, x: Vec<Info>) -> Vec<Info>
     }
 }
 
-pub async fn get_menus(db: &Database) -> Result<Vec<Info>> {
-    Ok(db
-        .client
-        .system_menu()
-        .find_many(vec![system_menu::deleted_at::equals(None)])
-        .order_by(system_menu::sort::order(SortOrder::Asc))
-        .order_by(system_menu::id::order(SortOrder::Asc))
-        .exec()
-        .await?
-        .into_iter()
-        .map(|x| x.into())
-        .collect::<Vec<Info>>())
+pub async fn get_menus(pool: &ConnectPool) -> Result<Vec<Info>> {
+    let mut conn = pool.conn().await?;
+    Ok(
+        system_menu::Entity::query(&mut conn, &system_menu::Filter::default())
+            .await?
+            .into_iter()
+            .map(|x| x.into())
+            .collect::<Vec<Info>>(),
+    )
 }
 
-async fn get_menus_by_user_id(db: &Database, user_id: i32) -> Result<Vec<Info>> {
-    let user_permission = system_user_service::get_current_user_info(db, user_id).await?;
-    if user_permission.username().eq(&db.config.admin_username) {
-        return get_menus(db).await;
-    }
-    get_menu_by_role(db, user_permission.role().clone()).await
+async fn get_menus_by_user_id(pool: &ConnectPool, user_id: i32) -> Result<Vec<Info>> {
+    let user_permission = super::system_user::get_current_user_info(pool, user_id).await?;
+    get_menu_by_role(pool, user_permission.role()).await
 }
 
 #[async_recursion::async_recursion]
-async fn get_parent_names(db: &Database, menu_id: i32) -> Result<Vec<String>> {
+async fn get_parent_names(pool: &ConnectPool, menu_id: i32) -> Result<Vec<String>> {
     let mut parent_names = vec![];
-    let menu = db
-        .client
-        .system_menu()
-        .find_unique(system_menu::id::equals(menu_id))
-        .exec()
-        .await?;
+    let mut conn = pool.conn().await?;
+    let menu = system_menu::Entity::find(
+        &mut conn,
+        &system_menu::Filter {
+            id: Some(menu_id),
+            ..Default::default()
+        },
+    )
+    .await?;
     if let Some(x) = menu {
-        parent_names = get_parent_names(db, x.parent_id).await?;
-        parent_names.push(x.title);
+        parent_names = get_parent_names(pool, *x.parent_id()).await?;
+        parent_names.push(x.title().clone());
     }
     Ok(parent_names)
 }
@@ -234,8 +218,8 @@ pub enum MenuType {
     Api = 6,
 }
 
-impl From<i32> for MenuType {
-    fn from(value: i32) -> Self {
+impl From<&i32> for MenuType {
+    fn from(value: &i32) -> Self {
         match value {
             1 => Self::Menu,
             2 => Self::Redirect,
@@ -294,33 +278,35 @@ impl Tree<UserMenu> for UserMenu {
 impl From<Info> for UserMenu {
     fn from(value: Info) -> Self {
         Self {
-            id: value.id,
-            parent_id: value.parent_id,
-            router_name: match value.router_name.is_empty() {
-                false => value.router_name,
-                true => value.router_path.replace('/', "_"),
+            id: *value.info.id(),
+            parent_id: *value.info.parent_id(),
+            router_name: match value.info.router_name().clone().is_empty() {
+                false => value.info.router_name().clone(),
+                true => value.info.router_path().clone().replace('/', "_"),
             },
-            router_component: value.router_component,
-            router_path: match value.r#type {
-                MenuType::Menu => value.router_path,
-                _ => format!("/{}", value.title.replace('.', "_")),
+            router_component: value.info.router_component().clone(),
+            router_path: match value.info.r#type().into() {
+                MenuType::Menu => value.info.router_path().clone(),
+                _ => format!("/{}", value.info.title().clone().replace('.', "_")),
             },
-            redirect: value.redirect,
+            redirect: value.info.redirect().clone(),
             meta: UserMenuMeta {
-                title: value.title,
-                icon: value.icon,
-                is_link: match value.r#type {
-                    MenuType::Link => value.link,
-                    MenuType::Iframe => value.iframe.clone(),
+                title: value.info.title().clone(),
+                icon: value.info.icon().clone(),
+                is_link: match value.menu_type {
+                    MenuType::Link => value.info.link().clone(),
+                    MenuType::Iframe => value.info.iframe().clone().clone(),
                     _ => "".to_owned(),
                 },
-                is_iframe: match !value.iframe.is_empty() && value.r#type.eq(&MenuType::Iframe) {
+                is_iframe: match !value.info.iframe().clone().is_empty()
+                    && value.menu_type.eq(&MenuType::Iframe)
+                {
                     true => 1,
                     false => 0,
                 },
-                is_hide: value.is_hide,
-                is_keep_alive: value.is_keep_alive,
-                is_affix: value.is_affix,
+                is_hide: *value.info.is_hide(),
+                is_keep_alive: *value.info.is_keep_alive(),
+                is_affix: *value.info.is_affix(),
             },
             children: vec![],
         }
@@ -349,7 +335,7 @@ pub struct UserMenuMeta {
     pub is_affix: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Getters)]
+#[derive(Debug, Clone, Serialize, Getters)]
 pub struct Menu {
     #[serde(flatten)]
     info: Info,
@@ -359,17 +345,26 @@ pub struct Menu {
 
 impl Menu {
     pub fn get_title(self) -> String {
-        self.info.title
+        self.info.info.title().clone()
     }
 
     pub fn set_parent_id(&mut self, parent_id: i32) {
-        self.info.parent_id = parent_id;
+        self.info.info.set_parent_id(parent_id);
     }
 }
 
 impl Tree<Menu> for Menu {
     fn set_child(&mut self, data: Vec<Menu>) {
         self.children = data;
+    }
+}
+
+impl From<system_menu::Entity> for Menu {
+    fn from(value: system_menu::Entity) -> Self {
+        Self {
+            info: value.into(),
+            children: vec![],
+        }
     }
 }
 
@@ -382,157 +377,44 @@ impl From<Info> for Menu {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Info {
-    /// 菜单ID
-    pub id: i32,
-    /// 父级ID
-    pub parent_id: i32,
-    /// 菜单类型：1.菜单，2.重定向/目录，3.外链，4.嵌套，5.按钮权限，6.接口权限
-    pub r#type: MenuType,
-    /// 菜单名称
-    pub title: String,
-    /// 图标
-    pub icon: String,
-    /// 路由名称
-    pub router_name: String,
-    /// 组件地址
-    pub router_component: String,
-    /// 路径
-    pub router_path: String,
-    /// 重定向
-    pub redirect: String,
-    /// 外链地址
-    pub link: String,
-    /// 内嵌地址
-    pub iframe: String,
-    /// 按钮权限
-    pub btn_auth: String,
-    /// 接口地址
-    pub api_url: String,
-    /// 接口请求方法
-    pub api_method: String,
-    /// 是否隐藏
-    pub is_hide: i32,
-    /// 是否开启keep_alive
-    pub is_keep_alive: i32,
-    /// 是否固定
-    pub is_affix: i32,
-    /// 排序
-    pub sort: i32,
-    pub created_at: String,
-    pub updated_time: String,
+    #[serde(flatten)]
+    info: system_menu::Entity,
+    #[serde(skip)]
+    menu_type: MenuType,
 }
-
-impl From<system_menu::Data> for Info {
-    fn from(value: system_menu::Data) -> Self {
+impl TreeInfo for Info {
+    fn get_id(&self) -> i32 {
+        *self.info.id()
+    }
+    fn get_parent_id(&self) -> i32 {
+        *self.info.parent_id()
+    }
+}
+impl From<system_menu::Entity> for Info {
+    fn from(value: system_menu::Entity) -> Self {
         Self {
-            id: value.id,
-            parent_id: value.parent_id,
-            r#type: value.r#type.into(),
-            title: value.title,
-            icon: value.icon,
-            router_name: value.router_name,
-            router_component: value.router_component,
-            router_path: value.router_path,
-            redirect: value.redirect,
-            link: value.link,
-            iframe: value.iframe,
-            btn_auth: value.btn_auth,
-            api_url: value.api_url,
-            api_method: value.api_method,
-            is_hide: value.is_hide,
-            is_keep_alive: value.is_keep_alive,
-            is_affix: value.is_affix,
-            sort: value.sort,
-            created_at: to_local_string(value.created_at),
-            updated_time: to_local_string(value.updated_at),
+            info: value.clone(),
+            menu_type: value.r#type().into(),
         }
     }
 }
-
-impl TreeInfo for Info {
-    fn get_parent_id(&self) -> i32 {
-        self.parent_id
-    }
-
-    fn get_id(&self) -> i32 {
-        self.id
+impl Info {
+    pub fn check_request_permission(&self, method: &str, path: &str) -> bool {
+        self.info.api_method().eq(method) && self.info.api_url().eq(path)
     }
 }
 
-pub struct SearchParams {
-    keyword: Option<String>,
+#[derive(Debug, Deserialize)]
+pub struct Filter {
+    #[serde(flatten)]
+    filter: system_menu::Filter,
     menu_types: Option<Vec<MenuType>>,
 }
 
-impl SearchParams {
-    pub fn new(keyword: Option<String>, menu_types: Option<Vec<MenuType>>) -> Self {
-        Self {
-            keyword,
-            menu_types,
-        }
+impl Filter {
+    pub fn new(filter: system_menu::Filter, menu_types: Option<Vec<MenuType>>) -> Self {
+        Self { filter, menu_types }
     }
 }
-
-system_menu::partial_unchecked!(CreateParams {
-    parent_id
-    r#type
-    icon
-    router_name
-    router_component
-    router_path
-    redirect
-    link
-    iframe
-    btn_auth
-    api_url
-    api_method
-    is_hide
-    is_keep_alive
-    is_affix
-    sort
-});
-
-impl From<Menu> for CreateParams {
-    fn from(value: Menu) -> Self {
-        Self {
-            parent_id: Some(value.info.parent_id),
-            r#type: Some(value.info.r#type.into()),
-            icon: Some(value.info.icon),
-            router_name: Some(value.info.router_name),
-            router_component: Some(value.info.router_component),
-            router_path: Some(value.info.router_path),
-            redirect: Some(value.info.redirect),
-            link: Some(value.info.link),
-            iframe: Some(value.info.iframe),
-            btn_auth: Some(value.info.btn_auth),
-            api_url: Some(value.info.api_url),
-            api_method: Some(value.info.api_method),
-            is_hide: Some(value.info.is_hide),
-            is_keep_alive: Some(value.info.is_keep_alive),
-            is_affix: Some(value.info.is_affix),
-            sort: Some(value.info.sort),
-        }
-    }
-}
-
-system_menu::partial_unchecked!(UpdateParams {
-    parent_id
-    r#type
-    title
-    icon
-    router_name
-    router_component
-    router_path
-    redirect
-    link
-    iframe
-    btn_auth
-    api_url
-    api_method
-    is_hide
-    is_keep_alive
-    is_affix
-    sort
-});

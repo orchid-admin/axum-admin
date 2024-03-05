@@ -3,50 +3,51 @@ use crate::{
     Result,
 };
 use diesel::{delete, insert_into, prelude::*, update};
-use diesel_async::{scoped_futures::*, AsyncConnection, RunQueryDsl, SaveChangesDsl};
-use getset::Getters;
+use diesel_async::{scoped_futures::*, AsyncConnection, RunQueryDsl};
+use getset::{Getters, Setters};
 use serde::{Deserialize, Serialize};
-use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::time::SystemTime;
 
 /// define Entity
-#[derive(Debug, Queryable, Selectable, Identifiable, AsChangeset, Serialize, Getters)]
+#[derive(
+    Debug, Clone, Queryable, Selectable, Identifiable, AsChangeset, Serialize, Getters, Setters,
+)]
 #[diesel(table_name = crate::schema::system_menus)]
 pub struct Entity {
     #[getset(get = "pub")]
     id: i32,
-    /// 父级ID
+    #[getset(get = "pub", set = "pub")]
     parent_id: i32,
-    /// 菜单类型:1.菜单,2.重定向/目录,3.外链,4.嵌套,5.按钮权限,6.接口权限
+    #[getset(get = "pub")]
     #[diesel(column_name = "type_")]
     r#type: i32,
-    /// 菜单名称
+    #[getset(get = "pub")]
     title: String,
-    /// 图标
+    #[getset(get = "pub")]
     icon: String,
-    /// 路由名称
+    #[getset(get = "pub")]
     router_name: String,
-    /// 组件地址
+    #[getset(get = "pub")]
     router_component: String,
-    /// 路径
+    #[getset(get = "pub")]
     router_path: String,
-    /// 重定向
+    #[getset(get = "pub")]
     redirect: String,
-    /// 外链地址
+    #[getset(get = "pub")]
     link: String,
-    /// 内嵌地址
+    #[getset(get = "pub")]
     iframe: String,
-    /// 按钮权限
+    #[getset(get = "pub")]
     btn_auth: String,
-    /// 接口地址
+    #[getset(get = "pub")]
     api_url: String,
-    /// 接口请求方法
+    #[getset(get = "pub")]
     api_method: String,
-    /// 是否隐藏
+    #[getset(get = "pub")]
     is_hide: i32,
-    /// 是否开启keep_alive
+    #[getset(get = "pub")]
     is_keep_alive: i32,
-    /// 是否固定
+    #[getset(get = "pub")]
     is_affix: i32,
     /// 排序
     sort: i32,
@@ -162,13 +163,17 @@ impl Entity {
     }
     // others methods
 }
+
 /// define Filter
 #[derive(Debug, Default, Deserialize)]
 pub struct Filter {
     pub keyword: Option<String>,
     pub status: Option<i32>,
     // other fields
+    pub id: Option<i32>,
     pub ids: Option<Vec<i32>>,
+    pub api_method: Option<String>,
+    pub api_url: Option<String>,
 }
 /// define Forms Param
 #[derive(Debug, Insertable, AsChangeset)]
@@ -195,20 +200,3 @@ pub struct FormParamsForCreate {
 }
 
 pub type FormParamsForUpdate = FormParamsForCreate;
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
-#[repr(i32)]
-pub enum MenuType {
-    /// 1.菜单
-    Menu = 1,
-    /// 2.重定向/目录
-    Redirect = 2,
-    /// 3.外链
-    Link = 3,
-    /// 4.嵌套
-    Iframe = 4,
-    /// 5.按钮权限
-    BtnAuth = 5,
-    /// 6.接口权限
-    Api = 6,
-}

@@ -3,7 +3,7 @@ use crate::{
     Result,
 };
 use diesel::{delete, insert_into, prelude::*, update};
-use diesel_async::{scoped_futures::*, AsyncConnection, RunQueryDsl, SaveChangesDsl};
+use diesel_async::{scoped_futures::*, AsyncConnection, RunQueryDsl};
 use getset::Getters;
 use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
@@ -146,14 +146,14 @@ impl Entity {
         if menu_ids.len().eq(&0) {
             return Ok(vec![]);
         }
-        Ok(super::system_menu::Entity::query(
+        super::system_menu::Entity::query(
             conn,
             &super::system_menu::Filter {
                 ids: Some(menu_ids),
                 ..Default::default()
             },
         )
-        .await?)
+        .await
     }
 
     pub async fn delete_by_role_id(conn: &mut Connect, role_id: i32) -> Result<Vec<Self>> {

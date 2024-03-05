@@ -3,11 +3,10 @@ use crate::{
     Result,
 };
 use diesel::{delete, insert_into, prelude::*, update};
-use diesel_async::{scoped_futures::*, AsyncConnection, RunQueryDsl, SaveChangesDsl};
+use diesel_async::{scoped_futures::*, AsyncConnection, RunQueryDsl};
 use getset::Getters;
 use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
-use utils::tree::TreeInfo;
 
 /// define Entity
 #[derive(Debug, Clone, Queryable, Selectable, Identifiable, AsChangeset, Serialize, Getters)]
@@ -35,6 +34,12 @@ impl Entity {
     pub async fn find(conn: &mut Connect, filter: &Filter) -> Result<Option<Self>> {
         let table = system_depts::table;
         // filter condition
+        if let Some(id) = filter.id {
+            let _ = table.filter(system_depts::id.eq(id));
+        }
+        if let Some(name) = &filter.name {
+            let _ = table.filter(system_depts::name.like(name));
+        }
         let info = table
             .select(Entity::as_select())
             .first::<Entity>(conn)
@@ -46,6 +51,12 @@ impl Entity {
     pub async fn query(conn: &mut Connect, filter: &Filter) -> Result<Vec<Self>> {
         let table = system_depts::table;
         // filter condition
+        if let Some(id) = filter.id {
+            let _ = table.filter(system_depts::id.eq(id));
+        }
+        if let Some(name) = &filter.name {
+            let _ = table.filter(system_depts::name.like(name));
+        }
         let infos = table
             .select(Entity::as_select())
             .load::<Entity>(conn)
@@ -61,6 +72,12 @@ impl Entity {
     ) -> Result<(Vec<Self>, i64)> {
         let table = system_depts::table;
         // filter condition
+        if let Some(id) = filter.id {
+            let _ = table.filter(system_depts::id.eq(id));
+        }
+        if let Some(name) = &filter.name {
+            let _ = table.filter(system_depts::name.like(name));
+        }
         Ok(table
             .select(Entity::as_select())
             .paginate(page)
@@ -162,13 +179,3 @@ pub struct FormParamsForCreate {
 }
 
 pub type FormParamsForUpdate = FormParamsForCreate;
-
-impl TreeInfo for Entity {
-    fn get_parent_id(&self) -> i32 {
-        self.parent_id
-    }
-
-    fn get_id(&self) -> i32 {
-        self.id
-    }
-}

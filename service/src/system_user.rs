@@ -1,13 +1,10 @@
-use crate::{Result, ServiceError};
+use crate::{system_menu, Result, ServiceError};
 use getset::Getters;
 use model::{connect::DbConnectPool as ConnectPool, system_dept, system_role, system_user};
 use serde::{Deserialize, Serialize};
 use utils::paginate::{PaginateParams, PaginateResult};
 
-pub async fn find_user_by_username(
-    pool: &ConnectPool,
-    username: &str,
-) -> Result<Option<system_user::Entity>> {
+pub async fn find_user_by_username(pool: &ConnectPool, username: &str) -> Result<Option<Info>> {
     let mut conn = pool.conn().await?;
     let info = system_user::Entity::find(
         &mut conn,
@@ -73,33 +70,22 @@ pub async fn get_current_user_info(pool: &ConnectPool, id: i32) -> Result<UserIn
     Ok(user_info)
 }
 
-// pub async fn check_user_permission(
-//     db: &Database,
-//     user_id: i32,
-//     method: &str,
-//     path: &str,
-// ) -> Result<bool> {
-//     let user = db
-//         .client
-//         .system_user()
-//         .find_first(vec![system_user::id::equals(user_id)])
-//         .with(system_user::role::fetch())
-//         .exec()
-//         .await?
-//         .ok_or(ServiceError::DataNotFound)?;
-//     if user.username.eq(&db.config.admin_username) {
-//         return Ok(true);
-//     }
-//     let role = user.role().map(|x| x.cloned()).unwrap_or_default();
-//     let auths = system_menu_service::filter_menu_types(
-//         Some(vec![system_menu_service::MenuType::Api]),
-//         system_menu_service::get_menu_by_role(db, role.clone().map(|x| x.into())).await?,
-//     )
-//     .into_iter()
-//     .filter(|x| x.api_method.to_uppercase().eq(method) && x.api_url.eq(path))
-//     .count();
-//     Ok(auths > 0)
-// }
+pub async fn check_user_permission(
+    pool: &ConnectPool,
+    user_id: i32,
+    method: &str,
+    path: &str,
+) -> Result<bool> {
+    let user_info = get_current_user_info(pool, user_id).await?;
+    let auths = system_menu::filter_menu_types(
+        Some(vec![system_menu::MenuType::Api]),
+        system_menu::get_menu_by_role(pool, &user_info.role).await?,
+    )
+    .into_iter()
+    .filter(|x| x.check_request_permission(method, path))
+    .count();
+    Ok(auths > 0)
+}
 
 pub async fn get_users_by_dept_id(
     pool: &ConnectPool,
@@ -164,14 +150,14 @@ pub async fn info(pool: &ConnectPool, id: i32) -> Result<system_user::Entity> {
 
 pub async fn paginate(
     pool: &ConnectPool,
-    params: SearchParams,
+    filter: Filter,
 ) -> Result<PaginateResult<Vec<system_user::Entity>>> {
     let mut conn = pool.conn().await?;
     let (data, total): (Vec<system_user::Entity>, i64) = system_user::Entity::paginate(
         &mut conn,
-        params.paginate.get_page(),
-        params.paginate.get_limit(),
-        &params.filter,
+        filter.paginate.get_page(),
+        filter.paginate.get_limit(),
+        &filter.filter,
     )
     .await?;
     Ok(PaginateResult { total, data })
@@ -196,14 +182,16 @@ pub async fn set_last_login(
     Ok(system_user::Entity::set_last_login(&mut conn, &mut info, login_ip).await?)
 }
 
+pub type Info = system_user::Entity;
+
 #[derive(Debug, Deserialize)]
-pub struct SearchParams {
+pub struct Filter {
     #[serde(flatten)]
     filter: system_user::Filter,
     #[serde(flatten)]
     paginate: PaginateParams,
 }
-impl SearchParams {
+impl Filter {
     pub fn new(filter: system_user::Filter, paginate: PaginateParams) -> Self {
         Self { filter, paginate }
     }

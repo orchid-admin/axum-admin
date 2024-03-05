@@ -3,7 +3,7 @@ use crate::{
     Result,
 };
 use diesel::{delete, insert_into, prelude::*, update};
-use diesel_async::{scoped_futures::*, AsyncConnection, RunQueryDsl, SaveChangesDsl};
+use diesel_async::{scoped_futures::*, AsyncConnection, RunQueryDsl};
 use getset::Getters;
 use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
