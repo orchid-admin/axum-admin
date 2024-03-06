@@ -4,15 +4,13 @@ use crate::{
 };
 use diesel::{delete, insert_into, prelude::*, update};
 use diesel_async::{scoped_futures::*, AsyncConnection, RunQueryDsl};
-use getset::Getters;
 use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
 
 /// define Entity
-#[derive(Debug, Queryable, Selectable, Identifiable, AsChangeset, Serialize, Getters)]
+#[derive(Debug, Queryable, Selectable, Identifiable, AsChangeset, Serialize)]
 #[diesel(table_name = crate::schema::member_bills)]
 pub struct Entity {
-    #[getset(get = "pub")]
     id: i32,
     member_id: i32,
     #[diesel(column_name = "type_")]

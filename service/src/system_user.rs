@@ -1,5 +1,4 @@
 use crate::{system_menu, Result, ServiceError};
-use getset::Getters;
 use model::{connect::DbConnectPool as ConnectPool, system_dept, system_role, system_user};
 use serde::{Deserialize, Serialize};
 use utils::paginate::{PaginateParams, PaginateResult};
@@ -45,22 +44,22 @@ pub async fn get_current_user_info(pool: &ConnectPool, id: i32) -> Result<UserIn
     .await?
     .ok_or(ServiceError::DataNotFound)?
     .into();
-    if user_info.user.dept_id().is_some() {
+    if user_info.user.dept_id.is_some() {
         user_info.dept = system_dept::Entity::find(
             &mut conn,
             &system_dept::Filter {
-                id: *user_info.user.dept_id(),
+                id: user_info.user.dept_id,
                 ..Default::default()
             },
         )
         .await?;
     }
 
-    if user_info.user.role_id().is_some() {
+    if user_info.user.role_id.is_some() {
         user_info.role = system_role::Entity::find(
             &mut conn,
             &system_role::Filter {
-                id: *user_info.user.role_id(),
+                id: user_info.user.role_id,
                 ..Default::default()
             },
         )
@@ -79,7 +78,7 @@ pub async fn check_user_permission(
     let user_info = get_current_user_info(pool, user_id).await?;
     let auths = system_menu::filter_menu_types(
         Some(vec![system_menu::MenuType::Api]),
-        system_menu::get_menu_by_role(pool, &user_info.role).await?,
+        system_menu::get_menu_by_role(pool, user_info.role).await?,
     )
     .into_iter()
     .filter(|x| x.check_request_permission(method, path))
@@ -197,13 +196,11 @@ impl Filter {
     }
 }
 
-#[derive(Debug, Serialize, Getters)]
+#[derive(Debug, Serialize)]
 pub struct UserInfo {
     user: system_user::Entity,
-    #[getset(get = "pub")]
     dept: Option<system_dept::Entity>,
-    #[getset(get = "pub")]
-    role: Option<system_role::Entity>,
+    pub role: Option<system_role::Entity>,
 }
 
 impl From<system_user::Entity> for UserInfo {

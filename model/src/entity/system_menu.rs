@@ -4,55 +4,36 @@ use crate::{
 };
 use diesel::{delete, insert_into, prelude::*, update};
 use diesel_async::{scoped_futures::*, AsyncConnection, RunQueryDsl};
-use getset::{Getters, Setters};
 use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
 
 /// define Entity
 #[derive(
-    Debug, Clone, Queryable, Selectable, Identifiable, AsChangeset, Serialize, Getters, Setters,
+    Debug, Clone, Queryable, Selectable, Identifiable, AsChangeset, Serialize, Deserialize,
 )]
 #[diesel(table_name = crate::schema::system_menus)]
 pub struct Entity {
-    #[getset(get = "pub")]
-    id: i32,
-    #[getset(get = "pub", set = "pub")]
-    parent_id: i32,
-    #[getset(get = "pub")]
+    pub id: i32,
+    pub parent_id: i32,
     #[diesel(column_name = "type_")]
-    r#type: i32,
-    #[getset(get = "pub")]
-    title: String,
-    #[getset(get = "pub")]
-    icon: String,
-    #[getset(get = "pub")]
-    router_name: String,
-    #[getset(get = "pub")]
-    router_component: String,
-    #[getset(get = "pub")]
-    router_path: String,
-    #[getset(get = "pub")]
-    redirect: String,
-    #[getset(get = "pub")]
-    link: String,
-    #[getset(get = "pub")]
-    iframe: String,
-    #[getset(get = "pub")]
-    btn_auth: String,
-    #[getset(get = "pub")]
-    api_url: String,
-    #[getset(get = "pub")]
-    api_method: String,
-    #[getset(get = "pub")]
-    is_hide: i32,
-    #[getset(get = "pub")]
-    is_keep_alive: i32,
-    #[getset(get = "pub")]
-    is_affix: i32,
-    /// 排序
-    sort: i32,
-    created_at: SystemTime,
-    updated_at: SystemTime,
+    pub r#type: i32,
+    pub title: String,
+    pub icon: String,
+    pub router_name: String,
+    pub router_component: String,
+    pub router_path: String,
+    pub redirect: String,
+    pub link: String,
+    pub iframe: String,
+    pub btn_auth: String,
+    pub api_url: String,
+    pub api_method: String,
+    pub is_hide: i32,
+    pub is_keep_alive: i32,
+    pub is_affix: i32,
+    pub sort: i32,
+    pub created_at: SystemTime,
+    pub updated_at: SystemTime,
     deleted_at: Option<SystemTime>,
 }
 
@@ -176,27 +157,51 @@ pub struct Filter {
     pub api_url: Option<String>,
 }
 /// define Forms Param
-#[derive(Debug, Insertable, AsChangeset)]
+#[derive(Debug, Deserialize, Insertable, AsChangeset)]
 #[diesel(table_name = crate::schema::system_menus)]
 pub struct FormParamsForCreate {
-    parent_id: i32,
+    pub parent_id: i32,
     #[diesel(column_name = "type_")]
-    r#type: i32,
-    title: String,
-    icon: String,
-    router_name: String,
-    router_component: String,
-    router_path: String,
-    redirect: String,
-    link: String,
-    iframe: String,
-    btn_auth: String,
-    api_url: String,
-    api_method: String,
-    is_hide: i32,
-    is_keep_alive: i32,
-    is_affix: i32,
-    sort: i32,
+    pub r#type: i32,
+    pub title: String,
+    pub icon: String,
+    pub router_name: String,
+    pub router_component: String,
+    pub router_path: String,
+    pub redirect: String,
+    pub link: String,
+    pub iframe: String,
+    pub btn_auth: String,
+    pub api_url: String,
+    pub api_method: String,
+    pub is_hide: i32,
+    pub is_keep_alive: i32,
+    pub is_affix: i32,
+    pub sort: i32,
 }
 
 pub type FormParamsForUpdate = FormParamsForCreate;
+
+impl From<Entity> for FormParamsForCreate {
+    fn from(value: Entity) -> Self {
+        Self {
+            parent_id: value.parent_id,
+            r#type: value.r#type,
+            title: value.title,
+            icon: value.icon,
+            router_name: value.router_name,
+            router_component: value.router_component,
+            router_path: value.router_path,
+            redirect: value.redirect,
+            link: value.link,
+            iframe: value.iframe,
+            btn_auth: value.btn_auth,
+            api_url: value.api_url,
+            api_method: value.api_method,
+            is_hide: value.is_hide,
+            is_keep_alive: value.is_keep_alive,
+            is_affix: value.is_affix,
+            sort: value.sort,
+        }
+    }
+}

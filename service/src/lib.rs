@@ -1,4 +1,4 @@
-// pub mod cache_service;
+pub mod cache;
 pub mod member;
 pub mod member_bill;
 pub mod member_team;

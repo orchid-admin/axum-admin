@@ -3,47 +3,31 @@ use crate::{
 };
 use diesel::{delete, insert_into, prelude::*, update};
 use diesel_async::{scoped_futures::*, AsyncConnection, RunQueryDsl, SaveChangesDsl};
-use getset::Getters;
 use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
 
 /// define Entity
-#[derive(Debug, Clone, Queryable, Selectable, Identifiable, AsChangeset, Serialize, Getters)]
+#[derive(Debug, Clone, Queryable, Selectable, Identifiable, AsChangeset, Serialize)]
 #[diesel(table_name = crate::schema::members)]
 pub struct Entity {
-    #[getset(get = "pub")]
-    id: i32,
-    #[getset(get = "pub")]
-    unique_code: String,
-    #[getset(get = "pub")]
-    email: String,
-    #[getset(get = "pub")]
-    mobile: String,
-    #[getset(get = "pub")]
-    nickname: String,
-    #[getset(get = "pub")]
-    avatar: String,
+    pub id: i32,
+    pub unique_code: String,
+    pub email: String,
+    pub mobile: String,
+    pub nickname: String,
+    pub avatar: String,
     #[serde(skip)]
-    #[getset(get = "pub")]
-    password: String,
+    pub password: String,
     #[serde(skip)]
-    #[getset(get = "pub")]
-    salt: String,
-    #[getset(get = "pub")]
-    sex: i32,
-    #[getset(get = "pub")]
-    balance: f64,
-    #[getset(get = "pub")]
+    pub salt: String,
+    pub sex: i32,
+    pub balance: f64,
     integral: i32,
-    remark: String,
-    #[getset(get = "pub")]
-    status: i32,
-    #[getset(get = "pub")]
-    is_promoter: i32,
-    #[getset(get = "pub")]
-    last_login_ip: String,
-    #[getset(get = "pub")]
-    last_login_time: Option<SystemTime>,
+    pub remark: String,
+    pub status: i32,
+    pub is_promoter: i32,
+    pub last_login_ip: String,
+    pub last_login_time: Option<SystemTime>,
     created_at: SystemTime,
     updated_at: SystemTime,
     deleted_at: Option<SystemTime>,

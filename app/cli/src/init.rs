@@ -1,4 +1,5 @@
-use service::{system_menu_service, system_user_service};
+use config::Config;
+use service::{system_menu, system_user};
 use utils::password::Password;
 
 #[derive(Debug, clap::Args)]
@@ -8,29 +9,25 @@ pub struct CliInitParams {
 }
 
 pub async fn exec(params: &CliInitParams) -> service::Result<()> {
-    let db_config = service::DatabaseConfig::default();
-    let db = service::Database::new(db_config.clone()).await?;
+    let config = Config::load();
+    let database_connect_pool = model::connect::DbConnectPool::new(&config.database_url())?;
 
-    let user_sign = db_config.get_admin_username();
-    let user = system_user_service::find_user_by_username(&db, &user_sign).await?;
+    let user = system_user::find_user_by_username(&database_connect_pool, "admin").await?;
     if user.is_none() {
         let (password, slat) =
             Password::generate_hash_salt(params.username_password.as_bytes()).unwrap();
-        system_user_service::create(
-            &db,
-            &user_sign.clone(),
-            system_user_service::CreateParams {
-                nickname: Some(user_sign),
+        system_user::create(
+            &database_connect_pool,
+            &model::system_user::FormParamsForCreate {
+                username: "admin".to_owned(),
+                nickname: "admin".to_owned(),
                 role_id: None,
                 dept_id: None,
-                phone: Some(String::new()),
-                email: Some(String::new()),
-                sex: Some(1),
-                password: Some(password),
-                salt: Some(slat),
-                describe: Some(String::new()),
-                expire_time: None,
-                status: Some(1),
+                sex: 1,
+                password,
+                salt: slat,
+                status: 1,
+                ..Default::default()
             },
         )
         .await?;
@@ -38,7 +35,7 @@ pub async fn exec(params: &CliInitParams) -> service::Result<()> {
     tracing::info!("System User finish..");
 
     tracing::info!("Check Menu..");
-    let menus = system_menu_service::get_menus(&db).await?;
+    let menus = system_menu::get_menus(&database_connect_pool).await?;
     if menus.is_empty() {
         crate::menu::import().await?;
     }

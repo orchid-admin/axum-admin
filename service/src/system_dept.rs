@@ -34,8 +34,8 @@ pub async fn get_dept_children_ids(pool: &ConnectPool, parent_dept_id: i32) -> R
 
 fn get_children_ids(tree: Vec<Dept>, parent_dept_ids: &mut Vec<i32>) -> &mut Vec<i32> {
     for dept in tree {
-        if parent_dept_ids.contains(dept.info.info.parent_id()) {
-            parent_dept_ids.push(*dept.info.info.id());
+        if parent_dept_ids.contains(&dept.info.info.parent_id) {
+            parent_dept_ids.push(dept.info.info.id);
         }
         if !dept.children.is_empty() {
             get_children_ids(dept.children, parent_dept_ids);
@@ -102,7 +102,7 @@ fn get_children_dept(depts: Vec<Info>, dept_id: Option<i32>) -> Vec<Info> {
     for dept in depts.clone() {
         match dept_id {
             Some(id) => {
-                if dept.info.parent_id().eq(&id) {
+                if dept.info.parent_id.eq(&id) {
                     new_depts.push(dept.clone());
                 }
             }
@@ -127,11 +127,11 @@ impl From<system_dept::Entity> for Info {
 }
 impl TreeInfo for Info {
     fn get_parent_id(&self) -> i32 {
-        *self.info.parent_id()
+        self.info.parent_id
     }
 
     fn get_id(&self) -> i32 {
-        *self.info.id()
+        self.info.id
     }
 }
 #[derive(Debug, Serialize)]

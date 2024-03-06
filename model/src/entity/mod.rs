@@ -3,6 +3,7 @@ pub mod member;
 pub mod member_bill;
 pub mod member_team;
 pub mod system_action_log;
+pub mod system_cache;
 pub mod system_dept;
 pub mod system_dict;
 pub mod system_dict_data;

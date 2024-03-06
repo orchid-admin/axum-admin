@@ -22,7 +22,13 @@ tracing-subscriber = { workspace = true }
 captcha-rs = { workspace = true }
 jsonwebtoken = { workspace = true }
 bigdecimal = { workspace = true }
-utils = { path = "../../utils", features=["extract", "password", "logger", "datetime"] }
+utils = { path = "../../utils", features = [
+    "extract",
+    "password",
+    "logger",
+    "datetime",
+] }
+model = { path = "../../model" }
 service = { path = "../../service" }
 
 [build-dependencies]

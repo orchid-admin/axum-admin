@@ -3,30 +3,23 @@ use crate::{
 };
 use diesel::{delete, insert_into, prelude::*, update};
 use diesel_async::{RunQueryDsl, SaveChangesDsl};
-use getset::Getters;
 use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
 
-#[derive(Debug, Queryable, Selectable, Identifiable, AsChangeset, Serialize, Getters)]
+#[derive(Debug, Queryable, Selectable, Identifiable, AsChangeset, Serialize)]
 #[diesel(table_name = crate::schema::system_users)]
 pub struct Entity {
-    #[getset(get = "pub")]
     id: i32,
-    #[getset(get = "pub")]
     username: String,
     nickname: String,
-    #[getset(get = "pub")]
-    role_id: Option<i32>,
-    #[getset(get = "pub")]
-    dept_id: Option<i32>,
+    pub role_id: Option<i32>,
+    pub dept_id: Option<i32>,
     phone: String,
     email: String,
     sex: i32,
     #[serde(skip)]
-    #[getset(get = "pub")]
     password: String,
     #[serde(skip)]
-    #[getset(get = "pub")]
     salt: String,
     describe: String,
     expire_time: Option<SystemTime>,
@@ -176,7 +169,7 @@ pub struct Filter {
     pub dept_id: Option<i32>,
 }
 
-#[derive(Debug, Insertable, AsChangeset)]
+#[derive(Debug, Default, Insertable, AsChangeset)]
 #[diesel(table_name = crate::schema::system_users)]
 pub struct FormParamsForCreate {
     pub username: String,
@@ -189,7 +182,7 @@ pub struct FormParamsForCreate {
     pub password: String,
     pub salt: String,
     pub describe: String,
-    expire_time: Option<SystemTime>,
+    pub expire_time: Option<SystemTime>,
     pub status: i32,
 }
 

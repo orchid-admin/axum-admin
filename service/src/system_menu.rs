@@ -1,5 +1,4 @@
 use crate::{Result, ServiceError};
-use getset::Getters;
 use model::{connect::DbConnectPool as ConnectPool, system_menu, system_role, system_role_menu};
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
@@ -74,7 +73,7 @@ pub async fn get_user_menus_by_menu_ids(
         false => get_menus_by_user_id(pool, user_id)
             .await?
             .into_iter()
-            .filter(|x| menu_ids.clone().into_iter().any(|z| x.info.id().eq(&z)))
+            .filter(|x| menu_ids.clone().into_iter().any(|z| x.info.id.eq(&z)))
             .collect::<Vec<Info>>(),
     })
 }
@@ -90,11 +89,11 @@ pub fn filter_menu_types(menu_type: Option<Vec<MenuType>>, x: Vec<Info>) -> Vec<
 }
 pub async fn get_menu_by_role(
     pool: &ConnectPool,
-    role: &Option<system_role::Entity>,
+    role: Option<system_role::Entity>,
 ) -> Result<Vec<Info>> {
     let mut conn = pool.conn().await?;
     Ok(match role {
-        Some(role) => system_role_menu::Entity::get_role_menus(&mut conn, *role.id())
+        Some(role) => system_role_menu::Entity::get_role_menus(&mut conn, role.id)
             .await?
             .into_iter()
             .map(|x| x.into())
@@ -119,9 +118,9 @@ pub async fn get_menu_id_by_api_request(
     )
     .await?;
     if let Some(x) = info {
-        let mut parent_names = get_parent_names(pool, *x.parent_id()).await?;
-        parent_names.push(x.title().clone());
-        return Ok(Some((*x.id(), parent_names.join("/"))));
+        let mut parent_names = get_parent_names(pool, x.parent_id).await?;
+        parent_names.push(x.title);
+        return Ok(Some((x.id, parent_names.join("/"))));
     }
     Ok(None)
 }
@@ -147,16 +146,16 @@ fn filter_menu_by_search(filter: &Filter, x: Vec<Info>) -> Vec<Info> {
                     .into_iter()
                     .filter(|x| {
                         let k = keyword.to_owned();
-                        x.info.title().contains(&k)
-                            || x.info.router_name().contains(&k)
-                            || x.info.router_component().contains(&k)
-                            || x.info.router_path().contains(&k)
-                            || x.info.redirect().contains(&k)
-                            || x.info.link().contains(&k)
-                            || x.info.iframe().contains(&k)
-                            || x.info.btn_auth().contains(&k)
-                            || x.info.api_url().contains(&k)
-                            || x.info.api_method().contains(&k)
+                        x.info.title.contains(&k)
+                            || x.info.router_name.contains(&k)
+                            || x.info.router_component.contains(&k)
+                            || x.info.router_path.contains(&k)
+                            || x.info.redirect.contains(&k)
+                            || x.info.link.contains(&k)
+                            || x.info.iframe.contains(&k)
+                            || x.info.btn_auth.contains(&k)
+                            || x.info.api_url.contains(&k)
+                            || x.info.api_method.contains(&k)
                     })
                     .collect::<Vec<Info>>();
             }
@@ -179,7 +178,7 @@ pub async fn get_menus(pool: &ConnectPool) -> Result<Vec<Info>> {
 
 async fn get_menus_by_user_id(pool: &ConnectPool, user_id: i32) -> Result<Vec<Info>> {
     let user_permission = super::system_user::get_current_user_info(pool, user_id).await?;
-    get_menu_by_role(pool, user_permission.role()).await
+    get_menu_by_role(pool, user_permission.role).await
 }
 
 #[async_recursion::async_recursion]
@@ -195,8 +194,8 @@ async fn get_parent_names(pool: &ConnectPool, menu_id: i32) -> Result<Vec<String
     )
     .await?;
     if let Some(x) = menu {
-        parent_names = get_parent_names(pool, *x.parent_id()).await?;
-        parent_names.push(x.title().clone());
+        parent_names = get_parent_names(pool, x.parent_id).await?;
+        parent_names.push(x.title);
     }
     Ok(parent_names)
 }
@@ -218,8 +217,13 @@ pub enum MenuType {
     Api = 6,
 }
 
-impl From<&i32> for MenuType {
-    fn from(value: &i32) -> Self {
+impl Default for MenuType {
+    fn default() -> Self {
+        Self::Menu
+    }
+}
+impl From<i32> for MenuType {
+    fn from(value: i32) -> Self {
         match value {
             1 => Self::Menu,
             2 => Self::Redirect,
@@ -278,35 +282,35 @@ impl Tree<UserMenu> for UserMenu {
 impl From<Info> for UserMenu {
     fn from(value: Info) -> Self {
         Self {
-            id: *value.info.id(),
-            parent_id: *value.info.parent_id(),
-            router_name: match value.info.router_name().clone().is_empty() {
-                false => value.info.router_name().clone(),
-                true => value.info.router_path().clone().replace('/', "_"),
+            id: value.info.id,
+            parent_id: value.info.parent_id,
+            router_name: match value.info.router_name.is_empty() {
+                false => value.info.router_name,
+                true => value.info.router_path.replace('/', "_"),
             },
-            router_component: value.info.router_component().clone(),
-            router_path: match value.info.r#type().into() {
-                MenuType::Menu => value.info.router_path().clone(),
-                _ => format!("/{}", value.info.title().clone().replace('.', "_")),
+            router_component: value.info.router_component,
+            router_path: match value.info.r#type.into() {
+                MenuType::Menu => value.info.router_path,
+                _ => format!("/{}", value.info.title.replace('.', "_")),
             },
-            redirect: value.info.redirect().clone(),
+            redirect: value.info.redirect,
             meta: UserMenuMeta {
-                title: value.info.title().clone(),
-                icon: value.info.icon().clone(),
+                title: value.info.title,
+                icon: value.info.icon,
                 is_link: match value.menu_type {
-                    MenuType::Link => value.info.link().clone(),
-                    MenuType::Iframe => value.info.iframe().clone().clone(),
+                    MenuType::Link => value.info.link,
+                    MenuType::Iframe => value.info.iframe.clone(),
                     _ => "".to_owned(),
                 },
-                is_iframe: match !value.info.iframe().clone().is_empty()
+                is_iframe: match !value.info.iframe.is_empty()
                     && value.menu_type.eq(&MenuType::Iframe)
                 {
                     true => 1,
                     false => 0,
                 },
-                is_hide: *value.info.is_hide(),
-                is_keep_alive: *value.info.is_keep_alive(),
-                is_affix: *value.info.is_affix(),
+                is_hide: value.info.is_hide,
+                is_keep_alive: value.info.is_keep_alive,
+                is_affix: value.info.is_affix,
             },
             children: vec![],
         }
@@ -335,21 +339,20 @@ pub struct UserMenuMeta {
     pub is_affix: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Getters)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Menu {
     #[serde(flatten)]
     info: Info,
-    #[getset(get = "pub")]
-    children: Vec<Menu>,
+    pub children: Vec<Menu>,
 }
 
 impl Menu {
     pub fn get_title(self) -> String {
-        self.info.info.title().clone()
+        self.info.info.title
     }
 
     pub fn set_parent_id(&mut self, parent_id: i32) {
-        self.info.info.set_parent_id(parent_id);
+        self.info.info.parent_id = parent_id;
     }
 }
 
@@ -368,6 +371,12 @@ impl From<system_menu::Entity> for Menu {
     }
 }
 
+impl From<Menu> for system_menu::Entity {
+    fn from(value: Menu) -> Self {
+        value.info.info
+    }
+}
+
 impl From<Info> for Menu {
     fn from(value: Info) -> Self {
         Self {
@@ -377,35 +386,47 @@ impl From<Info> for Menu {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Info {
     #[serde(flatten)]
     info: system_menu::Entity,
     #[serde(skip)]
     menu_type: MenuType,
 }
+impl Info {
+    pub fn id(&self) -> i32 {
+        self.info.id
+    }
+}
 impl TreeInfo for Info {
     fn get_id(&self) -> i32 {
-        *self.info.id()
+        self.info.id
     }
     fn get_parent_id(&self) -> i32 {
-        *self.info.parent_id()
+        self.info.parent_id
     }
 }
 impl From<system_menu::Entity> for Info {
     fn from(value: system_menu::Entity) -> Self {
         Self {
             info: value.clone(),
-            menu_type: value.r#type().into(),
+            menu_type: value.r#type.into(),
         }
     }
 }
 impl Info {
     pub fn check_request_permission(&self, method: &str, path: &str) -> bool {
-        self.info.api_method().eq(method) && self.info.api_url().eq(path)
+        self.info.api_method.eq(method) && self.info.api_url.eq(path)
     }
 }
 
+impl From<Menu> for system_menu::FormParamsForCreate {
+    fn from(value: Menu) -> Self {
+        let value: system_menu::Entity = value.into();
+        let value: system_menu::FormParamsForCreate = value.into();
+        value
+    }
+}
 #[derive(Debug, Deserialize)]
 pub struct Filter {
     #[serde(flatten)]

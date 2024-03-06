@@ -79,7 +79,7 @@ pub async fn get_by_sign(pool: &ConnectPool, sign: &str, id: Option<i32>) -> Res
     )
     .await?;
     Ok(match (id, role_result) {
-        (Some(id), Some(role)) if role.id().ne(&id) => Some(role),
+        (Some(id), Some(role)) if role.id.ne(&id) => Some(role),
         _ => None,
     })
 }
