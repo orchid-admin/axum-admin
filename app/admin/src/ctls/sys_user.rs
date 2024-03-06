@@ -7,12 +7,12 @@ use axum::{
     body::Body,
     extract::{Path, State},
     response::IntoResponse,
-    routing::{delete, get, post, put},
+    routing::{get, post},
     Extension, Json, Router,
 };
 use axum_extra::extract::Query;
 use serde::{Deserialize, Serialize};
-use service::{system_menu_service, system_user_service};
+use service::{system_menu, system_user};
 use utils::{paginate::PaginateParams, password::Password};
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
@@ -20,9 +20,9 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .route("/user", get(index))
         .route("/user/:id", get(info))
         .route("/user", post(create))
-        .route("/user/:id", put(update))
-        .route("/user/:id", delete(del))
-        .route("/user/update_password", put(update_password))
+        .route("/user/:id", post(update))
+        .route("/user/:id", get(del))
+        .route("/user/update_password", post(update_password))
         .route("/user/get_menu", get(get_menu))
         .route("/user/get_user_permission", get(get_user_permission))
         .with_state(state)
@@ -32,14 +32,12 @@ async fn index(
     State(state): State<AppState>,
     Query(params): Query<SearchRequest>,
 ) -> Result<impl IntoResponse> {
-    Ok(Json(
-        system_user_service::paginate(&state.db, params.into()).await?,
-    ))
+    Ok(Json(system_user::paginate(&state.db, params.into()).await?))
 }
 
 /// user`detail
 async fn info(State(state): State<AppState>, Path(id): Path<i32>) -> Result<impl IntoResponse> {
-    Ok(Json(system_user_service::info(&state.db, id).await?))
+    Ok(Json(system_user::info(&state.db, id).await?))
 }
 
 /// add user
@@ -47,7 +45,7 @@ async fn create(
     State(state): State<AppState>,
     Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
-    system_user_service::create(&state.db, &params.username.clone(), params.into()).await?;
+    system_user::create(&state.db, &params.username.clone(), params.into()).await?;
     Ok(Body::empty())
 }
 
@@ -57,10 +55,10 @@ async fn update(
     Path(id): Path<i32>,
     Json(params): Json<CreateRequest>,
 ) -> Result<impl IntoResponse> {
-    system_user_service::update(
+    system_user::update(
         &state.db,
         id,
-        Into::<system_user_service::UpdateParams>::into(params).to_params(),
+        Into::<system_user::UpdateParams>::into(params).to_params(),
     )
     .await?;
     Ok(Body::empty())
@@ -68,7 +66,7 @@ async fn update(
 
 /// delete user by user`id
 async fn del(State(state): State<AppState>, Path(id): Path<i32>) -> Result<impl IntoResponse> {
-    system_user_service::delete(&state.db, id).await?;
+    system_user::delete(&state.db, id).await?;
     Ok(Body::empty())
 }
 
@@ -78,8 +76,8 @@ async fn update_password(
     Extension(claims): Extension<Claims>,
     Json(params): Json<UpdatePasswordRequest>,
 ) -> Result<impl IntoResponse> {
-    let info = system_user_service::info(&state.db, claims.user_id).await?;
-    if !Password::verify_password(info.password(), info.salt(), params.old_password.as_bytes())? {
+    let info = system_user::info(&state.db, claims.user_id).await?;
+    if !Password::verify_password(&info.password, &info.salt, params.old_password.as_bytes())? {
         return Err(crate::error::ErrorCode::InputOldPassword);
     }
     if params.new_password.is_empty() {
@@ -88,10 +86,10 @@ async fn update_password(
     if params.new_password.eq(&params.confirm_password) {
         return Err(ErrorCode::InputComfirmPasswordDifferentForInputPassword);
     }
-    system_user_service::update(
+    system_user::update(
         &state.db,
         claims.user_id,
-        Into::<system_user_service::UpdatePasswordParams>::into(params).to_params(),
+        Into::<system_user::UpdatePasswordParams>::into(params).to_params(),
     )
     .await?;
     Ok(Body::empty())
@@ -103,16 +101,16 @@ async fn get_menu(
     Extension(claims): Extension<Claims>,
 ) -> Result<impl IntoResponse> {
     Ok(Json(
-        system_menu_service::get_user_slide_menu_trees(
+        system_menu::get_user_slide_menu_trees(
             &state.db,
             claims.user_id,
-            &system_menu_service::SearchParams::new(
+            &system_menu::SearchParams::new(
                 None,
                 Some(vec![
-                    system_menu_service::MenuType::Menu,
-                    system_menu_service::MenuType::Redirect,
-                    system_menu_service::MenuType::Iframe,
-                    system_menu_service::MenuType::Link,
+                    system_menu::MenuType::Menu,
+                    system_menu::MenuType::Redirect,
+                    system_menu::MenuType::Iframe,
+                    system_menu::MenuType::Link,
                 ]),
             ),
         )
@@ -125,13 +123,13 @@ async fn get_user_permission(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
 ) -> Result<impl IntoResponse> {
-    let info = system_user_service::get_current_user_info(&state.db, claims.user_id).await?;
-    let btn_auths = system_menu_service::filter_menu_types(
-        Some(vec![system_menu_service::MenuType::BtnAuth]),
-        system_menu_service::get_menu_by_role(&state.db, info.role().clone()).await?,
+    let info = system_user::get_current_user_info(&state.db, claims.user_id).await?;
+    let btn_auths = system_menu::filter_menu_types(
+        Some(vec![system_menu::MenuType::BtnAuth]),
+        system_menu::get_menu_by_role(&state.db, info.role).await?,
     )
     .into_iter()
-    .map(|x| x.btn_auth)
+    .map(|x| x.btn_auth())
     .collect::<Vec<String>>();
 
     Ok(Json(UserPermission { info, btn_auths }))
@@ -145,7 +143,7 @@ struct SearchRequest {
     #[serde(flatten)]
     paginate: PaginateParams,
 }
-impl From<SearchRequest> for system_user_service::SearchParams {
+impl From<SearchRequest> for system_user::SearchParams {
     fn from(value: SearchRequest) -> Self {
         Self::new(
             value.keyword,
@@ -172,7 +170,7 @@ struct CreateRequest {
     status: i32,
 }
 
-impl From<CreateRequest> for system_user_service::CreateParams {
+impl From<CreateRequest> for system_user::CreateParams {
     fn from(value: CreateRequest) -> Self {
         let mut data = Self {
             nickname: Some(value.nickname),
@@ -207,7 +205,7 @@ impl From<CreateRequest> for system_user_service::CreateParams {
     }
 }
 
-impl From<CreateRequest> for system_user_service::UpdateParams {
+impl From<CreateRequest> for system_user::UpdateParams {
     fn from(value: CreateRequest) -> Self {
         let mut data = Self {
             username: Some(value.username),
@@ -250,7 +248,7 @@ struct UpdatePasswordRequest {
     confirm_password: String,
 }
 
-impl From<UpdatePasswordRequest> for system_user_service::UpdatePasswordParams {
+impl From<UpdatePasswordRequest> for system_user::UpdatePasswordParams {
     fn from(value: UpdatePasswordRequest) -> Self {
         let mut data = Self {
             password: None,
@@ -267,6 +265,6 @@ impl From<UpdatePasswordRequest> for system_user_service::UpdatePasswordParams {
 
 #[derive(Debug, Serialize)]
 struct UserPermission {
-    info: system_user_service::Info,
+    info: system_user::Info,
     btn_auths: Vec<String>,
 }

@@ -28,6 +28,7 @@ utils = { path = "../../utils", features = [
     "logger",
     "datetime",
 ] }
+config = { path = "../../config" }
 model = { path = "../../model" }
 service = { path = "../../service" }
 

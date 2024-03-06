@@ -164,14 +164,14 @@ pub async fn paginate(
 
 pub async fn set_last_login(
     pool: &ConnectPool,
-    id: &i32,
+    id: i32,
     login_ip: &str,
 ) -> Result<system_user::Entity> {
     let mut conn = pool.conn().await?;
     let mut info = system_user::Entity::find(
         &mut conn,
         &system_user::Filter {
-            id: Some(id.to_owned()),
+            id: Some(id),
             ..Default::default()
         },
     )

@@ -113,13 +113,15 @@ pub struct Filter {
     pub id: Option<i32>,
 }
 /// define Forms Param
-#[derive(Debug, Insertable, AsChangeset)]
+#[derive(Debug, Default, Insertable, AsChangeset)]
 #[diesel(table_name = crate::schema::system_login_logs)]
 pub struct FormParamsForCreate {
-    user_id: i32,
-    ip_address: String,
-    ip_address_name: String,
-    browser_agent: String,
+    #[diesel(column_name = "type_")]
+    pub r#type: i32,
+    pub user_id: i32,
+    pub ip_address: String,
+    pub ip_address_name: String,
+    pub browser_agent: String,
 }
 
 pub type FormParamsForUpdate = FormParamsForCreate;

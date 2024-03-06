@@ -1,19 +1,37 @@
 use crate::Result;
 use serde::Serialize;
+
 use utils::datetime::now_time;
 
 mod driver;
+mod types;
+pub use driver::{database::Database as DatabaseDriver, memory::Memroy as MemoryDriver};
+pub use types::Types as CacheType;
 
-pub enum CacheDriverType {
+pub enum CacheDriver {
     Memory,
-    Database(model::connect::DbConnectPool),
+    Database,
     // Redis,
     // Memcached,
     // DynamoDB,
     // File,
 }
 
-pub struct Cache<D: driver::Driver>(D);
+impl CacheDriver {
+    pub fn new_memory() -> Cache<driver::memory::Memroy> {
+        Cache::new(driver::memory::Memroy::default())
+    }
+
+    pub fn new_database(
+        connect_pool: model::connect::DbConnectPool,
+    ) -> Cache<driver::database::Database> {
+        Cache::new(driver::database::Database(connect_pool))
+    }
+}
+
+pub struct Cache<D>(D)
+where
+    D: driver::Driver;
 
 #[allow(dead_code)]
 impl<D> Cache<D>
@@ -23,16 +41,24 @@ where
     pub fn new(driver: D) -> Self {
         Self(driver)
     }
-}
 
-#[async_trait::async_trait]
-impl<D> driver::Driver for Cache<D>
-where
-    D: driver::Driver + std::marker::Sync + std::marker::Send,
-{
-    async fn put<T>(
+    pub async fn has<P: Into<i32>>(&self, r#type: P, key: &str) -> Result<bool> {
+        Ok(self.0.first(r#type.into(), key, None).await?.is_some())
+    }
+    pub async fn get<P: Into<i32>>(
+        &self,
+        r#type: P,
+        key: &str,
+        default: Option<Info>,
+    ) -> Result<Info> {
+        self.0
+            .first(r#type.into(), key, default)
+            .await?
+            .ok_or(super::ServiceError::CacheNotFound)
+    }
+    pub async fn put<T, P: Into<i32>>(
         &mut self,
-        r#type: i32,
+        r#type: P,
         key: &str,
         value: T,
         valid_time_length: Option<i64>,
@@ -42,40 +68,12 @@ where
         T: Serialize + std::marker::Send + std::marker::Sync,
     {
         self.0
-            .put(r#type, key, value, valid_time_length, attach)
+            .put(r#type.into(), key, value, valid_time_length, attach)
             .await
     }
-
-    async fn first(&self, r#type: i32, key: &str, default: Option<Info>) -> Result<Option<Info>> {
-        self.0.first(r#type, key, default).await
-    }
-
-    async fn pull(&mut self, r#type: i32, key: &str) -> Result<Info> {
-        self.0.pull(r#type, key).await
-    }
-
-    async fn flush(&mut self, r#type: Option<i32>) -> Result<i64> {
-        self.0.flush(r#type).await
-    }
-}
-
-#[allow(dead_code)]
-impl<D> Cache<D>
-where
-    D: driver::Driver,
-{
-    pub async fn has(&self, r#type: i32, key: &str) -> Result<bool> {
-        Ok(self.0.first(r#type.clone(), key, None).await?.is_some())
-    }
-    pub async fn get(&self, r#type: i32, key: &str, default: Option<Info>) -> Result<Info> {
-        self.0
-            .first(r#type, key, default)
-            .await?
-            .ok_or(super::ServiceError::CacheNotFound)
-    }
-    pub async fn add<T>(
+    pub async fn add<T, P: Into<i32> + Copy>(
         &mut self,
-        r#type: i32,
+        r#type: P,
         key: &str,
         value: T,
         valid_time_length: Option<i64>,
@@ -87,58 +85,69 @@ where
         if !self.has(r#type, key).await? {
             return self
                 .0
-                .put(r#type, key, value, valid_time_length, attach)
+                .put(r#type.into(), key, value, valid_time_length, attach)
                 .await;
         }
         self.get(r#type, key, None).await
     }
     /// Storing Items Forever
-    pub async fn forever<T: Serialize + std::marker::Send + std::marker::Sync>(
+    pub async fn forever<T, P: Into<i32>>(
         &mut self,
-        r#type: i32,
+        r#type: P,
         key: &str,
         value: T,
         attach: Option<String>,
-    ) -> Result<Info> {
-        self.0.put(r#type, key, value, None, attach).await
+    ) -> Result<Info>
+    where
+        T: Serialize + std::marker::Send + std::marker::Sync,
+    {
+        self.put(r#type, key, value, None, attach).await
     }
 
     /// increment value
-    pub async fn increment(&mut self, r#type: i32, key: &str, number: Option<f64>) -> Result<Info> {
+    pub async fn increment<P: Into<i32> + Copy>(
+        &mut self,
+        r#type: P,
+        key: &str,
+        number: Option<f64>,
+    ) -> Result<Info> {
         let number = number.unwrap_or(1f64);
-        let info = self.get(r#type.clone(), key, None).await?;
+        let info = self.get(r#type, key, None).await?;
         let value = info.value.parse::<f64>().unwrap();
-        self.0
-            .put(
-                r#type,
-                key,
-                value + number,
-                info.valid_time_length,
-                info.attach,
-            )
-            .await
+        self.put(
+            r#type,
+            key,
+            value + number,
+            info.valid_time_length,
+            info.attach,
+        )
+        .await
     }
 
     /// decrement value
-    pub async fn decrement(&mut self, r#type: i32, key: &str, number: Option<f64>) -> Result<Info> {
+    pub async fn decrement<P: Into<i32> + Copy>(
+        &mut self,
+        r#type: P,
+        key: &str,
+        number: Option<f64>,
+    ) -> Result<Info> {
         let number = number.unwrap_or(1f64);
-        let info = self.get(r#type.clone(), key, None).await?;
+        let info = self.get(r#type, key, None).await?;
         let value = info.value.parse::<f64>().unwrap();
-        self.0
-            .put(
-                r#type,
-                key,
-                value - number,
-                info.valid_time_length,
-                info.attach,
-            )
-            .await
+        self.put(
+            r#type,
+            key,
+            value - number,
+            info.valid_time_length,
+            info.attach,
+        )
+        .await
     }
 
     /// remember
-    pub async fn remember<F>(
+    pub async fn remember<F, P: Into<i32> + Copy>(
         &mut self,
-        r#type: i32,
+        r#type: P,
         key: &str,
         valid_time_length: Option<i64>,
         attach: Option<String>,
@@ -149,18 +158,15 @@ where
     {
         if !self.has(r#type, key).await? {
             let info = r#fn()?;
-            return self
-                .0
-                .put(r#type, key, info, valid_time_length, attach)
-                .await;
+            return self.put(r#type, key, info, valid_time_length, attach).await;
         }
         self.get(r#type, key, None).await
     }
 
     /// remember_forever
-    pub async fn remember_forever<F>(
+    pub async fn remember_forever<F, P: Into<i32> + Copy>(
         &mut self,
-        r#type: i32,
+        r#type: P,
         key: &str,
         attach: Option<String>,
         r#fn: F,
@@ -170,9 +176,13 @@ where
     {
         if !self.has(r#type, key).await? {
             let info = r#fn()?;
-            return self.0.put(r#type, key, info, None, attach).await;
+            return self.put(r#type, key, info, None, attach).await;
         }
         self.get(r#type, key, None).await
+    }
+
+    pub async fn pull<P: Into<i32>>(&mut self, r#type: P, key: &str) -> Result<Info> {
+        self.0.pull(r#type.into(), key).await
     }
 }
 

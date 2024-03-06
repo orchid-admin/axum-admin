@@ -3,10 +3,10 @@ use crate::{cache::Info, Result, ServiceError};
 use model::{connect::DbConnectPool, system_cache};
 use serde::Serialize;
 
-pub struct CacheDriverDatabase(DbConnectPool);
+pub struct Database(pub DbConnectPool);
 
 #[async_trait::async_trait]
-impl Driver for CacheDriverDatabase {
+impl Driver for Database {
     async fn put<T: Serialize + std::marker::Send + std::marker::Sync>(
         &mut self,
         r#type: i32,

@@ -9,8 +9,8 @@ use std::time::SystemTime;
 #[derive(Debug, Queryable, Selectable, Identifiable, AsChangeset, Serialize)]
 #[diesel(table_name = crate::schema::system_users)]
 pub struct Entity {
-    id: i32,
-    username: String,
+    pub id: i32,
+    pub username: String,
     nickname: String,
     pub role_id: Option<i32>,
     pub dept_id: Option<i32>,
@@ -18,9 +18,9 @@ pub struct Entity {
     email: String,
     sex: i32,
     #[serde(skip)]
-    password: String,
+    pub password: String,
     #[serde(skip)]
-    salt: String,
+    pub salt: String,
     describe: String,
     expire_time: Option<SystemTime>,
     status: i32,

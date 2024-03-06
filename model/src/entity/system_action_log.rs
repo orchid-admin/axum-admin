@@ -118,12 +118,12 @@ pub struct Filter {
 #[derive(Debug, Insertable, AsChangeset)]
 #[diesel(table_name = crate::schema::system_action_logs)]
 pub struct FormParamsForCreate {
-    user_id: i32,
-    menu_id: i32,
-    menu_names: String,
-    ip_address: String,
-    ip_address_name: String,
-    browser_agent: String,
+    pub user_id: i32,
+    pub menu_id: i32,
+    pub menu_names: String,
+    pub ip_address: String,
+    pub ip_address_name: String,
+    pub browser_agent: String,
 }
 
 pub type FormParamsForUpdate = FormParamsForCreate;

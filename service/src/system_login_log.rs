@@ -35,6 +35,7 @@ pub async fn paginate(pool: &ConnectPool, filter: &Filter) -> Result<PaginateRes
     Ok(PaginateResult { total, data })
 }
 pub type Info = system_login_log::Entity;
+pub type FormParamsForCreate = system_login_log::FormParamsForCreate;
 
 #[derive(Debug, Deserialize)]
 pub struct Filter {

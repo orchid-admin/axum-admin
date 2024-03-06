@@ -1,8 +1,8 @@
 use crate::{cache::Info, Result};
 use serde::Serialize;
 
-mod database;
-mod memory;
+pub mod database;
+pub mod memory;
 
 #[async_trait::async_trait]
 pub trait Driver {

@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    # "app/admin",
+    "app/admin",
     "app/api",
     "app/cli",
     "app/prisma_cli",

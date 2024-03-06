@@ -4,12 +4,12 @@ use serde::Serialize;
 use utils::datetime::now_timestamp;
 
 #[derive(Default)]
-pub struct CacheDriverMemory {
+pub struct Memroy {
     data: Vec<Info>,
 }
 
 #[async_trait::async_trait]
-impl Driver for CacheDriverMemory {
+impl Driver for Memroy {
     async fn put<T: Serialize + std::marker::Send + std::marker::Sync>(
         &mut self,
         r#type: i32,

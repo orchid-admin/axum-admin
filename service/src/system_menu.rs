@@ -397,6 +397,10 @@ impl Info {
     pub fn id(&self) -> i32 {
         self.info.id
     }
+
+    pub fn btn_auth(&self) -> String {
+        self.info.btn_auth.clone()
+    }
 }
 impl TreeInfo for Info {
     fn get_id(&self) -> i32 {
