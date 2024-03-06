@@ -54,12 +54,13 @@ impl Entity {
         Ok(infos)
     }
     /// paginate method
-    pub async fn paginate(
+    pub async fn paginate<F: Into<Filter>>(
         conn: &mut Connect,
         page: i64,
         limit: i64,
-        filter: &Filter,
+        filter: F,
     ) -> Result<(Vec<Self>, i64)> {
+        let filter = filter.into();
         let table = system_roles::table;
         // filter condition
         if let Some(_keyword) = &filter.keyword {

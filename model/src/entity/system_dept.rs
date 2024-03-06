@@ -131,7 +131,7 @@ impl Entity {
                     let info = Self::soft_delete(conn, id).await?;
                     let user_ids = system_user::Entity::query(
                         conn,
-                        &system_user::Filter {
+                        system_user::Filter {
                             dept_id: Some(id),
                             ..Default::default()
                         },

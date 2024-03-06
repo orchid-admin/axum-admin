@@ -7,7 +7,7 @@ pub async fn find_user_by_username(pool: &ConnectPool, username: &str) -> Result
     let mut conn = pool.conn().await?;
     let info = system_user::Entity::find(
         &mut conn,
-        &system_user::Filter {
+        system_user::Filter {
             username: Some(username.to_owned()),
             ..Default::default()
         },
@@ -23,7 +23,7 @@ pub async fn find_user_by_phone(
     let mut conn = pool.conn().await?;
     let info = system_user::Entity::find(
         &mut conn,
-        &system_user::Filter {
+        system_user::Filter {
             phone: Some(phone.to_owned()),
             ..Default::default()
         },
@@ -36,7 +36,7 @@ pub async fn get_current_user_info(pool: &ConnectPool, id: i32) -> Result<UserIn
     let mut conn = pool.conn().await?;
     let mut user_info: UserInfo = system_user::Entity::find(
         &mut conn,
-        &system_user::Filter {
+        system_user::Filter {
             id: Some(id),
             ..Default::default()
         },
@@ -93,7 +93,7 @@ pub async fn get_users_by_dept_id(
     let mut conn = pool.conn().await?;
     let infos = system_user::Entity::query(
         &mut conn,
-        &system_user::Filter {
+        system_user::Filter {
             dept_id: Some(dept_id),
             ..Default::default()
         },
@@ -113,7 +113,7 @@ pub async fn batch_set_dept(
 
 pub async fn create(
     pool: &ConnectPool,
-    params: &system_user::FormParamsForCreate,
+    params: system_user::FormParamsForCreate,
 ) -> Result<system_user::Entity> {
     let mut conn = pool.conn().await?;
     Ok(system_user::Entity::create(&mut conn, params).await?)
@@ -128,6 +128,15 @@ pub async fn update(
     Ok(system_user::Entity::update(&mut conn, id, params).await?)
 }
 
+pub async fn update_password(
+    pool: &ConnectPool,
+    id: i32,
+    password: &str,
+) -> Result<system_user::Entity> {
+    let mut conn = pool.conn().await?;
+    Ok(system_user::Entity::update_password(&mut conn, id, password).await?)
+}
+
 pub async fn delete(pool: &ConnectPool, id: i32) -> Result<system_user::Entity> {
     let mut conn = pool.conn().await?;
     Ok(system_user::Entity::delete(&mut conn, id).await?)
@@ -137,7 +146,7 @@ pub async fn info(pool: &ConnectPool, id: i32) -> Result<system_user::Entity> {
     let mut conn = pool.conn().await?;
     let info = system_user::Entity::find(
         &mut conn,
-        &system_user::Filter {
+        system_user::Filter {
             id: Some(id.to_owned()),
             ..Default::default()
         },
@@ -156,7 +165,7 @@ pub async fn paginate(
         &mut conn,
         filter.paginate.get_page(),
         filter.paginate.get_limit(),
-        &filter.filter,
+        filter,
     )
     .await?;
     Ok(PaginateResult { total, data })
@@ -170,7 +179,7 @@ pub async fn set_last_login(
     let mut conn = pool.conn().await?;
     let mut info = system_user::Entity::find(
         &mut conn,
-        &system_user::Filter {
+        system_user::Filter {
             id: Some(id),
             ..Default::default()
         },
@@ -182,23 +191,33 @@ pub async fn set_last_login(
 }
 
 pub type Info = system_user::Entity;
+pub type FormParamsForCreate = system_user::FormParamsForCreate;
 
 #[derive(Debug, Deserialize)]
 pub struct Filter {
+    pub keyword: Option<String>,
+    pub role_id: Option<i32>,
+    pub dept_id: Option<i32>,
+    pub status: Option<i32>,
     #[serde(flatten)]
-    filter: system_user::Filter,
-    #[serde(flatten)]
-    paginate: PaginateParams,
+    pub paginate: PaginateParams,
 }
-impl Filter {
-    pub fn new(filter: system_user::Filter, paginate: PaginateParams) -> Self {
-        Self { filter, paginate }
+
+impl From<Filter> for system_user::Filter {
+    fn from(value: Filter) -> Self {
+        Self {
+            keyword: value.keyword,
+            role_id: value.role_id,
+            dept_id: value.dept_id,
+            status: value.status,
+            ..Default::default()
+        }
     }
 }
 
 #[derive(Debug, Serialize)]
 pub struct UserInfo {
-    user: system_user::Entity,
+    pub user: system_user::Entity,
     dept: Option<system_dept::Entity>,
     pub role: Option<system_role::Entity>,
 }

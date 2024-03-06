@@ -43,20 +43,20 @@ pub async fn info(pool: &ConnectPool, id: i32) -> Result<Info> {
     .into())
 }
 
-pub async fn get_user_menu_trees(
+pub async fn get_user_menu_trees<F: Into<Filter>>(
     pool: &ConnectPool,
     user_id: i32,
-    filter: &Filter,
+    filter: F,
 ) -> Result<Vec<Menu>> {
     let infos = get_user_menus(pool, user_id, filter).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
     Ok(vec_to_tree_into::<Menu, Info>(&parent_id, &infos))
 }
 
-pub async fn get_user_slide_menu_trees(
+pub async fn get_user_slide_menu_trees<F: Into<Filter>>(
     pool: &ConnectPool,
     user_id: i32,
-    filter: &Filter,
+    filter: F,
 ) -> Result<Vec<UserMenu>> {
     let infos = get_user_menus(pool, user_id, filter).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
@@ -125,13 +125,18 @@ pub async fn get_menu_id_by_api_request(
     Ok(None)
 }
 
-async fn get_user_menus(pool: &ConnectPool, user_id: i32, filter: &Filter) -> Result<Vec<Info>> {
+async fn get_user_menus<F: Into<Filter>>(
+    pool: &ConnectPool,
+    user_id: i32,
+    filter: F,
+) -> Result<Vec<Info>> {
     get_menus_by_user_id(pool, user_id)
         .await
         .map(|x| filter_menu_by_search(filter, x))
 }
 
-fn filter_menu_by_search(filter: &Filter, x: Vec<Info>) -> Vec<Info> {
+fn filter_menu_by_search<F: Into<Filter>>(filter: F, x: Vec<Info>) -> Vec<Info> {
+    let filter: Filter = filter.into();
     let type_filters = match &filter.menu_types {
         Some(t) => x
             .into_iter()
@@ -139,7 +144,7 @@ fn filter_menu_by_search(filter: &Filter, x: Vec<Info>) -> Vec<Info> {
             .collect::<Vec<Info>>(),
         None => x,
     };
-    match &filter.filter.keyword {
+    match &filter.keyword {
         Some(keyword) => {
             if !keyword.is_empty() {
                 return type_filters
@@ -431,15 +436,18 @@ impl From<Menu> for system_menu::FormParamsForCreate {
         value
     }
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct Filter {
-    #[serde(flatten)]
-    filter: system_menu::Filter,
-    menu_types: Option<Vec<MenuType>>,
+    pub keyword: Option<String>,
+    pub menu_types: Option<Vec<MenuType>>,
 }
-
-impl Filter {
-    pub fn new(filter: system_menu::Filter, menu_types: Option<Vec<MenuType>>) -> Self {
-        Self { filter, menu_types }
+impl From<Filter> for system_menu::Filter {
+    fn from(value: Filter) -> Self {
+        Self {
+            keyword: value.keyword,
+            ..Default::default()
+        }
     }
 }
+
+pub type FormParamsForCreate = system_menu::FormParamsForCreate;

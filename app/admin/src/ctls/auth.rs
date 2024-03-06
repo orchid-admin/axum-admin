@@ -29,7 +29,7 @@ async fn login_by_account(
     State(state): State<AppState>,
     ExtractUserAgent(user_agent): ExtractUserAgent,
     ConnectInfo(addr): ConnectInfo<std::net::SocketAddr>,
-    Json(params): Json<LoginByAccountRequest>,
+    Json(params): Json<RequestFormLoginByAccount>,
 ) -> Result<impl IntoResponse> {
     let captcha_cache_type = cache::CacheType::SystemAuthLoginCaptcha;
     let mut cache = state.cache.lock().await;
@@ -69,7 +69,7 @@ async fn login_by_account(
     )
     .await?;
 
-    Ok(Json(LoginReponse {
+    Ok(Json(ResponseLogin {
         token,
         username: Some(user.username),
     }))
@@ -106,7 +106,7 @@ async fn login_by_mobile(
     State(state): State<AppState>,
     ExtractUserAgent(user_agent): ExtractUserAgent,
     ConnectInfo(addr): ConnectInfo<std::net::SocketAddr>,
-    Json(params): Json<LoginByMobileRequest>,
+    Json(params): Json<RequestFormLoginByMobile>,
 ) -> Result<impl IntoResponse> {
     // todo
     let user = system_user::find_user_by_phone(&state.db, &params.mobile)
@@ -128,7 +128,7 @@ async fn login_by_mobile(
     )
     .await?;
 
-    Ok(Json(LoginReponse {
+    Ok(Json(ResponseLogin {
         token,
         username: Some(user.username),
     }))
@@ -139,7 +139,7 @@ async fn login_by_qrcode(
     State(state): State<AppState>,
     // ExtractUserAgent(user_agent): ExtractUserAgent,
     // ConnectInfo(addr): ConnectInfo<std::net::SocketAddr>,
-    Json(_params): Json<LoginByAccountRequest>,
+    Json(_params): Json<RequestFormLoginByAccount>,
 ) -> Result<impl IntoResponse> {
     // todo
     let token_cache_type = cache::CacheType::SystemAuthJwt;
@@ -157,7 +157,7 @@ async fn login_by_qrcode(
     //     user_agent,
     // )
     // .await?;
-    Ok(Json(LoginReponse {
+    Ok(Json(ResponseLogin {
         token,
         username: None,
     }))
@@ -188,7 +188,7 @@ async fn get_captcha(State(state): State<AppState>) -> Result<impl IntoResponse>
         )
         .await?;
 
-    Ok(Json(GetCaptchaReponse {
+    Ok(Json(ResponseGetCaptcha {
         key,
         image: captcha.to_base64(),
         value: captcha.text.to_owned(),
@@ -205,7 +205,7 @@ fn generate_token(claims: Claims, secret: &str) -> String {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct LoginByAccountRequest {
+struct RequestFormLoginByAccount {
     /// username
     username: String,
     /// password
@@ -217,7 +217,7 @@ struct LoginByAccountRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct LoginByMobileRequest {
+struct RequestFormLoginByMobile {
     /// mobile
     mobile: String,
     /// mobile`sms code
@@ -225,7 +225,7 @@ struct LoginByMobileRequest {
 }
 
 #[derive(Debug, Serialize)]
-struct LoginReponse {
+struct ResponseLogin {
     /// auth user`token
     token: String,
     /// auth user`username
@@ -234,7 +234,7 @@ struct LoginReponse {
 }
 
 #[derive(Debug, Serialize)]
-struct GetCaptchaReponse {
+struct ResponseGetCaptcha {
     /// captche unqiue key
     key: String,
     /// captche image base64 text

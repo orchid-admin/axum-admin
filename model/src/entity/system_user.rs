@@ -31,7 +31,8 @@ pub struct Entity {
     deleted_at: Option<SystemTime>,
 }
 impl Entity {
-    pub async fn find(conn: &mut Connect, filter: &Filter) -> Result<Option<Self>> {
+    pub async fn find<F: Into<Filter>>(conn: &mut Connect, filter: F) -> Result<Option<Self>> {
+        let filter = filter.into();
         let table = system_users::table;
 
         if let Some(id) = filter.id {
@@ -51,7 +52,8 @@ impl Entity {
         Ok(info)
     }
 
-    pub async fn query(conn: &mut Connect, filter: &Filter) -> Result<Vec<Self>> {
+    pub async fn query<F: Into<Filter>>(conn: &mut Connect, filter: F) -> Result<Vec<Self>> {
+        let filter: Filter = filter.into();
         let table = system_users::table;
 
         if let Some(id) = filter.id {
@@ -70,12 +72,13 @@ impl Entity {
         Ok(infos)
     }
 
-    pub async fn paginate(
+    pub async fn paginate<F: Into<Filter>>(
         conn: &mut Connect,
         page: i64,
         limit: i64,
-        filter: &Filter,
+        filter: F,
     ) -> Result<(Vec<Self>, i64)> {
+        let filter: Filter = filter.into();
         let table = system_users::table;
 
         if let Some(id) = filter.id {
@@ -95,24 +98,39 @@ impl Entity {
             .await?)
     }
 
-    pub async fn insert(conn: &mut Connect, params: Vec<FormParamsForCreate>) -> Result<Vec<Self>> {
+    pub async fn insert<C: Into<FormParamsForCreate>>(
+        conn: &mut Connect,
+        params: Vec<C>,
+    ) -> Result<Vec<Self>> {
         Ok(insert_into(system_users::dsl::system_users)
-            .values(params)
+            .values(
+                params
+                    .into_iter()
+                    .map(|param| param.into())
+                    .collect::<Vec<FormParamsForCreate>>(),
+            )
             .get_results(conn)
             .await?)
     }
 
-    pub async fn create(conn: &mut Connect, param: &FormParamsForCreate) -> Result<Self> {
+    pub async fn create<C: Into<FormParamsForCreate>>(
+        conn: &mut Connect,
+        param: C,
+    ) -> Result<Self> {
         Ok(insert_into(system_users::dsl::system_users)
-            .values(param)
+            .values(param.into())
             .get_result(conn)
             .await?)
     }
 
-    pub async fn update(conn: &mut Connect, id: i32, params: FormParamsForCreate) -> Result<Self> {
+    pub async fn update<U: Into<FormParamsForCreate>>(
+        conn: &mut Connect,
+        id: i32,
+        param: U,
+    ) -> Result<Self> {
         Ok(
             update(system_users::dsl::system_users.filter(system_users::id.eq(id)))
-                .set(params)
+                .set(param.into())
                 .get_result(conn)
                 .await?,
         )
@@ -157,14 +175,24 @@ impl Entity {
                 .await?;
         Ok(result)
     }
+
+    pub async fn update_password(conn: &mut Connect, id: i32, password: &str) -> Result<Self> {
+        Ok(
+            update(system_users::dsl::system_users.filter(system_users::id.eq(id)))
+                .set(system_users::password.eq(password))
+                .get_result(conn)
+                .await?,
+        )
+    }
 }
 
 #[derive(Debug, Default, Deserialize)]
 pub struct Filter {
+    pub keyword: Option<String>,
+    pub status: Option<i32>,
     pub id: Option<i32>,
     pub username: Option<String>,
     pub phone: Option<String>,
-    pub status: Option<i32>,
     pub role_id: Option<i32>,
     pub dept_id: Option<i32>,
 }

@@ -18,7 +18,7 @@ pub async fn exec(params: &CliInitParams) -> service::Result<()> {
             Password::generate_hash_salt(params.username_password.as_bytes()).unwrap();
         system_user::create(
             &database_connect_pool,
-            &model::system_user::FormParamsForCreate {
+            system_user::FormParamsForCreate {
                 username: "admin".to_owned(),
                 nickname: "admin".to_owned(),
                 role_id: None,

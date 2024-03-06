@@ -71,6 +71,7 @@ impl From<service::ServiceError> for ErrorCode {
             service::ServiceError::SerializeJson(err) => err.to_string(),
             service::ServiceError::DataNotFound => "DataNotExsist".to_owned(),
             service::ServiceError::CacheNotFound => "CacheNotExsist".to_owned(),
+            service::ServiceError::Model(_) => "ModelError".to_owned(),
         };
         Self::InternalServerString(err_string)
     }

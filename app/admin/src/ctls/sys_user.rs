@@ -20,7 +20,7 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .route("/user", get(index))
         .route("/user/:id", get(info))
         .route("/user", post(create))
-        .route("/user/:id", post(update))
+        .route("/user/update", post(update))
         .route("/user/:id", get(del))
         .route("/user/update_password", post(update_password))
         .route("/user/get_menu", get(get_menu))
@@ -30,7 +30,7 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
 /// user list
 async fn index(
     State(state): State<AppState>,
-    Query(params): Query<SearchRequest>,
+    Query(params): Query<RequestSearch>,
 ) -> Result<impl IntoResponse> {
     Ok(Json(system_user::paginate(&state.db, params.into()).await?))
 }
@@ -43,24 +43,18 @@ async fn info(State(state): State<AppState>, Path(id): Path<i32>) -> Result<impl
 /// add user
 async fn create(
     State(state): State<AppState>,
-    Json(params): Json<CreateRequest>,
+    Json(param): Json<RequestFormCreate>,
 ) -> Result<impl IntoResponse> {
-    system_user::create(&state.db, &params.username.clone(), params.into()).await?;
+    system_user::create(&state.db, param.into()).await?;
     Ok(Body::empty())
 }
 
 /// update user by user`id
 async fn update(
     State(state): State<AppState>,
-    Path(id): Path<i32>,
-    Json(params): Json<CreateRequest>,
+    Json(param): Json<RequestFormUpdate>,
 ) -> Result<impl IntoResponse> {
-    system_user::update(
-        &state.db,
-        id,
-        Into::<system_user::UpdateParams>::into(params).to_params(),
-    )
-    .await?;
+    system_user::update(&state.db, param.id, param.form.into()).await?;
     Ok(Body::empty())
 }
 
@@ -74,24 +68,19 @@ async fn del(State(state): State<AppState>, Path(id): Path<i32>) -> Result<impl 
 async fn update_password(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
-    Json(params): Json<UpdatePasswordRequest>,
+    Json(param): Json<RequestUpdatePassword>,
 ) -> Result<impl IntoResponse> {
     let info = system_user::info(&state.db, claims.user_id).await?;
-    if !Password::verify_password(&info.password, &info.salt, params.old_password.as_bytes())? {
+    if !Password::verify_password(&info.password, &info.salt, param.old_password.as_bytes())? {
         return Err(crate::error::ErrorCode::InputOldPassword);
     }
-    if params.new_password.is_empty() {
+    if param.new_password.is_empty() {
         return Err(ErrorCode::InputPasswordNotEmpty);
     }
-    if params.new_password.eq(&params.confirm_password) {
+    if param.new_password.eq(&param.confirm_password) {
         return Err(ErrorCode::InputComfirmPasswordDifferentForInputPassword);
     }
-    system_user::update(
-        &state.db,
-        claims.user_id,
-        Into::<system_user::UpdatePasswordParams>::into(params).to_params(),
-    )
-    .await?;
+    system_user::update_password(&state.db, claims.user_id, &param.new_password).await?;
     Ok(Body::empty())
 }
 
@@ -104,15 +93,15 @@ async fn get_menu(
         system_menu::get_user_slide_menu_trees(
             &state.db,
             claims.user_id,
-            &system_menu::SearchParams::new(
-                None,
-                Some(vec![
+            system_menu::Filter {
+                menu_types: Some(vec![
                     system_menu::MenuType::Menu,
                     system_menu::MenuType::Redirect,
                     system_menu::MenuType::Iframe,
                     system_menu::MenuType::Link,
                 ]),
-            ),
+                ..Default::default()
+            },
         )
         .await?,
     ))
@@ -132,10 +121,13 @@ async fn get_user_permission(
     .map(|x| x.btn_auth())
     .collect::<Vec<String>>();
 
-    Ok(Json(UserPermission { info, btn_auths }))
+    Ok(Json(UserPermission {
+        info: info.user,
+        btn_auths,
+    }))
 }
 #[derive(Debug, Deserialize)]
-struct SearchRequest {
+struct RequestSearch {
     keyword: Option<String>,
     role_id: Option<i32>,
     dept_id: Option<i32>,
@@ -143,20 +135,20 @@ struct SearchRequest {
     #[serde(flatten)]
     paginate: PaginateParams,
 }
-impl From<SearchRequest> for system_user::SearchParams {
-    fn from(value: SearchRequest) -> Self {
-        Self::new(
-            value.keyword,
-            value.status,
-            value.role_id,
-            value.dept_id,
-            value.paginate,
-        )
+impl From<RequestSearch> for system_user::Filter {
+    fn from(value: RequestSearch) -> Self {
+        Self {
+            keyword: value.keyword,
+            role_id: value.role_id,
+            dept_id: value.dept_id,
+            status: value.status,
+            paginate: value.paginate,
+        }
     }
 }
 
 #[derive(Debug, Deserialize)]
-struct CreateRequest {
+struct RequestFormCreate {
     username: String,
     nickname: String,
     role_id: Option<i32>,
@@ -170,97 +162,46 @@ struct CreateRequest {
     status: i32,
 }
 
-impl From<CreateRequest> for system_user::CreateParams {
-    fn from(value: CreateRequest) -> Self {
-        let mut data = Self {
-            nickname: Some(value.nickname),
-            role_id: None,
-            dept_id: None,
+impl From<RequestFormCreate> for system_user::FormParamsForCreate {
+    fn from(value: RequestFormCreate) -> Self {
+        let mut salt = String::new();
+        let mut password = String::new();
+        if let Some(input_password) = value.password {
+            let (encode_password, salt) =
+                utils::password::Password::generate_hash_salt(input_password.as_bytes()).unwrap();
+            salt = salt;
+            password = input_password;
+        }
+
+        Self {
+            username: value.username,
+            nickname: value.nickname,
+            role_id: value.role_id,
+            dept_id: value.dept_id,
             phone: value.phone,
             email: value.email,
-            sex: Some(value.sex),
-            password: None,
-            salt: None,
-            expire_time: None,
-            status: Some(value.status),
+            sex: value.sex,
+            password,
+            salt,
             describe: value.describe,
-        };
-
-        if value.role_id.is_some() {
-            data.role_id = Some(value.role_id);
+            expire_time: value.expire_time,
+            status: value.status,
         }
-        if value.dept_id.is_some() {
-            data.dept_id = Some(value.dept_id);
-        }
-        if let Some(password) = value.password {
-            let (encode_password, salt) =
-                utils::password::Password::generate_hash_salt(password.as_bytes()).unwrap();
-            data.password = Some(encode_password);
-            data.salt = Some(salt);
-        }
-        if let Some(expire_time) = value.expire_time {
-            data.expire_time = Some(Some(utils::datetime::parse_string(expire_time)))
-        }
-        data
-    }
-}
-
-impl From<CreateRequest> for system_user::UpdateParams {
-    fn from(value: CreateRequest) -> Self {
-        let mut data = Self {
-            username: Some(value.username),
-            nickname: Some(value.nickname),
-            role_id: None,
-            dept_id: None,
-            phone: value.phone,
-            email: value.email,
-            sex: Some(value.sex),
-            password: None,
-            salt: None,
-            expire_time: None,
-            status: Some(value.status),
-            describe: value.describe,
-        };
-
-        if value.role_id.is_some() {
-            data.role_id = Some(value.role_id);
-        }
-        if value.dept_id.is_some() {
-            data.dept_id = Some(value.dept_id);
-        }
-        if let Some(password) = value.password {
-            let (encode_password, salt) =
-                utils::password::Password::generate_hash_salt(password.as_bytes()).unwrap();
-            data.password = Some(encode_password);
-            data.salt = Some(salt);
-        }
-        if let Some(expire_time) = value.expire_time {
-            data.expire_time = Some(Some(utils::datetime::parse_string(expire_time)))
-        }
-        data
     }
 }
 
 #[derive(Debug, Deserialize)]
-struct UpdatePasswordRequest {
+struct RequestFormUpdate {
+    id: i32,
+    #[serde(flatten)]
+    form: RequestFormCreate,
+}
+
+#[derive(Debug, Deserialize)]
+struct RequestUpdatePassword {
     old_password: String,
     new_password: String,
     confirm_password: String,
-}
-
-impl From<UpdatePasswordRequest> for system_user::UpdatePasswordParams {
-    fn from(value: UpdatePasswordRequest) -> Self {
-        let mut data = Self {
-            password: None,
-            salt: None,
-        };
-
-        let (encode_password, salt) =
-            utils::password::Password::generate_hash_salt(value.new_password.as_bytes()).unwrap();
-        data.password = Some(encode_password);
-        data.salt = Some(salt);
-        data
-    }
 }
 
 #[derive(Debug, Serialize)]
