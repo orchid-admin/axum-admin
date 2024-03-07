@@ -53,10 +53,10 @@ pub mod router {
             .merge(member::routers(state.clone()))
             .merge(member_team::routers(state.clone()))
             .merge(member_bill::routers(state.clone()))
-            .layer(middleware::from_fn_with_state(
-                state.clone(),
-                middlewares::access_matched_path,
-            ))
+            // .layer(middleware::from_fn_with_state(
+            //     state.clone(),
+            //     middlewares::access_matched_path,
+            // ))
             .layer(middleware::from_fn_with_state(
                 state.clone(),
                 middlewares::token_check,

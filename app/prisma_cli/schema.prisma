@@ -6,10 +6,10 @@ generator client {
 }
 
 datasource db {
-    provider = "sqlite"
+    // provider = "sqlite"
     // provider = "mysql"
-    // provider = "postgres"
-    url      = "file:dev.db"
+    provider = "postgres"
+    url      = "postgres://postgres:postgres@localhost/axum_admin"
 }
 
 /// 用户表

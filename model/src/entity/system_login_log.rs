@@ -4,7 +4,6 @@ use crate::{
 use diesel::{delete, insert_into, prelude::*, update};
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
-use std::time::SystemTime;
 
 /// define Entity
 #[derive(Debug, Queryable, Selectable, Identifiable, AsChangeset, Serialize)]
@@ -17,7 +16,7 @@ pub struct Entity {
     ip_address: String,
     ip_address_name: String,
     browser_agent: String,
-    created_at: SystemTime,
+    created_at: chrono::NaiveDateTime,
 }
 
 /// impl Entity method

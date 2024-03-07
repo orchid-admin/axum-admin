@@ -83,11 +83,7 @@ impl From<system_cache::Entity> for Info {
             value: value.value,
             attach,
             valid_time_length: value.valid_time_length.map(|x| x as i64),
-            create_time: value
-                .created_at
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs() as i64,
+            create_time: value.created_at.timestamp(),
         }
     }
 }

@@ -16,9 +16,9 @@ pub struct Entity {
     parent_uid: i32,
     member_id: i32,
     level: i32,
-    created_at: SystemTime,
-    updated_at: SystemTime,
-    deleted_at: Option<SystemTime>,
+    created_at: chrono::NaiveDateTime,
+    updated_at: Option<chrono::NaiveDateTime>,
+    deleted_at: Option<chrono::NaiveDateTime>,
 }
 
 /// impl Entity method

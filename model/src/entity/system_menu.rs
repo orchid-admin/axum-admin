@@ -32,9 +32,12 @@ pub struct Entity {
     pub is_keep_alive: i32,
     pub is_affix: i32,
     pub sort: i32,
-    pub created_at: SystemTime,
-    pub updated_at: SystemTime,
-    deleted_at: Option<SystemTime>,
+    #[serde(skip)]
+    pub created_at: chrono::NaiveDateTime,
+    #[serde(skip)]
+    pub updated_at: Option<chrono::NaiveDateTime>,
+    #[serde(skip)]
+    deleted_at: Option<chrono::NaiveDateTime>,
 }
 
 /// impl Entity method

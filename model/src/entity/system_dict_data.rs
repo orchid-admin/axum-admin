@@ -5,7 +5,6 @@ use crate::{
 use diesel::{delete, insert_into, prelude::*, update};
 use diesel_async::{scoped_futures::*, AsyncConnection, RunQueryDsl};
 use serde::{Deserialize, Serialize};
-use std::time::SystemTime;
 
 /// define Entity
 #[derive(Debug, Queryable, Selectable, Identifiable, AsChangeset, Serialize)]
@@ -18,9 +17,9 @@ pub struct Entity {
     remark: String,
     status: i32,
     sort: i32,
-    created_at: SystemTime,
-    updated_at: SystemTime,
-    deleted_at: Option<SystemTime>,
+    created_at: chrono::NaiveDateTime,
+    updated_at: Option<chrono::NaiveDateTime>,
+    deleted_at: Option<chrono::NaiveDateTime>,
 }
 
 /// impl Entity method
@@ -104,7 +103,7 @@ impl Entity {
     pub async fn soft_delete(conn: &mut Connect, id: i32) -> Result<Self> {
         Ok(
             update(system_dict_data::dsl::system_dict_data.filter(system_dict_data::id.eq(id)))
-                .set(system_dict_data::deleted_at.eq(Some(SystemTime::now())))
+                .set(system_dict_data::deleted_at.eq(Some(chrono::Local::now().naive_local())))
                 .get_result(conn)
                 .await?,
         )
@@ -115,7 +114,7 @@ impl Entity {
             update(
                 system_dict_data::dsl::system_dict_data.filter(system_dict_data::id.eq_any(ids)),
             )
-            .set(system_dict_data::deleted_at.eq(Some(SystemTime::now())))
+            .set(system_dict_data::deleted_at.eq(Some(chrono::Local::now().naive_local())))
             .get_results(conn)
             .await?,
         )

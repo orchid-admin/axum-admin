@@ -20,9 +20,9 @@ pub struct Entity {
     describe: String,
     status: i32,
     sort: i32,
-    created_at: SystemTime,
-    updated_at: SystemTime,
-    deleted_at: Option<SystemTime>,
+    created_at: chrono::NaiveDateTime,
+    updated_at: Option<chrono::NaiveDateTime>,
+    deleted_at: Option<chrono::NaiveDateTime>,
 }
 
 /// impl Entity method
@@ -71,6 +71,7 @@ impl Entity {
     ) -> Result<(Vec<Self>, i64)> {
         let filter: Filter = filter.into();
         let table = system_depts::table;
+        println!("{:#?}", filter);
         // filter condition
         if let Some(id) = filter.id {
             let _ = table.filter(system_depts::id.eq(id));
