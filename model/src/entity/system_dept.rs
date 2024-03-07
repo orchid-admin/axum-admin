@@ -28,7 +28,8 @@ pub struct Entity {
 /// impl Entity method
 impl Entity {
     /// query find
-    pub async fn find(conn: &mut Connect, filter: &Filter) -> Result<Option<Self>> {
+    pub async fn find<F: Into<Filter>>(conn: &mut Connect, filter: F) -> Result<Option<Self>> {
+        let filter: Filter = filter.into();
         let table = system_depts::table;
         // filter condition
         if let Some(id) = filter.id {
@@ -45,7 +46,8 @@ impl Entity {
         Ok(info)
     }
     /// query method
-    pub async fn query(conn: &mut Connect, filter: &Filter) -> Result<Vec<Self>> {
+    pub async fn query<F: Into<Filter>>(conn: &mut Connect, filter: F) -> Result<Vec<Self>> {
+        let filter: Filter = filter.into();
         let table = system_depts::table;
         // filter condition
         if let Some(id) = filter.id {
@@ -61,12 +63,13 @@ impl Entity {
         Ok(infos)
     }
     /// paginate method
-    pub async fn paginate(
+    pub async fn paginate<F: Into<Filter>>(
         conn: &mut Connect,
         page: i64,
         limit: i64,
-        filter: &Filter,
+        filter: F,
     ) -> Result<(Vec<Self>, i64)> {
+        let filter: Filter = filter.into();
         let table = system_depts::table;
         // filter condition
         if let Some(id) = filter.id {
@@ -165,14 +168,14 @@ pub struct Filter {
 #[derive(Debug, Insertable, AsChangeset)]
 #[diesel(table_name = crate::schema::system_depts)]
 pub struct FormParamsForCreate {
-    parent_id: i32,
-    name: String,
-    person_name: String,
-    person_phone: String,
-    person_email: String,
-    describe: String,
-    status: i32,
-    sort: i32,
+    pub parent_id: i32,
+    pub name: String,
+    pub person_name: String,
+    pub person_phone: String,
+    pub person_email: String,
+    pub describe: String,
+    pub status: i32,
+    pub sort: i32,
 }
 
 pub type FormParamsForUpdate = FormParamsForCreate;

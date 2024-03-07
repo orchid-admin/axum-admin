@@ -15,7 +15,7 @@ pub async fn info(pool: &ConnectPool, id: i32) -> Result<Info> {
     let mut conn = pool.conn().await?;
     system_login_log::Entity::find(
         &mut conn,
-        &system_login_log::Filter {
+        system_login_log::Filter {
             id: Some(id),
             ..Default::default()
         },
@@ -23,13 +23,13 @@ pub async fn info(pool: &ConnectPool, id: i32) -> Result<Info> {
     .await?
     .ok_or(ServiceError::DataNotFound)
 }
-pub async fn paginate(pool: &ConnectPool, filter: &Filter) -> Result<PaginateResult<Vec<Info>>> {
+pub async fn paginate(pool: &ConnectPool, filter: Filter) -> Result<PaginateResult<Vec<Info>>> {
     let mut conn = pool.conn().await?;
     let (data, total) = system_login_log::Entity::paginate(
         &mut conn,
         filter.paginate.get_page(),
         filter.paginate.get_limit(),
-        &filter.filter,
+        filter,
     )
     .await?;
     Ok(PaginateResult { total, data })
@@ -39,9 +39,21 @@ pub type FormParamsForCreate = system_login_log::FormParamsForCreate;
 
 #[derive(Debug, Deserialize)]
 pub struct Filter {
-    #[serde(flatten)]
-    filter: system_login_log::Filter,
+    user_id: Option<i32>,
+    keyword: Option<String>,
+    date: Option<String>,
     paginate: PaginateParams,
+}
+
+impl From<Filter> for system_login_log::Filter {
+    fn from(value: Filter) -> Self {
+        Self {
+            keyword: value.keyword,
+            date: value.date,
+            user_id: value.user_id,
+            ..Default::default()
+        }
+    }
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
 #[repr(i32)]

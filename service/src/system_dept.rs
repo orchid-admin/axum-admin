@@ -3,9 +3,11 @@ use model::{connect::DbConnectPool as ConnectPool, system_dept};
 use serde::Serialize;
 use utils::tree::{get_tree_start_parent_id, vec_to_tree_into, Tree, TreeInfo};
 
-pub async fn create(pool: &ConnectPool, params: &system_dept::FormParamsForCreate) -> Result<Info> {
+pub async fn create(pool: &ConnectPool, params: system_dept::FormParamsForCreate) -> Result<Info> {
     let mut conn = pool.conn().await?;
-    Ok(system_dept::Entity::create(&mut conn, params).await?.into())
+    Ok(system_dept::Entity::create(&mut conn, &params)
+        .await?
+        .into())
 }
 
 pub async fn update(
@@ -44,7 +46,7 @@ fn get_children_ids(tree: Vec<Dept>, parent_dept_ids: &mut Vec<i32>) -> &mut Vec
     parent_dept_ids
 }
 
-pub async fn get_user_dept_trees(pool: &ConnectPool, filter: &Filter) -> Result<Vec<Dept>> {
+pub async fn get_user_dept_trees(pool: &ConnectPool, filter: Filter) -> Result<Vec<Dept>> {
     let infos = get_depts_by_user_id(pool, filter).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
     Ok(vec_to_tree_into::<Dept, Info>(&parent_id, &infos))
@@ -54,7 +56,7 @@ pub async fn info(pool: &ConnectPool, id: i32) -> Result<Info> {
     let mut conn = pool.conn().await?;
     Ok(system_dept::Entity::find(
         &mut conn,
-        &system_dept::Filter {
+        system_dept::Filter {
             id: Some(id),
             ..Default::default()
         },
@@ -68,7 +70,7 @@ pub async fn info_by_name(pool: &ConnectPool, name: &str) -> Result<Info> {
     let mut conn = pool.conn().await?;
     Ok(system_dept::Entity::find(
         &mut conn,
-        &system_dept::Filter {
+        system_dept::Filter {
             name: Some(name.to_owned()),
             ..Default::default()
         },
@@ -79,12 +81,12 @@ pub async fn info_by_name(pool: &ConnectPool, name: &str) -> Result<Info> {
 }
 
 async fn get_dept_tree(pool: &ConnectPool, filter: &Filter) -> Result<Vec<Dept>> {
-    let infos = get_depts(pool, filter).await?;
+    let infos = get_depts(pool, filter.clone()).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
     Ok(vec_to_tree_into::<Dept, Info>(&parent_id, &infos))
 }
 
-async fn get_depts(pool: &ConnectPool, filter: &Filter) -> Result<Vec<Info>> {
+async fn get_depts(pool: &ConnectPool, filter: Filter) -> Result<Vec<Info>> {
     let mut conn = pool.conn().await?;
     Ok(system_dept::Entity::query(&mut conn, filter)
         .await?
@@ -93,8 +95,11 @@ async fn get_depts(pool: &ConnectPool, filter: &Filter) -> Result<Vec<Info>> {
         .collect::<Vec<Info>>())
 }
 
-async fn get_depts_by_user_id(pool: &ConnectPool, filter: &Filter) -> Result<Vec<Info>> {
-    Ok(get_children_dept(get_depts(pool, filter).await?, filter.id))
+async fn get_depts_by_user_id(pool: &ConnectPool, filter: Filter) -> Result<Vec<Info>> {
+    Ok(get_children_dept(
+        get_depts(pool, filter.clone()).await?,
+        filter.id,
+    ))
 }
 
 fn get_children_dept(depts: Vec<Info>, dept_id: Option<i32>) -> Vec<Info> {
@@ -163,5 +168,20 @@ impl Tree<Dept> for Dept {
         self.children = data;
     }
 }
-
-pub type Filter = system_dept::Filter;
+#[derive(Debug, Default, Clone)]
+pub struct Filter {
+    pub keyword: Option<String>,
+    pub status: Option<i32>,
+    pub id: Option<i32>,
+    pub user_id: Option<i32>,
+}
+impl From<Filter> for system_dept::Filter {
+    fn from(value: Filter) -> Self {
+        Self {
+            keyword: value.keyword,
+            status: value.status,
+            ..Default::default()
+        }
+    }
+}
+pub type FormParamsForCreate = system_dept::FormParamsForCreate;

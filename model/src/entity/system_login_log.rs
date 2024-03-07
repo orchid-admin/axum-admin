@@ -23,7 +23,8 @@ pub struct Entity {
 /// impl Entity method
 impl Entity {
     /// query find
-    pub async fn find(conn: &mut Connect, filter: &Filter) -> Result<Option<Self>> {
+    pub async fn find<F: Into<Filter>>(conn: &mut Connect, filter: F) -> Result<Option<Self>> {
+        let filter: Filter = filter.into();
         let table = system_login_logs::table;
         // filter condition
         if let Some(_keyword) = &filter.keyword {
@@ -38,7 +39,8 @@ impl Entity {
         Ok(info)
     }
     /// query method
-    pub async fn query(conn: &mut Connect, filter: &Filter) -> Result<Vec<Self>> {
+    pub async fn query<F: Into<Filter>>(conn: &mut Connect, filter: F) -> Result<Vec<Self>> {
+        let filter: Filter = filter.into();
         let table = system_login_logs::table;
         // filter condition
         if let Some(_keyword) = &filter.keyword {
@@ -52,12 +54,13 @@ impl Entity {
         Ok(infos)
     }
     /// paginate method
-    pub async fn paginate(
+    pub async fn paginate<F: Into<Filter>>(
         conn: &mut Connect,
         page: i64,
         limit: i64,
-        filter: &Filter,
+        filter: F,
     ) -> Result<(Vec<Self>, i64)> {
+        let filter: Filter = filter.into();
         let table = system_login_logs::table;
         // filter condition
         if let Some(_keyword) = &filter.keyword {
@@ -111,6 +114,8 @@ pub struct Filter {
     pub status: Option<i32>,
     // other fields
     pub id: Option<i32>,
+    pub user_id: Option<i32>,
+    pub date: Option<String>,
 }
 /// define Forms Param
 #[derive(Debug, Default, Insertable, AsChangeset)]

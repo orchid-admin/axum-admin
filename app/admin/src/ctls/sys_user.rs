@@ -7,7 +7,7 @@ use axum::{
     body::Body,
     extract::{Path, State},
     response::IntoResponse,
-    routing::{get, post},
+    routing::{delete, get, post},
     Extension, Json, Router,
 };
 use axum_extra::extract::Query;
@@ -21,7 +21,7 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .route("/user/:id", get(info))
         .route("/user", post(create))
         .route("/user/update", post(update))
-        .route("/user/:id", get(del))
+        .route("/user/:id", delete(del))
         .route("/user/update_password", post(update_password))
         .route("/user/get_menu", get(get_menu))
         .route("/user/get_user_permission", get(get_user_permission))

@@ -47,7 +47,7 @@ pub async fn get_current_user_info(pool: &ConnectPool, id: i32) -> Result<UserIn
     if user_info.user.dept_id.is_some() {
         user_info.dept = system_dept::Entity::find(
             &mut conn,
-            &system_dept::Filter {
+            system_dept::Filter {
                 id: user_info.user.dept_id,
                 ..Default::default()
             },
