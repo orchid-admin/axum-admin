@@ -28,9 +28,9 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
 /// dict data list
 async fn index(
     State(state): State<AppState>,
-    Query(params): Query<SearchRequest>,
+    Query(params): Query<RequestSearch>,
 ) -> Result<impl IntoResponse> {
-    let data = system_dict_data::paginate(&state.db, &params.into()).await?;
+    let data = system_dict_data::paginate(&state.db, params.into()).await?;
     Ok(Json(data))
 }
 
@@ -45,7 +45,7 @@ async fn info(
 /// create dict data
 async fn create(
     State(state): State<AppState>,
-    Json(params): Json<CreateRequest>,
+    Json(params): Json<RequestFormCreate>,
 ) -> Result<impl IntoResponse> {
     if system_dict_data::get_by_label(&state.db, params.dict_id, &params.label, None)
         .await?
@@ -53,14 +53,7 @@ async fn create(
     {
         return Err(ErrorCode::DictDataLableExsist);
     }
-    system_dict_data::create(
-        &state.db,
-        params.dict_id,
-        &params.label.clone(),
-        params.value,
-        params.into(),
-    )
-    .await?;
+    system_dict_data::create(&state.db, params.into()).await?;
     Ok(Body::empty())
 }
 
@@ -68,7 +61,7 @@ async fn create(
 async fn update(
     Path(id): Path<i32>,
     State(state): State<AppState>,
-    Json(params): Json<CreateRequest>,
+    Json(params): Json<RequestFormCreate>,
 ) -> Result<impl IntoResponse> {
     if system_dict_data::get_by_label(&state.db, params.dict_id, &params.label, Some(id))
         .await?
@@ -90,32 +83,37 @@ async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl 
 /// batch delete dict data
 async fn batch_del(
     State(state): State<AppState>,
-    Json(params): Json<BatchAction>,
+    Json(params): Json<RequestFormBatchAction>,
 ) -> Result<impl IntoResponse> {
     system_dict_data::batch_delete(&state.db, params.ids).await?;
     Ok(Body::empty())
 }
 
 #[derive(Debug, Deserialize)]
-struct BatchAction {
+struct RequestFormBatchAction {
     ids: Vec<i32>,
 }
 
 #[derive(Debug, Deserialize)]
-struct SearchRequest {
+struct RequestSearch {
     dict_id: Option<i32>,
     keyword: Option<String>,
     status: Option<i32>,
     #[serde(flatten)]
     paginate: PaginateParams,
 }
-impl From<SearchRequest> for system_dict_data::Filter {
-    fn from(value: SearchRequest) -> Self {
-        Self::new(value.dict_id, value.keyword, value.status, value.paginate)
+impl From<RequestSearch> for system_dict_data::Filter {
+    fn from(value: RequestSearch) -> Self {
+        Self {
+            dict_id: value.dict_id,
+            keyword: value.keyword,
+            status: value.status,
+            paginate: value.paginate,
+        }
     }
 }
 #[derive(Debug, Deserialize)]
-struct CreateRequest {
+struct RequestFormCreate {
     dict_id: i32,
     label: String,
     value: i32,
@@ -125,23 +123,15 @@ struct CreateRequest {
     sort: i32,
 }
 
-impl From<CreateRequest> for system_dict_data::CreateParams {
-    fn from(value: CreateRequest) -> Self {
+impl From<RequestFormCreate> for system_dict_data::FormParamsForCreate {
+    fn from(value: RequestFormCreate) -> Self {
         Self {
-            remark: value.remark,
-            status: Some(value.status),
-        }
-    }
-}
-
-impl From<CreateRequest> for system_dict_data::UpdateParams {
-    fn from(value: CreateRequest) -> Self {
-        Self {
-            label: Some(value.label),
-            value: Some(value.value),
-            remark: value.remark,
-            status: Some(value.status),
-            sort: Some(value.sort),
+            dict_id: value.dict_id,
+            label: value.label,
+            value: value.value,
+            remark: value.remark.unwrap_or_default(),
+            status: value.status,
+            sort: value.sort,
         }
     }
 }

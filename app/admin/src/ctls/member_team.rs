@@ -43,6 +43,10 @@ struct RequestSearch {
 }
 impl From<RequestSearch> for member_team::Filter {
     fn from(value: RequestSearch) -> Self {
-        Self::new(value.keyword, value.date, value.paginate)
+        Self {
+            keyword: value.keyword,
+            date: value.date,
+            paginate: value.paginate,
+        }
     }
 }

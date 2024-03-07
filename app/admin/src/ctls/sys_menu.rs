@@ -4,7 +4,7 @@ use axum::{
     body::Body,
     extract::{Path, State},
     response::IntoResponse,
-    routing::{get, post},
+    routing::{delete, get, post, put},
     Extension, Json, Router,
 };
 use axum_extra::extract::Query;
@@ -16,8 +16,8 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .route("/menu", get(index))
         .route("/menu/:id", get(info))
         .route("/menu", post(create))
-        .route("/menu/update", post(update))
-        .route("/menu/:id", get(del))
+        .route("/menu/:id", put(update))
+        .route("/menu/:id", delete(del))
         .with_state(state)
 }
 
@@ -49,9 +49,10 @@ async fn create(
 /// update menu
 async fn update(
     State(state): State<AppState>,
-    Json(params): Json<RequestFormUpdate>,
+    Path(id): Path<i32>,
+    Json(params): Json<RequestFormCreate>,
 ) -> Result<impl IntoResponse> {
-    system_menu::update(&state.db, params.id, params.form.into()).await?;
+    system_menu::update(&state.db, id, params.into()).await?;
     Ok(Body::empty())
 }
 
@@ -70,12 +71,15 @@ struct RequestSearch {
 
 impl From<RequestSearch> for system_menu::Filter {
     fn from(value: RequestSearch) -> Self {
-        Self::new(
-            value.keyword,
-            value
-                .menu_types
-                .map(|x| x.into_iter().map(|y| y.into()).collect()),
-        )
+        Self {
+            keyword: value.keyword,
+            menu_types: value.menu_types.map(|items| {
+                items
+                    .into_iter()
+                    .map(|x| x.into())
+                    .collect::<Vec<system_menu::MenuType>>()
+            }),
+        }
     }
 }
 
@@ -94,9 +98,9 @@ struct RequestFormCreate {
     btn_auth: String,
     api_url: String,
     api_method: String,
-    is_hide: Option<i32>,
-    is_keep_alive: Option<i32>,
-    is_affix: Option<i32>,
+    is_hide: i32,
+    is_keep_alive: i32,
+    is_affix: i32,
     sort: i32,
 }
 
@@ -122,11 +126,4 @@ impl From<RequestFormCreate> for system_menu::FormParamsForCreate {
             sort: value.sort,
         }
     }
-}
-
-#[derive(Debug, Deserialize)]
-struct RequestFormUpdate {
-    id: i32,
-    #[serde(flatten)]
-    form: RequestFormCreate,
 }

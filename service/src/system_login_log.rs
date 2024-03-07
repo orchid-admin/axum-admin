@@ -39,10 +39,10 @@ pub type FormParamsForCreate = system_login_log::FormParamsForCreate;
 
 #[derive(Debug, Deserialize)]
 pub struct Filter {
-    user_id: Option<i32>,
-    keyword: Option<String>,
-    date: Option<String>,
-    paginate: PaginateParams,
+    pub user_id: Option<i32>,
+    pub keyword: Option<String>,
+    pub date: Option<String>,
+    pub paginate: PaginateParams,
 }
 
 impl From<Filter> for system_login_log::Filter {

@@ -7,12 +7,12 @@ use axum::{
     body::Body,
     extract::{self, Path, State},
     response::IntoResponse,
-    routing::{get, post},
+    routing::{delete, get, post, put},
     Extension, Json, Router,
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
-use service::{system_menu, system_role};
+use service::system_role;
 use utils::paginate::PaginateParams;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
@@ -21,8 +21,8 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .route("/role/all", get(all))
         .route("/role/:id", get(info))
         .route("/role", post(create))
-        .route("/role/update", post(update))
-        .route("/role/:id", get(del))
+        .route("/role/:id", put(update))
+        .route("/role/:id", delete(del))
         .with_state(state)
 }
 
@@ -76,19 +76,20 @@ async fn create(
 async fn update(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
-    Json(param): Json<RequestFormUpdate>,
+    Path(id): Path<i32>,
+    Json(param): Json<RequestFormCreate>,
 ) -> Result<impl IntoResponse> {
-    let sign_info = system_role::get_by_sign(&state.db, &param.form.sign, Some(param.id)).await?;
+    let sign_info = system_role::get_by_sign(&state.db, &param.sign, Some(id)).await?;
     if sign_info.is_some() {
         return Err(ErrorCode::RoleSignExsist);
     }
 
     system_role::update(
         &state.db,
-        param.id,
-        param.form.clone().into(),
+        id,
+        param.clone().into(),
         claims.user_id,
-        param.form.menu_ids,
+        param.menu_ids,
     )
     .await?;
     Ok(Body::empty())
@@ -140,10 +141,4 @@ impl From<RequestFormCreate> for system_role::FormParamsForCreate {
             sort: value.sort,
         }
     }
-}
-#[derive(Debug, Clone, Deserialize)]
-struct RequestFormUpdate {
-    id: i32,
-    #[serde(flatten)]
-    form: RequestFormCreate,
 }

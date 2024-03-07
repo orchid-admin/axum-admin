@@ -11,7 +11,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
-use service::system_dict_service;
+use service::system_dict;
 use utils::paginate::PaginateParams;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
@@ -27,16 +27,16 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
 
 /// get all dict data
 async fn all(State(state): State<AppState>) -> Result<impl IntoResponse> {
-    let data = system_dict_service::all(&state.db).await?;
+    let data = system_dict::all(&state.db).await?;
     Ok(Json(data))
 }
 
 /// dict list
 async fn index(
     State(state): State<AppState>,
-    Query(params): Query<SearchRequest>,
+    Query(params): Query<RequestSearch>,
 ) -> Result<impl IntoResponse> {
-    let data = system_dict_service::paginate(&state.db, &params.into()).await?;
+    let data = system_dict::paginate(&state.db, params.into()).await?;
     Ok(Json(data))
 }
 
@@ -45,27 +45,21 @@ async fn info(
     State(state): State<AppState>,
     extract::Path(id): extract::Path<i32>,
 ) -> Result<impl IntoResponse> {
-    Ok(Json(system_dict_service::info(&state.db, id).await?))
+    Ok(Json(system_dict::info(&state.db, id).await?))
 }
 
 /// create dict
 async fn create(
     State(state): State<AppState>,
-    Json(params): Json<CreateRequest>,
+    Json(params): Json<RequestFormCreate>,
 ) -> Result<impl IntoResponse> {
-    if system_dict_service::get_by_sign(&state.db, &params.sign, None)
+    if system_dict::get_by_sign(&state.db, &params.sign, None)
         .await?
         .is_some()
     {
         return Err(ErrorCode::DictSignExsist);
     }
-    system_dict_service::create(
-        &state.db,
-        &params.name.clone(),
-        &params.sign.clone(),
-        params.into(),
-    )
-    .await?;
+    system_dict::create(&state.db, params.into()).await?;
     Ok(Body::empty())
 }
 
@@ -73,42 +67,43 @@ async fn create(
 async fn update(
     Path(id): Path<i32>,
     State(state): State<AppState>,
-    Json(params): Json<CreateRequest>,
+    Json(params): Json<RequestFormCreate>,
 ) -> Result<impl IntoResponse> {
-    if system_dict_service::get_by_sign(&state.db, &params.sign, Some(id))
+    if system_dict::get_by_sign(&state.db, &params.sign, Some(id))
         .await?
         .is_some()
     {
         return Err(ErrorCode::DictSignExsist);
     }
-    system_dict_service::update(&state.db, id, params.into()).await?;
+    system_dict::update(&state.db, id, params.into()).await?;
     Ok(Body::empty())
 }
 
 /// delete dict
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
-    let info = system_dict_service::info(&state.db, id).await?;
-    if !info.data_is_empty() {
-        return Err(ErrorCode::NotDeleteData);
-    }
-    system_dict_service::delete(&state.db, id).await?;
+    let _ = system_dict::info(&state.db, id).await?;
+    system_dict::delete(&state.db, id).await?;
     Ok(Body::empty())
 }
 
 #[derive(Debug, Deserialize)]
-struct SearchRequest {
+struct RequestSearch {
     keyword: Option<String>,
     status: Option<i32>,
     #[serde(flatten)]
     paginate: PaginateParams,
 }
-impl From<SearchRequest> for system_dict_service::SearchParams {
-    fn from(value: SearchRequest) -> Self {
-        Self::new(value.keyword, value.status, value.paginate)
+impl From<RequestSearch> for system_dict::Filter {
+    fn from(value: RequestSearch) -> Self {
+        Self {
+            keyword: value.keyword,
+            status: value.status,
+            paginate: value.paginate,
+        }
     }
 }
 #[derive(Debug, Deserialize)]
-struct CreateRequest {
+struct RequestFormCreate {
     name: String,
     sign: String,
     remark: Option<String>,
@@ -116,22 +111,13 @@ struct CreateRequest {
     status: i32,
 }
 
-impl From<CreateRequest> for system_dict_service::CreateParams {
-    fn from(value: CreateRequest) -> Self {
+impl From<RequestFormCreate> for system_dict::FormParamsForCreate {
+    fn from(value: RequestFormCreate) -> Self {
         Self {
-            remark: value.remark,
-            status: Some(value.status),
-        }
-    }
-}
-
-impl From<CreateRequest> for system_dict_service::UpdateParams {
-    fn from(value: CreateRequest) -> Self {
-        Self {
-            name: Some(value.name),
-            sign: Some(value.sign),
-            remark: value.remark,
-            status: Some(value.status),
+            name: value.name,
+            sign: value.sign,
+            remark: value.remark.unwrap_or_default(),
+            status: value.status,
         }
     }
 }

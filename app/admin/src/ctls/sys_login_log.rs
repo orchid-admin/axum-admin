@@ -44,6 +44,11 @@ struct RequestSearch {
 }
 impl From<RequestSearch> for system_login_log::Filter {
     fn from(value: RequestSearch) -> Self {
-        Self::new(value.user_id, value.keyword, value.date, value.paginate)
+        Self {
+            user_id: value.user_id,
+            keyword: value.keyword,
+            date: value.date,
+            paginate: value.paginate,
+        }
     }
 }
