@@ -29,9 +29,6 @@ pub enum ErrorCode {
     /// Input user`username or user`pwd error
     #[attr(status_code = StatusCode::BAD_REQUEST, message = "Input user`username or user`pwd error")]
     InputUserAndPwd,
-    /// Not Delete Data
-    #[attr(status_code = StatusCode::BAD_REQUEST, message = "Not Delete Data")]
-    NotDeleteData,
     /// input old Password Error
     #[attr(status_code = StatusCode::BAD_REQUEST, message = "Input old Password not empty")]
     InputOldPassword,
@@ -41,9 +38,6 @@ pub enum ErrorCode {
     /// Input comfirm password is different for input password
     #[attr(status_code = StatusCode::BAD_REQUEST, message = "Input comfirm password is different for input password")]
     InputComfirmPasswordDifferentForInputPassword,
-    /// Not Change Admin Error
-    #[attr(status_code = StatusCode::BAD_REQUEST, message = "Not Change Admin")]
-    NotChangeAdmin,
     /// Email exsist
     #[attr(status_code = StatusCode::BAD_REQUEST, message = "Email exsist")]
     EmailExsist,

@@ -26,7 +26,8 @@ pub struct Entity {
 /// impl Entity method
 impl Entity {
     /// query find
-    pub async fn find(conn: &mut Connect, filter: &Filter) -> Result<Option<Self>> {
+    pub async fn find<F: Into<Filter>>(conn: &mut Connect, filter: F) -> Result<Option<Self>> {
+        let filter: Filter = filter.into();
         let table = system_dict_data::table;
         // filter condition
         if let Some(_keyword) = &filter.keyword {
@@ -41,7 +42,8 @@ impl Entity {
         Ok(info)
     }
     /// query method
-    pub async fn query(conn: &mut Connect, filter: &Filter) -> Result<Vec<Self>> {
+    pub async fn query<F: Into<Filter>>(conn: &mut Connect, filter: F) -> Result<Vec<Self>> {
+        let filter: Filter = filter.into();
         let table = system_dict_data::table;
         // filter condition
         if let Some(_keyword) = &filter.keyword {
@@ -55,12 +57,13 @@ impl Entity {
         Ok(infos)
     }
     /// paginate method
-    pub async fn paginate(
+    pub async fn paginate<F: Into<Filter>>(
         conn: &mut Connect,
         page: i64,
         limit: i64,
-        filter: &Filter,
+        filter: F,
     ) -> Result<(Vec<Self>, i64)> {
+        let filter: Filter = filter.into();
         let table = system_dict_data::table;
         // filter condition
         if let Some(_keyword) = &filter.keyword {
@@ -156,12 +159,12 @@ pub struct Filter {
 #[derive(Debug, Insertable, AsChangeset)]
 #[diesel(table_name = crate::schema::system_dict_data)]
 pub struct FormParamsForCreate {
-    dict_id: i32,
-    label: String,
-    value: i32,
-    remark: String,
-    status: i32,
-    sort: i32,
+    pub dict_id: i32,
+    pub label: String,
+    pub value: i32,
+    pub remark: String,
+    pub status: i32,
+    pub sort: i32,
 }
 
 pub type FormParamsForUpdate = FormParamsForCreate;

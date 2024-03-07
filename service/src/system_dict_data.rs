@@ -31,7 +31,7 @@ pub async fn info(pool: &ConnectPool, id: i32) -> Result<Info> {
     let mut conn = pool.conn().await?;
     system_dict_data::Entity::find(
         &mut conn,
-        &system_dict_data::Filter {
+        system_dict_data::Filter {
             id: Some(id),
             ..Default::default()
         },
@@ -54,25 +54,38 @@ pub async fn get_by_label(
         filter.id_ne = Some(id);
     }
     let mut conn = pool.conn().await?;
-    Ok(system_dict_data::Entity::find(&mut conn, &filter).await?)
+    Ok(system_dict_data::Entity::find(&mut conn, filter).await?)
 }
-pub async fn paginate(pool: &ConnectPool, filter: &Filter) -> Result<PaginateResult<Vec<Info>>> {
+pub async fn paginate(pool: &ConnectPool, filter: Filter) -> Result<PaginateResult<Vec<Info>>> {
     let mut conn = pool.conn().await?;
     let (data, total) = system_dict_data::Entity::paginate(
         &mut conn,
         filter.paginate.get_page(),
         filter.paginate.get_limit(),
-        &filter.filter,
+        filter,
     )
     .await?;
     Ok(PaginateResult { total, data })
 }
 pub type Info = system_dict_data::Entity;
+pub type FormParamsForCreate = system_dict_data::FormParamsForCreate;
 
 #[derive(Debug, Deserialize)]
 pub struct Filter {
+    pub dict_id: Option<i32>,
+    pub keyword: Option<String>,
+    pub status: Option<i32>,
     #[serde(flatten)]
-    filter: system_dict_data::Filter,
-    #[serde(flatten)]
-    paginate: PaginateParams,
+    pub paginate: PaginateParams,
+}
+
+impl From<Filter> for system_dict_data::Filter {
+    fn from(value: Filter) -> Self {
+        Self {
+            dict_id: value.dict_id,
+            keyword: value.keyword,
+            status: value.status,
+            ..Default::default()
+        }
+    }
 }

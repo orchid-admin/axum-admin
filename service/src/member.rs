@@ -3,8 +3,9 @@ use model::{connect::DbConnectPool as ConnectPool, member};
 use serde::Deserialize;
 use utils::paginate::{PaginateParams, PaginateResult};
 
-pub async fn create(pool: &ConnectPool, params: member::FormParamsForCreate) -> Result<Info> {
+pub async fn create(pool: &ConnectPool, params: &mut member::FormParamsForCreate) -> Result<Info> {
     let mut conn = pool.conn().await?;
+    params.unique_code = generate_code(pool, 8).await?;
     Ok(member::Entity::create(&mut conn, &params).await?)
 }
 
@@ -24,7 +25,7 @@ pub async fn info(pool: &ConnectPool, id: i32) -> Result<Info> {
     let mut conn = pool.conn().await?;
     member::Entity::find(
         &mut conn,
-        &member::Filter {
+        member::Filter {
             id: Some(id),
             ..Default::default()
         },
@@ -50,16 +51,16 @@ pub async fn get_by_email(
 }
 pub async fn all(pool: &ConnectPool) -> Result<Vec<Info>> {
     let mut conn = pool.conn().await?;
-    Ok(member::Entity::query(&mut conn, &member::Filter::default()).await?)
+    Ok(member::Entity::query(&mut conn, member::Filter::default()).await?)
 }
 
-pub async fn paginate(pool: &ConnectPool, filter: &Filter) -> Result<PaginateResult<Vec<Info>>> {
+pub async fn paginate(pool: &ConnectPool, filter: Filter) -> Result<PaginateResult<Vec<Info>>> {
     let mut conn = pool.conn().await?;
     let (data, total) = member::Entity::paginate(
         &mut conn,
         filter.paginate.get_page(),
         filter.paginate.get_limit(),
-        &filter.filter,
+        filter,
     )
     .await?;
     Ok(PaginateResult { total, data })
@@ -106,7 +107,7 @@ pub async fn set_last_login(pool: &ConnectPool, id: &i32, login_ip: &str) -> Res
     let mut conn = pool.conn().await?;
     let mut info = member::Entity::find(
         &mut conn,
-        &member::Filter {
+        member::Filter {
             id: Some(id.to_owned()),
             ..Default::default()
         },
@@ -117,11 +118,24 @@ pub async fn set_last_login(pool: &ConnectPool, id: &i32, login_ip: &str) -> Res
     Ok(member::Entity::set_last_login(&mut conn, &mut info, login_ip).await?)
 }
 pub type Info = member::Entity;
+pub type FormParamsForCreate = member::FormParamsForCreate;
 
 #[derive(Debug, Deserialize)]
 pub struct Filter {
+    pub keyword: Option<String>,
+    pub sex: Option<i32>,
+    pub status: Option<i32>,
+    pub is_promoter: Option<i32>,
     #[serde(flatten)]
-    filter: member::Filter,
-    #[serde(flatten)]
-    paginate: PaginateParams,
+    pub paginate: PaginateParams,
+}
+
+impl From<Filter> for member::Filter {
+    fn from(value: Filter) -> Self {
+        Self {
+            keyword: value.keyword,
+            status: value.status,
+            ..Default::default()
+        }
+    }
 }

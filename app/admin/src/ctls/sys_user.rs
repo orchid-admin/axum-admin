@@ -7,7 +7,7 @@ use axum::{
     body::Body,
     extract::{Path, State},
     response::IntoResponse,
-    routing::{delete, get, post},
+    routing::{delete, get, post, put},
     Extension, Json, Router,
 };
 use axum_extra::extract::Query;
@@ -20,7 +20,7 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .route("/user", get(index))
         .route("/user/:id", get(info))
         .route("/user", post(create))
-        .route("/user/update", post(update))
+        .route("/user/:id", put(update))
         .route("/user/:id", delete(del))
         .route("/user/update_password", post(update_password))
         .route("/user/get_menu", get(get_menu))
@@ -52,9 +52,10 @@ async fn create(
 /// update user by user`id
 async fn update(
     State(state): State<AppState>,
-    Json(param): Json<RequestFormUpdate>,
+    Path(id): Path<i32>,
+    Json(param): Json<RequestFormCreate>,
 ) -> Result<impl IntoResponse> {
-    system_user::update(&state.db, param.id, param.form.into()).await?;
+    system_user::update(&state.db, id, param.into()).await?;
     Ok(Body::empty())
 }
 
@@ -153,8 +154,8 @@ struct RequestFormCreate {
     nickname: String,
     role_id: Option<i32>,
     dept_id: Option<i32>,
-    phone: Option<String>,
-    email: Option<String>,
+    phone: String,
+    email: String,
     sex: i32,
     password: Option<String>,
     describe: Option<String>,
@@ -164,13 +165,24 @@ struct RequestFormCreate {
 
 impl From<RequestFormCreate> for system_user::FormParamsForCreate {
     fn from(value: RequestFormCreate) -> Self {
+        let mut expire_time = None;
+        if let Some(expire_time_string) = value.expire_time {
+            let description =
+                time::macros::format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
+            if let Ok(system_time) = time::OffsetDateTime::parse(&expire_time_string, description)
+                .map(|x| std::time::SystemTime::from(x))
+            {
+                expire_time = Some(system_time);
+            }
+        }
+
         let mut salt = String::new();
         let mut password = String::new();
         if let Some(input_password) = value.password {
-            let (encode_password, salt) =
+            let (encode_password, encode_salt) =
                 utils::password::Password::generate_hash_salt(input_password.as_bytes()).unwrap();
-            salt = salt;
-            password = input_password;
+            salt = encode_salt;
+            password = encode_password;
         }
 
         Self {
@@ -183,18 +195,11 @@ impl From<RequestFormCreate> for system_user::FormParamsForCreate {
             sex: value.sex,
             password,
             salt,
-            describe: value.describe,
-            expire_time: value.expire_time,
+            describe: value.describe.unwrap_or_default(),
+            expire_time,
             status: value.status,
         }
     }
-}
-
-#[derive(Debug, Deserialize)]
-struct RequestFormUpdate {
-    id: i32,
-    #[serde(flatten)]
-    form: RequestFormCreate,
 }
 
 #[derive(Debug, Deserialize)]

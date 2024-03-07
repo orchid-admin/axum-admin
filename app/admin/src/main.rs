@@ -16,7 +16,7 @@ async fn main() -> Result<()> {
     utils::logger::init(env_filter);
 
     let config = config::Config::load();
-    let db_pool = model::connect::DbConnectPool::new(&config.database_url())?;
+    let db_pool = model::connect::DbConnectPool::new(&config.database_url()).unwrap();
     let state = state::State::build(db_pool);
 
     let app = ctls::router::init(state).await.layer(

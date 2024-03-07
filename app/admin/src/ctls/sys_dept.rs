@@ -4,7 +4,7 @@ use axum::{
     body::Body,
     extract::{Path, State},
     response::IntoResponse,
-    routing::{get, post},
+    routing::{delete, get, post, put},
     Extension, Json, Router,
 };
 use axum_extra::extract::Query;
@@ -16,8 +16,8 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
         .route("/dept", get(index))
         .route("/dept/:id", get(info))
         .route("/dept", post(create))
-        .route("/dept/update", post(update))
-        .route("/dept/:id", get(del))
+        .route("/dept/:id", put(update))
+        .route("/dept/:id", delete(del))
         .with_state(state)
 }
 /// get tree dept
@@ -49,9 +49,10 @@ async fn create(
 /// update dept
 async fn update(
     State(state): State<AppState>,
-    Json(params): Json<RequestFormUpdate>,
+    Path(id): Path<i32>,
+    Json(params): Json<RequestFormCreate>,
 ) -> Result<impl IntoResponse> {
-    system_dept::update(&state.db, params.id, params.form.into()).await?;
+    system_dept::update(&state.db, id, params.into()).await?;
     Ok(Body::empty())
 }
 
@@ -102,11 +103,4 @@ impl From<RequestFormCreate> for system_dept::FormParamsForCreate {
             sort: value.sort,
         }
     }
-}
-
-#[derive(Debug, Deserialize)]
-pub struct RequestFormUpdate {
-    id: i32,
-    #[serde(flatten)]
-    form: RequestFormCreate,
 }

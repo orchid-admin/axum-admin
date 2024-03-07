@@ -36,7 +36,8 @@ pub struct Entity {
 /// impl Entity method
 impl Entity {
     /// query find
-    pub async fn find(conn: &mut Connect, filter: &Filter) -> Result<Option<Self>> {
+    pub async fn find<F: Into<Filter>>(conn: &mut Connect, filter: F) -> Result<Option<Self>> {
+        let filter: Filter = filter.into();
         let table = members::table;
         // filter condition
         if let Some(_keyword) = &filter.keyword {
@@ -51,7 +52,8 @@ impl Entity {
         Ok(info)
     }
     /// query method
-    pub async fn query(conn: &mut Connect, filter: &Filter) -> Result<Vec<Self>> {
+    pub async fn query<F: Into<Filter>>(conn: &mut Connect, filter: F) -> Result<Vec<Self>> {
+        let filter: Filter = filter.into();
         let table = members::table;
         // filter condition
         if let Some(_keyword) = &filter.keyword {
@@ -65,12 +67,13 @@ impl Entity {
         Ok(infos)
     }
     /// paginate method
-    pub async fn paginate(
+    pub async fn paginate<F: Into<Filter>>(
         conn: &mut Connect,
         page: i64,
         limit: i64,
-        filter: &Filter,
+        filter: F,
     ) -> Result<(Vec<Self>, i64)> {
+        let filter: Filter = filter.into();
         let table = members::table;
         // filter condition
         if let Some(_keyword) = &filter.keyword {
@@ -156,7 +159,7 @@ impl Entity {
         if let Some(id) = filter_id {
             filter.id_not = Some(id);
         }
-        Self::find(conn, &filter).await
+        Self::find(conn, filter).await
     }
 
     pub async fn get_by_email(
@@ -171,7 +174,7 @@ impl Entity {
         if let Some(id) = filter_id {
             filter.id_not = Some(id);
         }
-        Self::find(conn, &filter).await
+        Self::find(conn, filter).await
     }
 
     /// increment method
@@ -187,7 +190,7 @@ impl Entity {
                 async move {
                     let info = Self::find(
                         conn,
-                        &Filter {
+                        Filter {
                             id: Some(id),
                             ..Default::default()
                         },
@@ -248,7 +251,7 @@ impl Entity {
                 async move {
                     let info = Self::find(
                         conn,
-                        &Filter {
+                        Filter {
                             id: Some(id),
                             ..Default::default()
                         },
@@ -310,22 +313,22 @@ pub struct Filter {
     pub is_promoter: Option<i32>,
 }
 /// define Forms Param
-#[derive(Debug, Insertable, AsChangeset)]
+#[derive(Debug, Default, Insertable, AsChangeset)]
 #[diesel(table_name = crate::schema::members)]
 pub struct FormParamsForCreate {
-    unique_code: String,
-    email: String,
-    mobile: String,
-    nickname: String,
-    avatar: String,
-    password: String,
-    salt: String,
-    sex: i32,
-    balance: f64,
-    integral: i32,
-    remark: String,
-    status: i32,
-    is_promoter: i32,
+    pub unique_code: String,
+    pub email: String,
+    pub mobile: String,
+    pub nickname: String,
+    pub avatar: String,
+    pub password: String,
+    pub salt: String,
+    pub sex: i32,
+    pub balance: f64,
+    pub integral: i32,
+    pub remark: String,
+    pub status: i32,
+    pub is_promoter: i32,
 }
 
 pub type FormParamsForUpdate = FormParamsForCreate;
