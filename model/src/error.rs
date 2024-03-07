@@ -8,6 +8,16 @@ pub enum Error {
     PoolBuild(BuildError),
     Diesel(diesel::result::Error),
 }
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let err = match self {
+            Error::Pool(err) => err.to_string(),
+            Error::PoolBuild(err) => err.to_string(),
+            Error::Diesel(err) => err.to_string(),
+        };
+        write!(f, "{}", err)
+    }
+}
 
 impl From<PoolError> for Error {
     fn from(err: PoolError) -> Self {

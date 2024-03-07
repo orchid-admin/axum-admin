@@ -98,7 +98,11 @@ pub async fn get_menu_by_role(
             .into_iter()
             .map(|x| x.into())
             .collect::<Vec<Info>>(),
-        None => vec![],
+        None => system_role_menu::Entity::get_role_menus(&mut conn, 0)
+            .await?
+            .into_iter()
+            .map(|x| x.into())
+            .collect::<Vec<Info>>(),
     })
 }
 

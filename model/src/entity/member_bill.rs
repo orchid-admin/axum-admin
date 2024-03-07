@@ -17,9 +17,9 @@ pub struct Entity {
     r#type: i32,
     pm: i32,
     number: f64,
-    created_at: SystemTime,
-    updated_at: SystemTime,
-    deleted_at: Option<SystemTime>,
+    created_at: chrono::NaiveDateTime,
+    updated_at: Option<chrono::NaiveDateTime>,
+    deleted_at: Option<chrono::NaiveDateTime>,
 }
 
 /// impl Entity method

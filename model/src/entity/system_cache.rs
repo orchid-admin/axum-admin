@@ -18,9 +18,9 @@ pub struct Entity {
     pub value: String,
     pub attach: String,
     pub valid_time_length: Option<i32>,
-    pub created_at: SystemTime,
-    updated_at: SystemTime,
-    deleted_at: Option<SystemTime>,
+    pub created_at: chrono::NaiveDateTime,
+    updated_at: Option<chrono::NaiveDateTime>,
+    deleted_at: Option<chrono::NaiveDateTime>,
 }
 
 /// impl Entity method

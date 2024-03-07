@@ -27,10 +27,10 @@ pub struct Entity {
     pub status: i32,
     pub is_promoter: i32,
     pub last_login_ip: String,
-    pub last_login_time: Option<SystemTime>,
-    created_at: SystemTime,
-    updated_at: SystemTime,
-    deleted_at: Option<SystemTime>,
+    pub last_login_time: Option<chrono::NaiveDateTime>,
+    created_at: chrono::NaiveDateTime,
+    updated_at: Option<chrono::NaiveDateTime>,
+    deleted_at: Option<chrono::NaiveDateTime>,
 }
 
 /// impl Entity method
@@ -142,7 +142,7 @@ impl Entity {
         login_ip: &str,
     ) -> Result<Self> {
         entity.last_login_ip = login_ip.to_owned();
-        entity.last_login_time = Some(SystemTime::now());
+        entity.last_login_time = Some(chrono::Local::now().naive_local());
         let result = entity.save_changes(conn).await?;
         Ok(result)
     }

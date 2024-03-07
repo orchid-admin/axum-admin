@@ -38,6 +38,7 @@ async fn login_by_account(
         .await?;
 
     let captcha_code = cache_info.value::<String>()?;
+    println!("{}, {}", captcha_code, params.code);
     if captcha_code.to_lowercase().ne(&params.code.to_lowercase()) {
         return Err(ErrorCode::Captche);
     }

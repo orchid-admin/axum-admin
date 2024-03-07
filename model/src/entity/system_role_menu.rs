@@ -140,14 +140,14 @@ impl Entity {
         conn: &mut Connect,
         role_id: i32,
     ) -> Result<Vec<super::system_menu::Entity>> {
-        let menu_ids = Self::get_menu_ids_by_role_id(conn, role_id).await?;
-        if menu_ids.len().eq(&0) {
-            return Ok(vec![]);
-        }
+        // let menu_ids = Self::get_menu_ids_by_role_id(conn, role_id).await?;
+        // if menu_ids.len().eq(&0) {
+        //     return Ok(vec![]);
+        // }
         super::system_menu::Entity::query(
             conn,
             &super::system_menu::Filter {
-                ids: Some(menu_ids),
+                // ids: Some(menu_ids),
                 ..Default::default()
             },
         )

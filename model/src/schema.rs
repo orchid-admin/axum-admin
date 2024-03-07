@@ -16,7 +16,7 @@ diesel::table! {
         status -> Integer,
         sort -> Integer,
         created_at -> Timestamp,
-        updated_at -> Timestamp,
+        updated_at -> Nullable<Timestamp>,
         deleted_at -> Nullable<Timestamp>,
     }
 }
@@ -32,7 +32,7 @@ diesel::table! {
         status -> Integer,
         sort -> Integer,
         created_at -> Timestamp,
-        updated_at -> Timestamp,
+        updated_at -> Nullable<Timestamp>,
         deleted_at -> Nullable<Timestamp>,
     }
 }
@@ -46,7 +46,7 @@ diesel::table! {
         pm -> Integer,
         number -> Double,
         created_at -> Timestamp,
-        updated_at -> Timestamp,
+        updated_at -> Nullable<Timestamp>,
         deleted_at -> Nullable<Timestamp>,
     }
 }
@@ -59,7 +59,7 @@ diesel::table! {
         member_id -> Integer,
         level -> Integer,
         created_at -> Timestamp,
-        updated_at -> Timestamp,
+        updated_at -> Nullable<Timestamp>,
         deleted_at -> Nullable<Timestamp>,
     }
 }
@@ -83,7 +83,7 @@ diesel::table! {
         last_login_ip -> Text,
         last_login_time -> Nullable<Timestamp>,
         created_at -> Timestamp,
-        updated_at -> Timestamp,
+        updated_at -> Nullable<Timestamp>,
         deleted_at -> Nullable<Timestamp>,
     }
 }
@@ -111,7 +111,7 @@ diesel::table! {
         attach -> Text,
         valid_time_length -> Nullable<Integer>,
         created_at -> Timestamp,
-        updated_at -> Timestamp,
+        updated_at -> Nullable<Timestamp>,
         deleted_at -> Nullable<Timestamp>,
     }
 }
@@ -128,7 +128,7 @@ diesel::table! {
         status -> Integer,
         sort -> Integer,
         created_at -> Timestamp,
-        updated_at -> Timestamp,
+        updated_at -> Nullable<Timestamp>,
         deleted_at -> Nullable<Timestamp>,
     }
 }
@@ -143,7 +143,7 @@ diesel::table! {
         status -> Integer,
         sort -> Integer,
         created_at -> Timestamp,
-        updated_at -> Timestamp,
+        updated_at -> Nullable<Timestamp>,
         deleted_at -> Nullable<Timestamp>,
     }
 }
@@ -156,7 +156,7 @@ diesel::table! {
         remark -> Text,
         status -> Integer,
         created_at -> Timestamp,
-        updated_at -> Timestamp,
+        updated_at -> Nullable<Timestamp>,
         deleted_at -> Nullable<Timestamp>,
     }
 }
@@ -196,7 +196,7 @@ diesel::table! {
         is_affix -> Integer,
         sort -> Integer,
         created_at -> Timestamp,
-        updated_at -> Timestamp,
+        updated_at -> Nullable<Timestamp>,
         deleted_at -> Nullable<Timestamp>,
     }
 }
@@ -219,7 +219,7 @@ diesel::table! {
         status -> Integer,
         sort -> Integer,
         created_at -> Timestamp,
-        updated_at -> Timestamp,
+        updated_at -> Nullable<Timestamp>,
         deleted_at -> Nullable<Timestamp>,
     }
 }
@@ -242,7 +242,7 @@ diesel::table! {
         last_login_ip -> Text,
         last_login_time -> Nullable<Timestamp>,
         created_at -> Timestamp,
-        updated_at -> Timestamp,
+        updated_at -> Nullable<Timestamp>,
         deleted_at -> Nullable<Timestamp>,
     }
 }

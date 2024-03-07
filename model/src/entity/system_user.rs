@@ -27,7 +27,7 @@ pub struct Entity {
     last_login_ip: String,
     last_login_time: Option<SystemTime>,
     created_at: SystemTime,
-    updated_at: SystemTime,
+    updated_at: Option<SystemTime>,
     deleted_at: Option<SystemTime>,
 }
 impl Entity {
