@@ -2,7 +2,7 @@ use crate::{
     connect::DbConnect as Connect, entity::_pagination::Paginate, schema::system_dicts, Error,
     Result,
 };
-use diesel::{delete, insert_into, prelude::*, update};
+use diesel::{delete, insert_into, prelude::*, query_builder::BoxedSelectStatement, update};
 use diesel_async::{scoped_futures::*, AsyncConnection, RunQueryDsl};
 use serde::{Deserialize, Serialize};
 
@@ -25,10 +25,12 @@ impl Entity {
     /// query find
     pub async fn find<F: Into<Filter>>(conn: &mut Connect, filter: F) -> Result<Option<Self>> {
         let filter: Filter = filter.into();
-        let table = system_dicts::table;
-        // filter condition
-        if let Some(_keyword) = &filter.keyword {
-            // let _ = table.filter(system_dicts::name.eq(_keyword));
+        let mut table = system_dicts::table.into_boxed();
+        if let Some(sign) = &filter.sign {
+            table = table.filter(system_dicts::name.eq(sign));
+        }
+        if let Some(id) = &filter.id_ne {
+            table = table.filter(system_dicts::id.ne(id));
         }
 
         let info = table
@@ -41,7 +43,7 @@ impl Entity {
     /// query method
     pub async fn query<F: Into<Filter>>(conn: &mut Connect, filter: F) -> Result<Vec<Self>> {
         let filter: Filter = filter.into();
-        let table = system_dicts::table;
+        let table = system_dicts::table.into_boxed();
         // filter condition
         if let Some(_keyword) = &filter.keyword {
             // let _ = table.filter(system_dicts::name.eq(_keyword));
@@ -61,18 +63,25 @@ impl Entity {
         filter: F,
     ) -> Result<(Vec<Self>, i64)> {
         let filter: Filter = filter.into();
-        let table = system_dicts::table;
+        let mut table = system_dicts::table.into_boxed();
         // filter condition
-        if let Some(_keyword) = &filter.keyword {
-            // let _ = table.filter(system_dicts::name.eq(_keyword));
-        }
+        // if let Some(sign) = &filter.sign {
+        //     table = table.filter(system_dicts::name.eq(sign));
+        // }
+        // if let Some(id) = &filter.ne_id {
+        //     table = table.filter(system_dicts::id.ne(id));
+        // }
+        // if filter.is_deleted {
+        //     table = table.filter(system_dicts::deleted_at.is_not_null());
+        // }
 
-        Ok(table
+        let (data, count) = table
             .select(Entity::as_select())
             .paginate(page)
-            .per_page(limit)
+            // .per_page(limit)
             .load_and_count_pages::<Entity>(conn)
-            .await?)
+            .await?;
+        Ok((data, count))
     }
     /// insert method
     pub async fn insert(conn: &mut Connect, params: Vec<FormParamsForCreate>) -> Result<Vec<Self>> {
@@ -138,6 +147,8 @@ pub struct Filter {
     // other fields
     pub id: Option<i32>,
     pub sign: Option<String>,
+    pub id_ne: Option<i32>,
+    // pub is_deleted: bool,
 }
 /// define Forms Param
 #[derive(Debug, Insertable, AsChangeset)]

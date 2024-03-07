@@ -49,6 +49,7 @@ fn get_children_ids(tree: Vec<Dept>, parent_dept_ids: &mut Vec<i32>) -> &mut Vec
 pub async fn get_user_dept_trees(pool: &ConnectPool, filter: Filter) -> Result<Vec<Dept>> {
     let infos = get_depts_by_user_id(pool, filter).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
+    println!("{:#?}", infos.len());
     Ok(vec_to_tree_into::<Dept, Info>(&parent_id, &infos))
 }
 
@@ -83,11 +84,13 @@ pub async fn info_by_name(pool: &ConnectPool, name: &str) -> Result<Info> {
 async fn get_dept_tree(pool: &ConnectPool, filter: &Filter) -> Result<Vec<Dept>> {
     let infos = get_depts(pool, filter.clone()).await?;
     let parent_id = get_tree_start_parent_id::<Info>(&infos);
+
     Ok(vec_to_tree_into::<Dept, Info>(&parent_id, &infos))
 }
 
 async fn get_depts(pool: &ConnectPool, filter: Filter) -> Result<Vec<Info>> {
     let mut conn = pool.conn().await?;
+
     Ok(system_dept::Entity::query(&mut conn, filter)
         .await?
         .into_iter()
@@ -96,10 +99,8 @@ async fn get_depts(pool: &ConnectPool, filter: Filter) -> Result<Vec<Info>> {
 }
 
 async fn get_depts_by_user_id(pool: &ConnectPool, filter: Filter) -> Result<Vec<Info>> {
-    Ok(get_children_dept(
-        get_depts(pool, filter.clone()).await?,
-        filter.id,
-    ))
+    let depts = get_depts(pool, filter.clone()).await?;
+    Ok(get_children_dept(depts, filter.id))
 }
 
 fn get_children_dept(depts: Vec<Info>, dept_id: Option<i32>) -> Vec<Info> {
@@ -107,7 +108,7 @@ fn get_children_dept(depts: Vec<Info>, dept_id: Option<i32>) -> Vec<Info> {
     for dept in depts.clone() {
         match dept_id {
             Some(id) => {
-                if dept.info.parent_id.eq(&id) {
+                if dept.get_parent_id().eq(&id) {
                     new_depts.push(dept.clone());
                 }
             }
@@ -115,10 +116,31 @@ fn get_children_dept(depts: Vec<Info>, dept_id: Option<i32>) -> Vec<Info> {
                 new_depts.push(dept.clone());
             }
         };
-        let children = get_children_dept(depts.clone(), Some(dept.get_id()));
-        new_depts.extend(children);
+        let is_exist_children = depts
+            .clone()
+            .into_iter()
+            .find(|x| x.get_parent_id().eq(&dept.get_id()))
+            .is_some();
+        if is_exist_children {
+            let filter_self_depts = depts
+                .clone()
+                .into_iter()
+                .filter(|x| x.get_id().ne(&dept.get_id()))
+                .collect::<Vec<Info>>();
+            let children = get_children_dept(filter_self_depts, Some(dept.get_id()));
+
+            new_depts.extend(children);
+        }
     }
-    new_depts
+    let mut new_new_depts = vec![];
+    let mut new_dept_ids = vec![];
+    for item in new_depts {
+        if !new_dept_ids.contains(&item.get_id()) {
+            new_dept_ids.push(item.get_id());
+            new_new_depts.push(item);
+        }
+    }
+    new_new_depts
 }
 #[derive(Debug, Clone, Serialize)]
 pub struct Info {

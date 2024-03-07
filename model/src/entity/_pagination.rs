@@ -44,9 +44,8 @@ impl<T> Paginated<T> {
 impl<T> Paginated<T> {
     pub async fn load_and_count_pages<'a, U>(self, conn: &mut Connect) -> QueryResult<(Vec<U>, i64)>
     where
-        Self: LoadQuery<'a, Connect, (U, i64)>,
+        Self: LoadQuery<'a, Connect, (U, i64)> + 'a,
         U: std::marker::Send,
-        T: 'a,
     {
         let per_page = self.per_page;
         let results = self.load::<(U, i64)>(conn).await?;

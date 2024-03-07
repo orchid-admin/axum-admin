@@ -7,7 +7,7 @@ pub trait TreeInfo {
     fn get_id(&self) -> i32;
 }
 
-pub fn get_tree_start_parent_id<S>(infos: &[S]) -> i32
+pub fn get_tree_start_parent_id<S>(infos: &Vec<S>) -> i32
 where
     S: TreeInfo,
 {
