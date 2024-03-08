@@ -29,7 +29,7 @@ impl Entity {
         if let Some(sign) = &filter.sign {
             table = table.filter(system_dicts::name.eq(sign));
         }
-        if let Some(id) = &filter.id_ne {
+        if let Some(id) = &filter.ne_id {
             table = table.filter(system_dicts::id.ne(id));
         }
 
@@ -65,20 +65,20 @@ impl Entity {
         let filter: Filter = filter.into();
         let mut table = system_dicts::table.into_boxed();
         // filter condition
-        // if let Some(sign) = &filter.sign {
-        //     table = table.filter(system_dicts::name.eq(sign));
-        // }
-        // if let Some(id) = &filter.ne_id {
-        //     table = table.filter(system_dicts::id.ne(id));
-        // }
-        // if filter.is_deleted {
-        //     table = table.filter(system_dicts::deleted_at.is_not_null());
-        // }
+        if let Some(sign) = &filter.sign {
+            table = table.filter(system_dicts::name.eq(sign));
+        }
+        if let Some(id) = &filter.ne_id {
+            table = table.filter(system_dicts::id.ne(id));
+        }
+        if filter.is_deleted {
+            table = table.filter(system_dicts::deleted_at.is_not_null());
+        }
 
         let (data, count) = table
             .select(Entity::as_select())
             .paginate(page)
-            // .per_page(limit)
+            .per_page(limit)
             .load_and_count_pages::<Entity>(conn)
             .await?;
         Ok((data, count))
@@ -147,8 +147,8 @@ pub struct Filter {
     // other fields
     pub id: Option<i32>,
     pub sign: Option<String>,
-    pub id_ne: Option<i32>,
-    // pub is_deleted: bool,
+    pub ne_id: Option<i32>,
+    pub is_deleted: bool,
 }
 /// define Forms Param
 #[derive(Debug, Insertable, AsChangeset)]
