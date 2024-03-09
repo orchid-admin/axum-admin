@@ -18,9 +18,9 @@ pub struct Claims {
 }
 
 impl Claims {
-    pub fn build(user_id: &i32) -> Self {
+    pub fn build(user_id: i32) -> Self {
         Self {
-            user_id: *user_id,
+            user_id: user_id,
             exp: time::OffsetDateTime::now_utc().unix_timestamp_nanos(),
         }
     }
@@ -53,10 +53,10 @@ pub mod router {
             .merge(member::routers(state.clone()))
             .merge(member_team::routers(state.clone()))
             .merge(member_bill::routers(state.clone()))
-            .layer(middleware::from_fn_with_state(
-                state.clone(),
-                middlewares::access_matched_path,
-            ))
+            // .layer(middleware::from_fn_with_state(
+            //     state.clone(),
+            //     middlewares::access_matched_path,
+            // ))
             .layer(middleware::from_fn_with_state(
                 state.clone(),
                 middlewares::token_check,
@@ -146,11 +146,10 @@ mod middlewares {
                 Some((name, token))
             })
             .ok_or(ErrorCode::Unauthorized)?;
-        let token_cache_type = service::cache_service::CacheType::SystemAuthJwt;
         let cache = state.cache.lock().await;
         let claims = super::decode_token(token, "secret")?;
         let jwt_item = cache
-            .get(token_cache_type, token, None)
+            .get(service::cache::CacheType::SystemAuthJwt, token, None)
             .await
             .map_err(|_| ErrorCode::Unauthorized)?;
         if !jwt_item.is_valid() {
@@ -174,7 +173,7 @@ mod middlewares {
         Ok(match matched_path {
             Ok(path) => {
                 let request_method = req.method().as_str();
-                match service::system_user_service::check_user_permission(
+                match service::system_user::check_user_permission(
                     &state.db,
                     claims.user_id,
                     request_method,
@@ -184,25 +183,25 @@ mod middlewares {
                 {
                     Ok(true) => {
                         if let Ok(Some(menu_info)) =
-                            service::system_menu_service::get_menu_id_by_api_request(
+                            service::system_menu::get_menu_id_by_api_request(
                                 &state.db,
                                 request_method,
                                 path.as_str(),
                             )
                             .await
                         {
-                            service::system_action_log_service::create(
+                            service::system_action_log::create(
                                 &state.db,
-                                claims.user_id,
-                                menu_info.0,
-                                &addr.to_string(),
-                                service::system_action_log_service::CreateParams {
-                                    menu_names: Some(menu_info.1),
-                                    ip_address_name: None,
-                                    browser_agent: match user_agent.to_str() {
-                                        Ok(x) => Some(x.to_owned()),
-                                        Err(_) => None,
-                                    },
+                                service::system_action_log::FormParamsForCreate {
+                                    user_id: claims.user_id,
+                                    menu_id: menu_info.0,
+                                    menu_names: menu_info.1,
+                                    ip_address: addr.to_string(),
+                                    ip_address_name: String::new(),
+                                    browser_agent: user_agent
+                                        .to_str()
+                                        .map(|x| x.to_owned())
+                                        .unwrap_or_default(),
                                 },
                             )
                             .await

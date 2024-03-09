@@ -9,7 +9,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use serde::Deserialize;
-use service::system_menu_service;
+use service::system_menu;
 
 pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
     Router::new()
@@ -25,63 +25,66 @@ pub fn routers<S>(state: crate::state::AppState) -> axum::Router<S> {
 async fn index(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
-    Query(query): Query<SearchRequest>,
+    Query(query): Query<RequestSearch>,
 ) -> Result<impl IntoResponse> {
     Ok(Json(
-        system_menu_service::get_user_menu_trees(&state.db, claims.user_id, &query.into()).await?,
+        system_menu::get_user_menu_trees(&state.db, claims.user_id, query).await?,
     ))
 }
 
 /// menu detail
 async fn info(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
-    Ok(Json(system_menu_service::info(&state.db, id).await?))
+    Ok(Json(system_menu::info(&state.db, id).await?))
 }
 
 /// create menu
 async fn create(
     State(state): State<AppState>,
-    Json(params): Json<CreateRequest>,
+    Json(params): Json<RequestFormCreate>,
 ) -> Result<impl IntoResponse> {
-    system_menu_service::create(&state.db, &params.title.clone(), params.into()).await?;
+    system_menu::create(&state.db, params.into()).await?;
     Ok(Body::empty())
 }
 
 /// update menu
 async fn update(
-    Path(id): Path<i32>,
     State(state): State<AppState>,
-    Json(params): Json<CreateRequest>,
+    Path(id): Path<i32>,
+    Json(params): Json<RequestFormCreate>,
 ) -> Result<impl IntoResponse> {
-    system_menu_service::update(&state.db, id, params.into()).await?;
+    system_menu::update(&state.db, id, params.into()).await?;
     Ok(Body::empty())
 }
 
 /// delete menu
 async fn del(Path(id): Path<i32>, State(state): State<AppState>) -> Result<impl IntoResponse> {
-    system_menu_service::delete(&state.db, id).await?;
+    system_menu::delete(&state.db, id).await?;
     Ok(Body::empty())
 }
 
 // #[serde_as]
 #[derive(Debug, Deserialize)]
-struct SearchRequest {
+struct RequestSearch {
     keyword: Option<String>,
     menu_types: Option<Vec<i32>>,
 }
 
-impl From<SearchRequest> for system_menu_service::SearchParams {
-    fn from(value: SearchRequest) -> Self {
-        Self::new(
-            value.keyword,
-            value
-                .menu_types
-                .map(|x| x.into_iter().map(|y| y.into()).collect()),
-        )
+impl From<RequestSearch> for system_menu::Filter {
+    fn from(value: RequestSearch) -> Self {
+        Self {
+            keyword: value.keyword,
+            menu_types: value.menu_types.map(|items| {
+                items
+                    .into_iter()
+                    .map(|x| x.into())
+                    .collect::<Vec<system_menu::MenuType>>()
+            }),
+        }
     }
 }
 
 #[derive(Debug, Deserialize)]
-struct CreateRequest {
+struct RequestFormCreate {
     parent_id: i32,
     r#type: i32,
     title: String,
@@ -95,55 +98,32 @@ struct CreateRequest {
     btn_auth: String,
     api_url: String,
     api_method: String,
-    is_hide: Option<i32>,
-    is_keep_alive: Option<i32>,
-    is_affix: Option<i32>,
+    is_hide: i32,
+    is_keep_alive: i32,
+    is_affix: i32,
     sort: i32,
 }
 
-impl From<CreateRequest> for system_menu_service::CreateParams {
-    fn from(value: CreateRequest) -> Self {
+impl From<RequestFormCreate> for system_menu::FormParamsForCreate {
+    fn from(value: RequestFormCreate) -> Self {
         Self {
-            parent_id: Some(value.parent_id),
-            r#type: Some(value.r#type),
-            icon: Some(value.icon),
-            router_name: Some(value.router_name),
-            router_component: Some(value.router_component),
-            router_path: Some(value.router_path),
-            redirect: Some(value.redirect),
-            link: Some(value.link),
-            iframe: Some(value.iframe),
-            btn_auth: Some(value.btn_auth),
-            api_url: Some(value.api_url),
-            api_method: Some(value.api_method),
+            parent_id: value.parent_id,
+            r#type: value.r#type,
+            title: value.title,
+            icon: value.icon,
+            router_name: value.router_name,
+            router_component: value.router_component,
+            router_path: value.router_path,
+            redirect: value.redirect,
+            link: value.link,
+            iframe: value.iframe,
+            btn_auth: value.btn_auth,
+            api_url: value.api_url,
+            api_method: value.api_method,
             is_hide: value.is_hide,
             is_keep_alive: value.is_keep_alive,
             is_affix: value.is_affix,
-            sort: Some(value.sort),
-        }
-    }
-}
-
-impl From<CreateRequest> for system_menu_service::UpdateParams {
-    fn from(value: CreateRequest) -> Self {
-        Self {
-            parent_id: Some(value.parent_id),
-            r#type: Some(value.r#type),
-            title: Some(value.title),
-            icon: Some(value.icon),
-            router_name: Some(value.router_name),
-            router_component: Some(value.router_component),
-            router_path: Some(value.router_path),
-            redirect: Some(value.redirect),
-            link: Some(value.link),
-            iframe: Some(value.iframe),
-            btn_auth: Some(value.btn_auth),
-            api_url: Some(value.api_url),
-            api_method: Some(value.api_method),
-            is_hide: value.is_hide,
-            is_keep_alive: value.is_keep_alive,
-            is_affix: value.is_affix,
-            sort: Some(value.sort),
+            sort: value.sort,
         }
     }
 }

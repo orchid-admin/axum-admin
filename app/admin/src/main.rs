@@ -14,8 +14,10 @@ async fn main() -> Result<()> {
         env!("CARGO_PKG_NAME")
     ));
     utils::logger::init(env_filter);
-    let prisma_client = service::Database::new(service::DatabaseConfig::default()).await?;
-    let state = state::State::build(prisma_client);
+
+    let config = config::Config::load();
+    let db_pool = model::connect::DbConnectPool::new(&config.database_url()).unwrap();
+    let state = state::State::build(db_pool);
 
     let app = ctls::router::init(state).await.layer(
         tower_http::trace::TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {

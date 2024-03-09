@@ -1,0 +1,12 @@
+[alias]
+cli = "run -p cli"
+admin = "run -p admin"
+api = "run -p api"
+mer = "run -p merchant"
+prisma = "run -p prisma_cli --"
+
+[http]
+proxy = "127.0.0.1:51484"
+
+[https]
+proxy = "127.0.0.1:51484"

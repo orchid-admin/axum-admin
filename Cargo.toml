@@ -3,12 +3,14 @@ members = [
     "app/admin",
     "app/api",
     "app/cli",
+    # "app/prisma_cli",
     "app/merchant",
-    "db",
+    "config",
+    "model",
     "service",
     "utils",
 ]
-default-members = ["app/cli"]
+# default-members = ["app/cli"]
 resolver = "2"
 
 [workspace.package]
@@ -49,7 +51,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
 console-subscriber = { version = "0.2", default-features = false, features = [
     "env-filter",
 ] }
-chrono = { version = "0.4" }
+chrono = { version = "0.4", features = ["serde"] }
 time = { version = "0.3", default-features = false, features = ["macros"] }
 # json require
 serde = { version = "1.0", default-features = false, features = ["derive"] }
@@ -67,8 +69,19 @@ tower-http = { version = "0.5", default-features = false, features = [
     "trace",
 ] }
 # orm require
-diesel = { version = "2.1.4" }
-diesel-async = { version = "0.4.1", features = ["sqlite"] }
+diesel = { version = "2.1.4", features = ["postgres_backend", "chrono"] }
+diesel-async = { version = "0.4.1", features = ["deadpool", "postgres"] }
+# sqlite: features = ["sqlite", "sqlite-create-many"]
+# mysql: features = ["mysql"]
+# postgres: features = ["postgresql"]
+# mssql: features = ["mssql"]
+# mongodb: features = ["mongodb"]
+prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.11", default-features = false, features = [
+    "postgresql",
+] }
+prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.11", default-features = false, features = [
+    "postgresql",
+] }
 # error code require
 custom_attrs = "1.6"
 thiserror = "1.0"
@@ -99,6 +112,7 @@ lettre = { version = "0.11", default-features = false, features = [
 ] }
 # big decimal require
 bigdecimal = { version = "0.3", features = ["serde"] }
+dotenvy = { version = "0.15.0" }
 
 [profile.release]
 codegen-units = 1
