@@ -8,6 +8,7 @@ use diesel_async::{
 };
 
 pub type Connect = Object<AsyncPgConnection>;
+#[derive(Clone)]
 pub struct ConnectPool(Pool<AsyncPgConnection>);
 
 impl ConnectPool {

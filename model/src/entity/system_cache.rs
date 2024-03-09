@@ -27,10 +27,13 @@ pub struct Entity {
 impl Entity {
     /// query find
     pub async fn find(conn: &mut Connect, filter: &Filter) -> Result<Option<Self>> {
-        let table = system_caches::table;
+        let mut table = system_caches::table.into_boxed();
         // filter condition
-        if let Some(_keyword) = &filter.keyword {
-            // let _ = table.filter(system_caches::name.eq(_keyword));
+        if let Some(key) = &filter.key {
+            table = table.filter(system_caches::key.eq(key));
+        }
+        if let Some(type_) = &filter.r#type {
+            table = table.filter(system_caches::type_.eq(type_));
         }
 
         let info = table

@@ -42,7 +42,7 @@ pub async fn get_by_sign(
         ..Default::default()
     };
     if let Some(id) = filter_id {
-        filter.id = Some(id);
+        filter.ne_id = Some(id);
     }
     let mut conn = pool.conn().await?;
     Ok(system_dict::Entity::find(&mut conn, filter).await?)

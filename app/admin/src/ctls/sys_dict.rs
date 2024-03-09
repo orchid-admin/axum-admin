@@ -32,6 +32,7 @@ async fn all(State(state): State<AppState>) -> Result<impl IntoResponse> {
 }
 
 /// dict list
+#[axum_macros::debug_handler]
 async fn index(
     State(state): State<AppState>,
     Query(params): Query<RequestSearch>,

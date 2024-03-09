@@ -41,22 +41,50 @@ impl<T> Paginated<T> {
         }
     }
 }
-impl<T> Paginated<T> {
-    pub async fn load_and_count_pages<'a, U>(self, conn: &mut Connect) -> QueryResult<(Vec<U>, i64)>
+impl<T: Query> Paginated<T> {
+    pub fn load_and_count_pages<'a, U>(
+        self,
+        conn: &'a mut Connect,
+    ) -> impl std::future::Future<Output = QueryResult<(Vec<U>, i64)>> + Send + 'a
     where
-        Self: LoadQuery<'a, Connect, (U, i64)>,
-        U: std::marker::Send,
+        Self: LoadQuery<'a, Connect, (U, i64)> + 'a,
+        U: std::marker::Send + 'a,
         T: 'a,
     {
-        let per_page = self.per_page;
-        let results = self.load::<(U, i64)>(conn).await?;
-        let total = results.get(0).map(|x| x.1).unwrap_or(0);
-        let records = results.into_iter().map(|x| x.0).collect();
-        let total_pages = (total as f64 / per_page as f64).ceil() as i64;
-        Ok((records, total_pages))
+        #![allow(clippy::get_first)]
+        let results = self.load::<(U, i64)>(conn);
+        async move {
+            let results = results.await?;
+            let total = results.get(0).map(|x| x.1).unwrap_or(0);
+            let records = results.into_iter().map(|x| x.0).collect();
+            Ok((records, total))
+        }
     }
 }
 
+// impl<T: Query> Paginated<T> {
+//     pub fn load_and_count_total<'a, U>(
+//         self,
+//         conn: &'a mut AsyncPgConnection,
+//     ) -> impl std::future::Future<Output = QueryResult<(Vec<U>, i64)>> + Send + 'a
+//     where
+//         Self: LoadQuery<'a, AsyncPgConnection, (U, i64)>,
+//         U: Send + 'a,
+//         T: 'a,
+//     {
+//         // Ignore those linting errors. `get(0)` cannot be replaced with `first()`.
+//         #![allow(clippy::get_first)]
+
+//         let results = self.load::<(U, i64)>(conn);
+
+//         async move {
+//             let results = results.await?;
+//             let total = results.get(0).map(|x| x.1).unwrap_or(0);
+//             let records = results.into_iter().map(|x| x.0).collect();
+//             Ok((records, total))
+//         }
+//     }
+// }
 impl<T: Query> Query for Paginated<T> {
     type SqlType = (T::SqlType, BigInt);
 }
