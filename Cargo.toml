@@ -3,7 +3,7 @@ members = [
     "app/admin",
     "app/api",
     "app/cli",
-    "app/prisma_cli",
+    # "app/prisma_cli",
     "app/merchant",
     "config",
     "model",

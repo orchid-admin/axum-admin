@@ -5,8 +5,8 @@ api = "run -p api"
 mer = "run -p merchant"
 prisma = "run -p prisma_cli --"
 
-#[http]
-#proxy = "127.0.0.1:50614"
+[http]
+proxy = "127.0.0.1:51484"
 
-#[https]
-#proxy = "127.0.0.1:50614"
+[https]
+proxy = "127.0.0.1:51484"
